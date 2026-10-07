@@ -1,0 +1,5 @@
+# Camosun ROV Command Centre - Python dependencies
+# Install with:  py -m pip install -r py_requirements.txt
+
+PySide6      # Qt UI
+pygame-ce    # DualShock 3 input via SDL2 - do NOT also install plain "pygame"
