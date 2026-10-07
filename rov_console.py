@@ -45,6 +45,7 @@ PROJECT LAYOUT
 """
 
 import argparse
+import ipaddress
 import sys
 
 from PySide6.QtWidgets import QApplication
@@ -53,10 +54,25 @@ from command_center_py.config import CMD_PORT, PI_HOST, TELEM_PORT
 from command_center_py.ui.window import ConsoleWindow
 
 
+def ipv4_address(text):
+    """argparse type for --host: accept only a usable IPv4 address like 192.168.2.2."""
+    text = text.strip()
+    try:
+        addr = ipaddress.IPv4Address(text)   # strict: exactly 4 parts, each 0-255, no leading zeros
+    except ipaddress.AddressValueError:
+        raise argparse.ArgumentTypeError(
+            f"'{text}' is not a valid IPv4 address - expected four numbers 0-255 "
+            f"separated by dots, e.g. 192.168.2.2")
+    if addr.is_unspecified or addr == ipaddress.IPv4Address("255.255.255.255") or addr.is_multicast:
+        raise argparse.ArgumentTypeError(
+            f"'{text}' can't be the Pi's address (unspecified, broadcast or multicast)")
+    return str(addr)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Camosun ROV topside console")
     ap.add_argument("--demo", action="store_true", help="simulate the vehicle (no network)")
-    ap.add_argument("--host", default=PI_HOST,
+    ap.add_argument("--host", type=ipv4_address, default=PI_HOST, metavar="IP",
                     help="IP address of the ROV's Raspberry Pi (default: %(default)s)")
     ap.add_argument("--cmd-port", type=int, default=CMD_PORT,
                     help="UDP port the Pi listens on for thruster commands (default: %(default)s)")
