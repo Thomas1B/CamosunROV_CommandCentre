@@ -9,6 +9,9 @@ Run:
     py -m pip install PySide6                 # one-time (pygame-ce already installed)
     py rov_console.py --demo                  # no vehicle needed, simulated telemetry
     py rov_console.py --host 192.168.2.2      # real vehicle
+    py rov_console.py --cmd-port 5600         # UDP port the Pi listens on for commands (default 5600)
+    py rov_console.py --telem-port 5601       # UDP port this console listens on for telemetry (default 5601)
+    py rov_console.py --help                  # list all options
 
 -----------------------------------------------------------------------------
 DUALSHOCK 3 CONTROLS
