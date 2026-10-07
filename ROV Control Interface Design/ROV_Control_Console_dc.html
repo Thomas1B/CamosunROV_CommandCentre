@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Offline build: every dependency is a local file, nothing is fetched from the internet. -->
+<link rel="stylesheet" href="./fonts/ibm-plex.css">
+<script src="./vendor/react.production.min.js"></script>
+<script src="./vendor/react-dom.production.min.js"></script>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
 body { margin: 0; background: #07090c; }
 a { color: #35d0a5; text-decoration: none; }
@@ -20,10 +21,10 @@ a:hover { color: #5ee7c1; }
 </style>
 </helmet>
 
-<div style="width: 1440px; height: 900px; display: grid; grid-template-rows: 26px 44px 1fr 24px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; overflow: hidden; border: 1px solid #1f2933;">
+<div style="width: 1440px; height: 900px; display: grid; grid-template-rows: 26px 44px 1fr 24px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Sans', 'Segoe UI', 'DejaVu Sans', system-ui, sans-serif; font-size: 13px; overflow: hidden; border: 1px solid #1f2933;">
 
   <div style="display: flex; align-items: center; gap: 2px; padding: 0 8px; background: linear-gradient(#171d25, #12171e); border-bottom: 1px solid #1f2933; user-select: none;">
-    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #35d0a5; padding-right: 12px;">SUBSEA&nbsp;ROV&nbsp;CONSOLE</div>
+    <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #35d0a5; padding-right: 12px;">SUBSEA&nbsp;ROV&nbsp;CONSOLE</div>
     <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">File</div>
     <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">Connection</div>
     <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">Vehicle</div>
@@ -31,17 +32,17 @@ a:hover { color: #5ee7c1; }
     <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">Tools</div>
     <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">Help</div>
     <div style="flex: 1;"></div>
-    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5f7183;">rov_console.py — PySide6</div>
+    <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #5f7183;">rov_console.py — PySide6</div>
   </div>
 
   <div style="display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #10151c; border-bottom: 1px solid #1f2933;">
     <div onClick="{{ toggleLink }}" style="display: flex; align-items: center; gap: 8px; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; cursor: pointer;">
       <div style="{{ linkDotStyle }}"></div>
-      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;">{{ linkLabel }}</div>
-      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5f7183;">192.168.2.2 : 5600</div>
+      <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;">{{ linkLabel }}</div>
+      <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #5f7183;">192.168.2.2 : 5600</div>
     </div>
 
-    <div style="display: flex; align-items: baseline; gap: 6px; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">
+    <div style="display: flex; align-items: baseline; gap: 6px; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px;">
       <span style="color: #5f7183;">RATE</span><span style="font-weight: 700; color: #35d0a5;">50</span><span style="color: #5f7183;">Hz</span>
       <span style="width: 1px; height: 12px; background: #23303c; margin: 0 4px;"></span>
       <span style="color: #5f7183;">RTT</span><span style="font-weight: 700;">{{ rtt }}</span><span style="color: #5f7183;">ms</span>
@@ -51,27 +52,27 @@ a:hover { color: #5ee7c1; }
 
     <div style="flex: 1;"></div>
 
-    <div style="display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5f7183; padding-right: 4px;">
+    <div style="display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #5f7183; padding-right: 4px;">
       <span style="color: #7c8b9c;">GAMEPAD</span>
       <span style="color: #35d0a5; font-weight: 600;">XBOX-1 OK</span>
     </div>
 
     <div onClick="{{ toggleArm }}" style="{{ armButtonStyle }}">{{ armLabel }}</div>
-    <div onClick="{{ estop }}" style="padding: 7px 18px; border-radius: 4px; border: 1px solid #7f2b2e; background: linear-gradient(#3a1416, #2a0f11); color: #ff6b6e; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; cursor: pointer;" style-hover="background: #57191c; color: #fff;">E-STOP</div>
+    <div onClick="{{ estop }}" style="padding: 7px 18px; border-radius: 4px; border: 1px solid #7f2b2e; background: linear-gradient(#3a1416, #2a0f11); color: #ff6b6e; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; cursor: pointer;" style-hover="background: #57191c; color: #fff;">E-STOP</div>
   </div>
 
   <div style="display: grid; grid-template-columns: 300px 1fr 296px; min-height: 0; background: #0b0f14;">
 
     <div style="display: flex; flex-direction: column; min-height: 0; border-right: 1px solid #1f2933; background: #0e131a;">
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #131a22; border-bottom: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">THRUSTER OUTPUT</div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #5f7183;">TX → PI</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">THRUSTER OUTPUT</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">TX → PI</div>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 14px; padding: 14px 12px;">
         <sc-for list="{{ thrusters }}" as="t" hint-placeholder-count="6">
           <div style="display: flex; flex-direction: column; gap: 5px;">
-            <div style="display: flex; align-items: baseline; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px;">
               <span style="color: #9fb0c2; font-weight: 600; letter-spacing: 0.06em;">{{ t.name }}</span>
               <span style="color: #5f7183; font-size: 10px;">{{ t.role }}</span>
               <span style="{{ t.valueStyle }}">{{ t.label }}</span>
@@ -86,7 +87,7 @@ a:hover { color: #5ee7c1; }
       </div>
 
       <div style="margin: 0 12px 12px; padding: 10px; border: 1px solid #1f2933; border-radius: 4px; background: #10161d; display: flex; flex-direction: column; gap: 7px;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">STICK INPUT</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">STICK INPUT</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 7px;">
           <sc-for list="{{ sticks }}" as="k" hint-placeholder-count="2">
             <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
@@ -95,7 +96,7 @@ a:hover { color: #5ee7c1; }
                 <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #1a2430;"></div>
                 <div style="{{ k.dotStyle }}"></div>
               </div>
-              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: #5f7183;">{{ k.label }}</div>
+              <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: #5f7183;">{{ k.label }}</div>
             </div>
           </sc-for>
         </div>
@@ -104,12 +105,12 @@ a:hover { color: #5ee7c1; }
       <div style="height: 1px; background: #1f2933; margin: 4px 0;"></div>
 
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #131a22; border-bottom: 1px solid #1f2933; border-top: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">VIEWING LIGHT</div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #5f7183;">GAMEPAD</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">VIEWING LIGHT</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">GAMEPAD</div>
       </div>
 
       <div style="padding: 16px 12px; display: flex; flex-direction: column; gap: 9px;">
-        <div style="display: flex; align-items: baseline; justify-content: space-between; font-family: 'IBM Plex Mono', monospace;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace;">
           <span style="font-size: 11px; color: #9fb0c2; letter-spacing: 0.06em;">BRIGHTNESS</span>
           <span style="font-size: 22px; font-weight: 700; color: #ffd479; line-height: 1;">{{ brightnessLabel }}</span>
         </div>
@@ -117,7 +118,7 @@ a:hover { color: #5ee7c1; }
           <div style="{{ lightFillStyle }}"></div>
           <div style="{{ lightKnobStyle }}"></div>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #5f7183;">
+        <div style="display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">
           <span style="padding: 3px 7px; border: 1px solid #23303c; border-radius: 3px; background: #131a22; color: #9fb0c2; font-weight: 600;">D-PAD ↑↓</span>
           <span>±5% step · held on Pi</span>
         </div>
@@ -125,7 +126,7 @@ a:hover { color: #5ee7c1; }
 
       <div style="flex: 1;"></div>
 
-      <div style="padding: 10px 12px; border-top: 1px solid #1f2933; background: #0a0e13; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #5f7183; line-height: 1.7;">
+      <div style="padding: 10px 12px; border-top: 1px solid #1f2933; background: #0a0e13; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183; line-height: 1.7;">
         <div>PACKET  <span style="color: #9fb0c2;">cmd_v1 · 16 B · 50 Hz</span></div>
         <div>PAYLOAD <span style="color: #9fb0c2;">6×int8 throttle + uint8 light</span></div>
       </div>
@@ -141,13 +142,13 @@ a:hover { color: #5ee7c1; }
           <div style="width: 74px; height: 54px; border: 2px solid #2c4653; border-radius: 8px; position: relative;">
             <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 22px; height: 22px; border: 2px solid #2c4653; border-radius: 50%;"></div>
           </div>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.2em;">CAM 0 · 1280×720 · H.264 · 30 FPS</div>
+          <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; letter-spacing: 0.2em;">CAM 0 · 1280×720 · H.264 · 30 FPS</div>
         </div>
 
-        <div style="position: absolute; left: 22px; top: 18px; display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; color: #ff6b6e; letter-spacing: 0.1em;">
+        <div style="position: absolute; left: 22px; top: 18px; display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; font-weight: 600; color: #ff6b6e; letter-spacing: 0.1em;">
           <div style="width: 8px; height: 8px; border-radius: 50%; background: #ff4d4f; animation: pulseDot 1.4s ease-in-out infinite;"></div>REC 00:14:22
         </div>
-        <div style="position: absolute; right: 22px; top: 18px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7fd9c0; letter-spacing: 0.08em;">{{ clock }} UTC</div>
+        <div style="position: absolute; right: 22px; top: 18px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #7fd9c0; letter-spacing: 0.08em;">{{ clock }} UTC</div>
 
         <div style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px;">
           <div style="position: relative; width: 88px; height: 88px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(53,208,165,0.35); background: rgba(7,10,14,0.6); box-shadow: 0 2px 14px rgba(0,0,0,0.6);">
@@ -155,7 +156,7 @@ a:hover { color: #5ee7c1; }
             <div style="position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 54px; height: 2px; background: #ffd479; box-shadow: 0 0 4px rgba(0,0,0,0.7);"></div>
             <div style="position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 6px; height: 6px; border-radius: 50%; background: #ffd479;"></div>
           </div>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: rgba(127,217,192,0.75);">ATTITUDE</div>
+          <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: rgba(127,217,192,0.75);">ATTITUDE</div>
         </div>
 
         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 120px; height: 120px; pointer-events: none;">
@@ -164,7 +165,7 @@ a:hover { color: #5ee7c1; }
           <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 34px; height: 34px; border: 1px solid rgba(53,208,165,0.5); border-radius: 50%;"></div>
         </div>
 
-        <div style="position: absolute; right: 22px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-family: 'IBM Plex Mono', monospace;">
+        <div style="position: absolute; right: 22px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace;">
           <div style="font-size: 10px; letter-spacing: 0.18em; color: rgba(127,217,192,0.7);">HEADING</div>
           <div style="font-size: 40px; font-weight: 700; color: #eaf2fa; line-height: 1; text-shadow: 0 2px 12px rgba(0,0,0,0.8);">{{ heading }}</div>
           <div style="font-size: 11px; color: rgba(234,242,250,0.6);">{{ headingCardinal }} · mag</div>
@@ -174,11 +175,11 @@ a:hover { color: #5ee7c1; }
 
       <div style="height: 118px; display: grid; grid-template-columns: 1fr; border-top: 1px solid #1f2933; background: #0e131a;">
         <div style="display: flex; flex-direction: column; min-height: 0;">
-          <div style="display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid #1f2933; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #8fa2b5;">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid #1f2933; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #8fa2b5;">
             EVENT LOG
             <span style="color: #5f7183; letter-spacing: 0;">· telemetry stream 50 Hz</span>
           </div>
-          <div style="flex: 1; overflow: hidden; padding: 6px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 1.55;">
+          <div style="flex: 1; overflow: hidden; padding: 6px 12px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; line-height: 1.55;">
             <sc-for list="{{ logLines }}" as="l" hint-placeholder-count="4">
               <div style="display: flex; gap: 10px;">
                 <span style="color: #4d5d6d;">{{ l.t }}</span>
@@ -193,15 +194,15 @@ a:hover { color: #5ee7c1; }
 
     <div style="display: flex; flex-direction: column; min-height: 0; border-left: 1px solid #1f2933; background: #0e131a;">
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #131a22; border-bottom: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">TELEMETRY</div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #5f7183;">RX ← PI</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">TELEMETRY</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">RX ← PI</div>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1f2933; border-bottom: 1px solid #1f2933;">
         <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="4">
           <div style="background: #0e131a; padding: 11px 12px; display: flex; flex-direction: column; gap: 3px;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #5f7183;">{{ m.name }}</div>
+              <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #5f7183;">{{ m.name }}</div>
               <div onClick="{{ m.toggle }}" title="Switch units" style="{{ m.toggleStyle }}" style-hover="border-color: #35d0a5; color: #eaf2fa;">{{ m.toggleLabel }}</div>
             </div>
             <div style="{{ m.valueStyle }}">{{ m.value }}<span style="font-size: 11px; color: #5f7183; font-weight: 500;"> {{ m.unit }}</span></div>
@@ -210,10 +211,10 @@ a:hover { color: #5ee7c1; }
       </div>
 
       <div style="padding: 12px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">IMU ATTITUDE</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">IMU ATTITUDE</div>
         <sc-for list="{{ imu }}" as="a" hint-placeholder-count="3">
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">
+            <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px;">
               <span style="color: #9fb0c2; letter-spacing: 0.06em;">{{ a.name }}</span>
               <span style="color: #eaf2fa; font-weight: 700;">{{ a.label }}</span>
             </div>
@@ -226,25 +227,25 @@ a:hover { color: #5ee7c1; }
       </div>
 
       <div style="padding: 12px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">POWER</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">POWER</div>
         <div style="display: flex; flex-direction: column; gap: 2px;">
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #5f7183;">BATTERY</div>
-          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ voltage }}<span style="font-size: 12px; color: #5f7183; font-weight: 500;"> V</span></div>
+          <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #5f7183;">BATTERY</div>
+          <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 32px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ voltage }}<span style="font-size: 12px; color: #5f7183; font-weight: 500;"> V</span></div>
         </div>
         <div style="position: relative; height: 8px; border-radius: 4px; background: #070a0e; border: 1px solid #1f2933; overflow: hidden;">
           <div style="{{ socFillStyle }}"></div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #5f7183;">
+        <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">
           <span>SOC {{ soc }}%</span><span>{{ runtime }} remaining</span>
         </div>
       </div>
 
       <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">SYSTEM STATUS</div>
+        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">SYSTEM STATUS</div>
         <sc-for list="{{ statuses }}" as="s" hint-placeholder-count="4">
           <div style="display: flex; align-items: center; gap: 8px; padding: 6px 9px; border: 1px solid #1f2933; border-radius: 3px; background: #10161d;">
             <div style="{{ s.dotStyle }}"></div>
-            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9fb0c2; flex: 1;">{{ s.name }}</div>
+            <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #9fb0c2; flex: 1;">{{ s.name }}</div>
             <div style="{{ s.valueStyle }}">{{ s.value }}</div>
           </div>
         </sc-for>
@@ -252,7 +253,7 @@ a:hover { color: #5ee7c1; }
     </div>
   </div>
 
-  <div style="display: flex; align-items: center; gap: 14px; padding: 0 12px; background: #10151c; border-top: 1px solid #1f2933; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #5f7183;">
+  <div style="display: flex; align-items: center; gap: 14px; padding: 0 12px; background: #10151c; border-top: 1px solid #1f2933; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">
     <span style="color: #9fb0c2;">{{ statusMessage }}</span>
     <div style="flex: 1;"></div>
     <span>eth0 · 1000 Mb/s full duplex</span>
@@ -364,12 +365,12 @@ class Component extends DCLogic {
     const iTemp = 41.6 + this.wob(3.3, 1.4);
     const u = s.units || {};
     const bigVal = (color) => ({
-      fontFamily: "'IBM Plex Mono', monospace", fontSize: '24px', fontWeight: 700,
+      fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '24px', fontWeight: 700,
       lineHeight: 1.1, color,
     });
     const toggleStyle = {
       padding: '2px 6px', border: '1px solid #23303c', borderRadius: '3px', background: '#131a22',
-      fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', fontWeight: 600,
+      fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '9px', fontWeight: 600,
       letterSpacing: '0.06em', color: '#7c8b9c', cursor: 'pointer', userSelect: 'none',
     };
     const metric = (key, name, siVal, siUnit, impVal, impUnit, color) => {
@@ -428,7 +429,7 @@ class Component extends DCLogic {
       estop: () => this.setState({ armed: false, throttles: [0, 0, 0, 0, 0, 0] }),
       armButtonStyle: {
         padding: '7px 18px', borderRadius: '4px', cursor: 'pointer',
-        fontFamily: "'IBM Plex Mono', monospace", fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em',
+        fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em',
         border: '1px solid ' + (s.armed ? '#2a6f5c' : '#3a4653'),
         background: s.armed ? 'linear-gradient(#123a30, #0e2c25)' : 'linear-gradient(#1b222b, #151b23)',
         color: s.armed ? accent : '#7c8b9c',
@@ -436,7 +437,7 @@ class Component extends DCLogic {
       armPillStyle: {
         padding: '5px 12px', borderRadius: '3px', background: 'rgba(10,16,22,0.78)',
         border: '1px solid ' + (s.armed ? 'rgba(53,208,165,0.5)' : 'rgba(124,139,156,0.35)'),
-        fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px', fontWeight: 700,
+        fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '11px', fontWeight: 700,
         color: s.armed ? accent : '#7c8b9c', letterSpacing: '0.08em',
       },
 
@@ -461,7 +462,7 @@ class Component extends DCLogic {
       waterTemp: (8.7 + this.wob(2.2, 0.15)).toFixed(1),
       internalTemp: iTemp.toFixed(1),
       internalTempStyle: {
-        fontFamily: "'IBM Plex Mono', monospace", fontSize: '24px', fontWeight: 700,
+        fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '24px', fontWeight: 700,
         lineHeight: 1.1, color: iTemp > 45 ? '#ffd479' : '#eaf2fa',
       },
       pressure: (2.24 + this.wob(0.9, 0.03)).toFixed(2),
@@ -485,8 +486,8 @@ class Component extends DCLogic {
       runtime: '1 h 12 m',
 
       statuses: [
-        { name: 'Leak sensor', value: 'DRY', dotStyle: { width: '7px', height: '7px', borderRadius: '50%', background: accent }, valueStyle: { fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px', fontWeight: 700, color: accent } },
-        { name: 'Telemetry link', value: '50 Hz', dotStyle: { width: '7px', height: '7px', borderRadius: '50%', background: accent }, valueStyle: { fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px', fontWeight: 700, color: '#d7e0ea' } },
+        { name: 'Leak sensor', value: 'DRY', dotStyle: { width: '7px', height: '7px', borderRadius: '50%', background: accent }, valueStyle: { fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '11px', fontWeight: 700, color: accent } },
+        { name: 'Telemetry link', value: '50 Hz', dotStyle: { width: '7px', height: '7px', borderRadius: '50%', background: accent }, valueStyle: { fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '11px', fontWeight: 700, color: '#d7e0ea' } },
       ],
 
       logLines: [
