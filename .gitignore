@@ -1,2 +1,2 @@
-command_center_py/__pycache__/
-command_center_py/ui/__pycache__/
+__pycache__/
+*.pyc
