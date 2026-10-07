@@ -12,6 +12,7 @@ Run:
     py rov_console.py --cmd-port 5600         # UDP port the Pi listens on for commands (default 5600)
     py rov_console.py --telem-port 5601       # UDP port this console listens on for telemetry (default 5601)
     py rov_console.py --help                  # list all options
+    (running with no options at all is an error - pick --demo or --host)
 
 -----------------------------------------------------------------------------
 DUALSHOCK 3 CONTROLS
@@ -61,6 +62,9 @@ def main():
                     help="UDP port the Pi listens on for thruster commands (default: %(default)s)")
     ap.add_argument("--telem-port", type=int, default=TELEM_PORT,
                     help="UDP port this console listens on for telemetry from the Pi (default: %(default)s)")
+    if len(sys.argv) == 1:
+        ap.error("no options given - use --demo to simulate, or --host <Pi IP> for the real vehicle "
+                 "(see --help)")
     args = ap.parse_args()
 
     app = QApplication(sys.argv)
