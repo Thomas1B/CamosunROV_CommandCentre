@@ -1602,9 +1602,12 @@ class LevelBarSOC(QWidget):
 def main():
     ap = argparse.ArgumentParser(description="Camosun ROV topside console")
     ap.add_argument("--demo", action="store_true", help="simulate the vehicle (no network)")
-    ap.add_argument("--host", default=PI_HOST)
-    ap.add_argument("--cmd-port", type=int, default=CMD_PORT)
-    ap.add_argument("--telem-port", type=int, default=TELEM_PORT)
+    ap.add_argument("--host", default=PI_HOST,
+                    help="IP address of the ROV's Raspberry Pi (default: %(default)s)")
+    ap.add_argument("--cmd-port", type=int, default=CMD_PORT,
+                    help="UDP port the Pi listens on for thruster commands (default: %(default)s)")
+    ap.add_argument("--telem-port", type=int, default=TELEM_PORT,
+                    help="UDP port this console listens on for telemetry from the Pi (default: %(default)s)")
     args = ap.parse_args()
 
     app = QApplication(sys.argv)
