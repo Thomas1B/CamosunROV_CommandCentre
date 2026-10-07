@@ -891,10 +891,6 @@ class ConsoleWindow(QMainWindow):
         self.leak_alarmed = False
         self.temp_warned = False
         self.leak_alarmed = False
-        self.diag = args.diag
-        self._t_last = None
-        self._dt_max = self._work_max = 0.0
-        self._diag_at = time.monotonic() + 5
 
         self._build_ui()
         self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo else ""), BLUE)
@@ -1606,7 +1602,6 @@ def main():
     ap.add_argument("--host", default=PI_HOST)
     ap.add_argument("--cmd-port", type=int, default=CMD_PORT)
     ap.add_argument("--telem-port", type=int, default=TELEM_PORT)
-    ap.add_argument("--diag", action="store_true", help="log control-loop timing every 5")
     args = ap.parse_args()
 
     app = QApplication(sys.argv)
