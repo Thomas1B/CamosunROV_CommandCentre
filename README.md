@@ -65,6 +65,9 @@ repeat step 2.
 python -m pip install -r py_requirements.txt
 ```
 
+If pip shows “A new release of pip is available”, you can ignore it, or run `python -m pip install --upgrade pip` (with the venv activated).
+Either way is fine; this only updates pip inside .venv.
+
 #### 4. Run the console
 
 ```
