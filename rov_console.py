@@ -1,17 +1,16 @@
-#!/usr/bin/env python3
-"""
+r"""
 Camosun ROV - topside control console
 PySide6 UI + DualShock 3 input (SDL2 via pygame)
 
 Control chain:  DualShock 3 -> this laptop (Windows) -> UDP -> Raspberry Pi -> STM32 -> thrusters
 
-Run:
-    py -m pip install PySide6                 # one-time (pygame-ce already installed)
-    py rov_console.py --demo                  # no vehicle needed, simulated telemetry
-    py rov_console.py --host 192.168.2.2      # real vehicle
-    py rov_console.py --cmd-port 5600         # UDP port the Pi listens on for commands (default 5600)
-    py rov_console.py --telem-port 5601       # UDP port this console listens on for telemetry (default 5601)
-    py rov_console.py --help                  # list all options
+Run (Python 3.14, inside the repo's .venv - see README for first-time setup):
+    .venv\Scripts\activate                        # once per terminal
+    python rov_console.py --demo                  # no vehicle needed, simulated telemetry
+    python rov_console.py --host 192.168.2.2      # real vehicle
+    python rov_console.py --cmd-port 5600         # UDP port the Pi listens on for commands (default 5600)
+    python rov_console.py --telem-port 5601       # UDP port this console listens on for telemetry (default 5601)
+    python rov_console.py --help                  # list all options
     (running with no options at all is an error - pick --demo or --host)
 
 -----------------------------------------------------------------------------
@@ -47,6 +46,21 @@ PROJECT LAYOUT
 import argparse
 import ipaddress
 import sys
+
+# Refuse to start outside the project venv or on the wrong Python version.
+# Must run before the PySide6/pygame imports below, so the user gets this
+# message instead of a confusing "No module named PySide6".
+# Skipped in a packaged executable (PyInstaller etc. set sys.frozen), which
+# carries its own bundled Python and has no venv.
+REQUIRED_PYTHON = (3, 14)
+if not getattr(sys, "frozen", False):
+    if sys.prefix == sys.base_prefix:
+        sys.exit("Not running in the venv - run .venv\\Scripts\\activate first "
+                 "(see README).")
+    if sys.version_info[:2] != REQUIRED_PYTHON:
+        sys.exit(f"Python {REQUIRED_PYTHON[0]}.{REQUIRED_PYTHON[1]} required, "
+                 f"found {sys.version.split()[0]} - rebuild .venv with "
+                 f"py -{REQUIRED_PYTHON[0]}.{REQUIRED_PYTHON[1]} -m venv .venv (see README).")
 
 from PySide6.QtWidgets import QApplication
 

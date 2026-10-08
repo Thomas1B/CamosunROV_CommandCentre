@@ -1,5 +1,14 @@
 # Camosun ROV Command Centre - Python dependencies
-# Install with:  py -m pip install -r py_requirements.txt
+# Python 3.14 (64-bit, Windows). Exact versions are pinned so every
+# collaborator's .venv is identical.
+#
+# Install (with the venv activated):  python -m pip install -r py_requirements.txt
+#
+# To change a dependency: edit the version here, reinstall, test, then commit
+# this file so everyone else can re-run the install command above.
 
-PySide6      # Qt UI
-pygame-ce    # DualShock 3 input via SDL2 - do NOT also install plain "pygame"
+PySide6==6.11.2              # Qt UI
+PySide6_Essentials==6.11.2   # (installed by PySide6)
+PySide6_Addons==6.11.2       # (installed by PySide6)
+shiboken6==6.11.2            # (installed by PySide6)
+pygame-ce==2.5.8             # DualShock 3 input via SDL2 - do NOT also install plain "pygame"
