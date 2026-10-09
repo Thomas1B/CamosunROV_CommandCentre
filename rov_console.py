@@ -100,8 +100,11 @@ def main():
     app = QApplication(sys.argv)
     win = ConsoleWindow(args)
     win.show()
-    sys.exit(app.exec())
+    exit_code = app.exec()          # blocks here until the window is closed
+    print("CamosunROV Command Centre closed.")
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
+    print("CamosunROV Command Centre Started.")
     main()
