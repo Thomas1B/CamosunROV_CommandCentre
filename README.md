@@ -1,6 +1,52 @@
 # CamosunROV Command Centre
 
-Pilot command centre for underwater ROV.
+Pilot command centre for the Camosun capstone underwater ROV.
+
+The command centre is a Windows desktop application the pilot uses to operate the
+ROV. It reads a game controller (e.g. PlayStation DualShock 3), mixes the stick and trigger
+inputs into commands for the ROV's six thrusters and camera tilt servo, and
+sends them over the tether to the ROV's Raspberry Pi, which passes them on to
+the STM32 motor controller.
+
+In the other direction, it receives telemetry from the Pi and displays it:
+depth, pressure, water and internal temperature, orientation, battery voltage
+and current, and the leak sensor.
+
+Main features:
+
+- Arm/disarm and an emergency stop (controller or keyboard SPACE)
+- Adjustable thrust gain (25 / 50 / 75 / 100 %)
+- Failsafes: the ROV is automatically disarmed if the controller disconnects or the tether link is lost
+- Leak alarm and high internal temperature warning, plus an event log with operator marks
+- Demo mode (`--demo`) with simulated telemetry, for testing without the ROV
+- Camera view with HUD (the live video stream is not wired in yet)
+
+---
+
+## Program Requirements
+
+### Computer
+
+- Windows 10 or 11 (64-bit)
+- An Ethernet (RJ45) port for the ROV tether. A USB-to-Ethernet adapter also works.
+
+### Controller
+
+- PlayStation DualShock 3 controller, connected by USB cable
+- **DsHidMini driver:** Windows has no built-in driver for the DualShock 3, so
+  download and install DsHidMini from
+  [docs.nefarius.at/Downloads](https://docs.nefarius.at/Downloads/) before
+  plugging in the controller.
+
+> **Note:** Xbox controller support is planned. For now, only the DualShock 3
+> is supported.
+
+### Software
+
+- Python 3.14 and the project venv. See [Developer Setup](#developer-setup).
+
+> **Note:** We plan to release the command centre as a Windows executable
+> (`.exe`), so pilots will be able to run it without installing Python.
 
 ---
 
@@ -64,9 +110,6 @@ repeat step 2.
 ```
 python -m pip install -r py_requirements.txt
 ```
-
-If pip shows “A new release of pip is available”, you can ignore it, or run `python -m pip install --upgrade pip` (with the venv activated).
-Either way is fine; this only updates pip inside .venv.
 
 #### 4. Run the console
 
