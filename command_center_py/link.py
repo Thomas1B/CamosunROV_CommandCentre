@@ -57,6 +57,8 @@ class Link:
         self._loss_ref = None
         self.lost_total = None      # command packets lost laptop -> Pi; None until the Pi reports counts
         self._lost_reported = 0
+        self.sent_counted = 0       # command packets covered by the lost count (same window as lost_total)
+        self._sent_reported = 0
         self._count_ref = None      # (time, ack seq, rx_cmds) at the last telemetry used for counting
         self.tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.tx.setblocking(False)
@@ -143,15 +145,18 @@ class Link:
             return
         got = rx_cmds - ref[2]
         self.lost_total += max(0, sent - got)
+        self.sent_counted += sent
         self._count_ref = (now, ack, rx_cmds)
 
     def take_lost(self):
-        """Return (lost since the last call, lost total), or None if the Pi hasn't reported counts yet."""
+        """Return (lost, sent) since the last call, or None if the Pi hasn't reported counts yet."""
         if self.lost_total is None:
             return None
-        since = self.lost_total - self._lost_reported
+        lost = self.lost_total - self._lost_reported
+        sent = self.sent_counted - self._sent_reported
         self._lost_reported = self.lost_total
-        return since, self.lost_total
+        self._sent_reported = self.sent_counted
+        return lost, sent
 
 
 class DemoLink(Link):
@@ -172,7 +177,7 @@ class DemoLink(Link):
         self._last = pkt
 
     def take_lost(self):
-        return 0, 0          # simulated vehicle - nothing is ever lost
+        return 0, 0          # simulated vehicle - no real link, so print 0/0
 
     def poll(self):
         if self._last is None:

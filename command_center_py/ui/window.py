@@ -494,8 +494,8 @@ class ConsoleWindow(QMainWindow):
         if counts is None:
             print(f"[{stamp}] Packets lost: unknown - no ack/rx_cmds from the Pi yet", flush=True)
             return
-        since, total = counts
-        print(f"[{stamp}] Packets lost: {since} in last {LOSS_PRINT_S} s (total {total})", flush=True)
+        lost, sent = counts
+        print(f"[{stamp}] {lost} packets lost in the past {LOSS_PRINT_S} seconds, {lost}/{sent}", flush=True)
 
     def refresh_ui(self):
         self._refresh(self.pad.snapshot(), time.monotonic())
