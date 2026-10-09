@@ -12,494 +12,503 @@
 <body>
 <x-dc>
 <helmet>
+<link rel="stylesheet" href="./fonts/ibm-plex.css">
 <style>
 body { margin: 0; background: #07090c; }
 a { color: #35d0a5; text-decoration: none; }
 a:hover { color: #5ee7c1; }
-@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
-@keyframes scanSweep { 0% { transform: translateY(-100%); } 100% { transform: translateY(1400%); } }
 </style>
 </helmet>
 
-<div style="width: 1440px; height: 900px; display: grid; grid-template-rows: 26px 44px 1fr 24px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Sans', 'Segoe UI', 'DejaVu Sans', system-ui, sans-serif; font-size: 13px; overflow: hidden; border: 1px solid #1f2933;">
+<div style="position: relative; width: 100%; height: 100vh; min-width: 1280px; min-height: 920px; display: grid; grid-template-rows: 26px 44px minmax(0,1fr) 22px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 12px; overflow: hidden; box-sizing: border-box;">
 
-  <div style="display: flex; align-items: center; gap: 2px; padding: 0 8px; background: linear-gradient(#171d25, #12171e); border-bottom: 1px solid #1f2933; user-select: none;">
-    <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #35d0a5; padding-right: 12px;">SUBSEA&nbsp;ROV&nbsp;CONSOLE</div>
-    <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">File</div>
-    <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">Connection</div>
-    <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">Vehicle</div>
-    <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">View</div>
-    <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">Tools</div>
-    <div style="padding: 3px 9px; border-radius: 3px; color: #9fb0c2;" style-hover="background: #1f2933; color: #eaf2fa;">Help</div>
-    <div style="flex: 1;"></div>
-    <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #5f7183;">rov_console.py — PySide6</div>
+  <div style="position: relative; z-index: 20; display: flex; align-items: center; gap: 2px; padding: 0 4px; background: #11161d; border-bottom: 1px solid #1f2933; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 12px; user-select: none;">
+    <div style="padding: 3px 7px; border-radius: 3px; color: #c9d3de;" style-hover="background: #1f2933; color: #eaf2fa;">File</div>
+    <div style="padding: 3px 7px; border-radius: 3px; color: #c9d3de;" style-hover="background: #1f2933; color: #eaf2fa;">Vehicle</div>
+    <div style="position: relative;">
+      <div onClick="{{ toggleHelpMenu }}" style="{{ helpMenuBtnStyle }}" style-hover="background: #1f2933; color: #eaf2fa;">Help</div>
+      <sc-if value="{{ helpMenuOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position: absolute; left: 0; top: 24px; min-width: 150px; padding: 4px; background: #1b2027; border: 1px solid #2c3540; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
+          <div onClick="{{ openMap }}" style="padding: 6px 14px; border-radius: 4px; color: #eaf2fa; cursor: default;" style-hover="background: #2a323d;">Dualshock3 Map</div>
+          <div onClick="{{ openXbox }}" style="padding: 6px 14px; border-radius: 4px; color: #eaf2fa; cursor: default;" style-hover="background: #2a323d;">Xbox Map</div>
+        </div>
+      </sc-if>
+    </div>
   </div>
 
-  <div style="display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #10151c; border-bottom: 1px solid #1f2933;">
-    <div onClick="{{ toggleLink }}" style="display: flex; align-items: center; gap: 8px; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; cursor: pointer;">
-      <div style="{{ linkDotStyle }}"></div>
-      <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;">{{ linkLabel }}</div>
-      <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #5f7183;">192.168.2.2 : 5600</div>
+  <div style="display: flex; align-items: center; gap: 8px; padding: 0 10px; background: #10151c; border-bottom: 1px solid #1f2933;">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 7px 11px; border: 1px solid #23303c; border-radius: 3px; background: #131a22; font-size: 11px;">
+      <div style="width: 7px; height: 7px; border-radius: 50%; background: #35d0a5;"></div>
+      <span style="font-weight: 600; color: #eaf2fa;">LINK UP</span>
+      <span style="color: #5f7183;">DEMO · simulated vehicle</span>
     </div>
-
-    <div style="display: flex; align-items: baseline; gap: 6px; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px;">
+    <div style="display: flex; align-items: baseline; gap: 5px; padding: 7px 11px; border: 1px solid #23303c; border-radius: 3px; background: #131a22; font-size: 11px;">
       <span style="color: #5f7183;">RATE</span><span style="font-weight: 700; color: #35d0a5;">50</span><span style="color: #5f7183;">Hz</span>
-      <span style="width: 1px; height: 12px; background: #23303c; margin: 0 4px;"></span>
-      <span style="color: #5f7183;">RTT</span><span style="font-weight: 700;">{{ rtt }}</span><span style="color: #5f7183;">ms</span>
-      <span style="width: 1px; height: 12px; background: #23303c; margin: 0 4px;"></span>
-      <span style="color: #5f7183;">LOSS</span><span style="font-weight: 700;">{{ loss }}</span><span style="color: #5f7183;">%</span>
+      <span style="color: #2c3a48; margin: 0 2px;">|</span>
+      <span style="color: #5f7183;">RTT</span><span style="font-weight: 700; color: #eaf2fa;">0.0</span><span style="color: #5f7183;">ms</span>
+      <span style="color: #2c3a48; margin: 0 2px;">|</span>
+      <span style="color: #5f7183;">LOSS</span><span style="font-weight: 700; color: #eaf2fa;">0.0</span><span style="color: #5f7183;">%</span>
     </div>
-
     <div style="flex: 1;"></div>
-
-    <div style="display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #5f7183; padding-right: 4px;">
-      <span style="color: #7c8b9c;">GAMEPAD</span>
-      <span style="color: #35d0a5; font-weight: 600;">XBOX-1 OK</span>
+    <div style="display: flex; gap: 5px; font-size: 11px;">
+      <span style="color: #8fa2b5;">GAMEPAD</span>
+      <span style="{{ padStyle }}">{{ padLabel }}</span>
     </div>
-
     <div onClick="{{ toggleArm }}" style="{{ armButtonStyle }}">{{ armLabel }}</div>
-    <div onClick="{{ estop }}" style="padding: 7px 18px; border-radius: 4px; border: 1px solid #7f2b2e; background: linear-gradient(#3a1416, #2a0f11); color: #ff6b6e; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; cursor: pointer;" style-hover="background: #57191c; color: #fff;">E-STOP</div>
+    <div onClick="{{ estop }}" style="width: 80px; text-align: center; padding: 7px 0; border-radius: 3px; border: 1px solid #7f2b2e; background: #2a1012; color: #ff6b6e; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer;" style-hover="background: #57191c; color: #fff;">E-STOP</div>
   </div>
 
-  <div style="display: grid; grid-template-columns: 300px 1fr 296px; min-height: 0; background: #0b0f14;">
+  <div style="display: grid; grid-template-columns: 298px minmax(0,1fr) 296px; min-height: 0;">
 
-    <div style="display: flex; flex-direction: column; min-height: 0; border-right: 1px solid #1f2933; background: #0e131a;">
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #131a22; border-bottom: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">THRUSTER OUTPUT</div>
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">TX → PI</div>
+    <div style="display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-right: 1px solid #1f2933; background: #0e131a;">
+      <div style="display: flex; justify-content: space-between; padding: 8px 10px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 10px;">
+        <span style="font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">THRUSTER OUTPUT</span>
+        <span style="color: #5f7183;">TX → PI</span>
       </div>
-
-      <div style="display: flex; flex-direction: column; gap: 14px; padding: 14px 12px;">
+      <div style="display: flex; flex-direction: column; gap: 9px; padding: 10px 10px 8px;">
         <sc-for list="{{ thrusters }}" as="t" hint-placeholder-count="6">
           <div style="display: flex; flex-direction: column; gap: 5px;">
-            <div style="display: flex; align-items: baseline; justify-content: space-between; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px;">
-              <span style="color: #9fb0c2; font-weight: 600; letter-spacing: 0.06em;">{{ t.name }}</span>
-              <span style="color: #5f7183; font-size: 10px;">{{ t.role }}</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 10px;">
+              <span style="color: #c9d3de; font-size: 11px;">{{ t.name }}</span>
+              <span style="color: #5f7183; text-align: center;">{{ t.role }}</span>
               <span style="{{ t.valueStyle }}">{{ t.label }}</span>
             </div>
-            <div style="position: relative; height: 18px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933;">
-              <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2c3a48;"></div>
+            <div style="position: relative; height: 16px; border-radius: 2px; background: #070a0e; border: 1px solid #1f2933;">
               <div style="{{ t.fillStyle }}"></div>
               <div style="{{ t.knobStyle }}"></div>
             </div>
           </div>
         </sc-for>
+        <div style="display: flex; justify-content: space-between; font-size: 10px; padding-top: 2px;">
+          <span style="color: #c9d3de;">GAIN <span style="color: #35d0a5; font-weight: 700;">{{ gainLabel }}</span></span>
+          <span style="color: #5f7183;">{{ ctl.l1 }} ▼  {{ ctl.r1 }} ▲</span>
+        </div>
       </div>
 
-      <div style="margin: 0 12px 12px; padding: 10px; border: 1px solid #1f2933; border-radius: 4px; background: #10161d; display: flex; flex-direction: column; gap: 7px;">
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">STICK INPUT</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 7px;">
-          <sc-for list="{{ sticks }}" as="k" hint-placeholder-count="2">
-            <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
-              <div style="position: relative; width: 100%; aspect-ratio: 1 / 1; border: 1px solid #1f2933; border-radius: 4px; background: #070a0e;">
-                <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
-                <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #1a2430;"></div>
-                <div style="{{ k.dotStyle }}"></div>
-              </div>
-              <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: #5f7183;">{{ k.label }}</div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 10px; background: #131a22; border-top: 1px solid #1f2933; border-bottom: 1px solid #1f2933; font-size: 10px;">
+        <span style="font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">STICK INPUT</span>
+        <span style="color: #5f7183;">{{ padName }}</span>
+      </div>
+      <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 0 10px;">
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
+            <div style="position: relative; width: 100%; aspect-ratio: 1 / 1; border: 1px solid #1f2933; border-radius: 3px; background: #070a0e;">
+              <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
+              <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #1a2430;"></div>
+              <div style="{{ leftDot }}"></div>
             </div>
+            <span style="font-size: 8px; color: #8fa2b5;">L · FWD/BACK + SIDE</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
+            <div style="position: relative; width: 100%; aspect-ratio: 1 / 1; border: 1px solid #1f2933; border-radius: 3px; background: #070a0e;">
+              <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
+              <div style="position: absolute; top: calc(50% - 3px); left: 6px; right: 6px; height: 6px; border-radius: 3px; background: #1d3a33;"></div>
+              <div style="{{ rightDot }}"></div>
+            </div>
+            <span style="font-size: 8px; color: #8fa2b5;">R · ROTATE (YAW)</span>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 8px; color: #8fa2b5;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span>{{ ctl.l2 }} · DESCEND</span>
+            <div style="height: 6px; border-radius: 2px; background: #070a0e; border: 1px solid #1f2933; overflow: hidden;"><div style="{{ l2Fill }}"></div></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span>{{ ctl.r2 }} · ASCEND</span>
+            <div style="height: 6px; border-radius: 2px; background: #070a0e; border: 1px solid #1f2933; overflow: hidden;"><div style="{{ r2Fill }}"></div></div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px;">
+          <sc-for list="{{ buttons }}" as="b" hint-placeholder-count="12">
+            <div style="{{ b.style }}">{{ b.label }}</div>
           </sc-for>
         </div>
       </div>
 
-      <div style="height: 1px; background: #1f2933; margin: 4px 0;"></div>
-
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #131a22; border-bottom: 1px solid #1f2933; border-top: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">VIEWING LIGHT</div>
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">GAMEPAD</div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 10px; background: #131a22; border-top: 1px solid #1f2933; border-bottom: 1px solid #1f2933; font-size: 10px;">
+        <span style="font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">CAMERA TILT</span>
+        <span style="color: #5f7183;">D-PAD</span>
       </div>
-
-      <div style="padding: 16px 12px; display: flex; flex-direction: column; gap: 9px;">
-        <div style="display: flex; align-items: baseline; justify-content: space-between; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace;">
-          <span style="font-size: 11px; color: #9fb0c2; letter-spacing: 0.06em;">BRIGHTNESS</span>
-          <span style="font-size: 22px; font-weight: 700; color: #ffd479; line-height: 1;">{{ brightnessLabel }}</span>
+      <div style="padding: 16px 10px 10px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 11px; color: #c9d3de;">SERVO ANGLE</span>
+          <span style="font-size: 20px; font-weight: 700; color: #ffd479; line-height: 1;">{{ tiltLabel }}</span>
         </div>
-        <div style="position: relative; height: 22px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; overflow: hidden;">
-          <div style="{{ lightFillStyle }}"></div>
-          <div style="{{ lightKnobStyle }}"></div>
+        <div style="position: relative; height: 16px; border-radius: 2px; background: #070a0e; border: 1px solid #1f2933;">
+          <div style="{{ tiltKnob }}"></div>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">
-          <span style="padding: 3px 7px; border: 1px solid #23303c; border-radius: 3px; background: #131a22; color: #9fb0c2; font-weight: 600;">D-PAD ↑↓</span>
-          <span>±5% step · held on Pi</span>
+        <div style="display: flex; justify-content: space-between; font-size: 8px; color: #5f7183;">
+          <span>DOWN −45°</span><span>UP +45°</span>
         </div>
+        <div style="font-size: 10px; color: #8fa2b5;">D-pad ↑↓ · 5° per step · hold to repeat</div>
       </div>
 
       <div style="flex: 1;"></div>
-
-      <div style="padding: 10px 12px; border-top: 1px solid #1f2933; background: #0a0e13; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183; line-height: 1.7;">
-        <div>PACKET  <span style="color: #9fb0c2;">cmd_v1 · 16 B · 50 Hz</span></div>
-        <div>PAYLOAD <span style="color: #9fb0c2;">6×int8 throttle + uint8 light</span></div>
+      <div style="padding: 8px 10px; border-top: 1px solid #1f2933; background: #0a0e13; font-size: 10px; color: #5f7183; line-height: 1.5;">
+        <div>PACKET  <span style="color: #8fa2b5;">cmd_v1 · 16 B · 50 Hz</span></div>
+        <div>PAYLOAD <span style="color: #8fa2b5;">6×int8 throttle + int8 cam tilt</span></div>
       </div>
     </div>
 
-    <div style="position: relative; min-width: 0; background: #05070a; display: flex; flex-direction: column;">
-      <div style="position: relative; flex: 1; min-height: 0; overflow: hidden; background: radial-gradient(120% 90% at 50% 40%, #123040 0%, #0a1a24 45%, #05090d 100%);">
+    <div style="min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #05070a;">
+      <div style="position: relative; flex: 1; min-height: 0; overflow: hidden; background: radial-gradient(110% 90% at 50% 35%, #12293a 0%, #0b1a25 45%, #070d13 100%);">
 
-        <div style="position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);"></div>
-        <div style="position: absolute; left: 0; right: 0; height: 40px; background: linear-gradient(rgba(53,208,165,0), rgba(53,208,165,0.05), rgba(53,208,165,0)); animation: scanSweep 7s linear infinite;"></div>
-
-        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #2c4653;">
-          <div style="width: 74px; height: 54px; border: 2px solid #2c4653; border-radius: 8px; position: relative;">
-            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 22px; height: 22px; border: 2px solid #2c4653; border-radius: 50%;"></div>
-          </div>
-          <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; letter-spacing: 0.2em;">CAM 0 · 1280×720 · H.264 · 30 FPS</div>
-        </div>
-
-        <div style="position: absolute; left: 22px; top: 18px; display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; font-weight: 600; color: #ff6b6e; letter-spacing: 0.1em;">
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: #ff4d4f; animation: pulseDot 1.4s ease-in-out infinite;"></div>REC 00:14:22
-        </div>
-        <div style="position: absolute; right: 22px; top: 18px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #7fd9c0; letter-spacing: 0.08em;">{{ clock }} UTC</div>
+        <div style="{{ armPill }}">{{ armLabel }}</div>
+        <div style="position: absolute; right: 22px; top: 18px; font-size: 11px; color: #c9e9df;">{{ clock }} UTC</div>
 
         <div style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <div style="position: relative; width: 88px; height: 88px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(53,208,165,0.35); background: rgba(7,10,14,0.6); box-shadow: 0 2px 14px rgba(0,0,0,0.6);">
+          <div style="position: relative; width: 88px; height: 88px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(53,208,165,0.35);">
             <div style="{{ horizonStyle }}"></div>
-            <div style="position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 54px; height: 2px; background: #ffd479; box-shadow: 0 0 4px rgba(0,0,0,0.7);"></div>
+            <div style="position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 56px; height: 2px; background: #ffd479;"></div>
             <div style="position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 6px; height: 6px; border-radius: 50%; background: #ffd479;"></div>
           </div>
-          <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: rgba(127,217,192,0.75);">ATTITUDE</div>
+          <span style="font-size: 8px; color: #8fd9c4;">ATTITUDE</span>
         </div>
 
-        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 120px; height: 120px; pointer-events: none;">
-          <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.35);"></div>
-          <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(53,208,165,0.35);"></div>
-          <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 34px; height: 34px; border: 1px solid rgba(53,208,165,0.5); border-radius: 50%;"></div>
+        <div style="position: absolute; left: 22px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 8px; color: #8fd9c4;">CAM TILT</span>
+          <div style="position: relative; width: 60px; height: 160px;">
+            <div style="position: absolute; left: 8px; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.45);"></div>
+            <sc-for list="{{ ticks }}" as="k" hint-placeholder-count="7">
+              <div style="{{ k }}"></div>
+            </sc-for>
+            <div style="{{ tiltPointer }}">
+              <div style="width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid #ffd479;"></div>
+              <span style="font-size: 10px; font-weight: 700; color: #eaf2fa; margin-left: 12px;">{{ tiltLabel }}</span>
+            </div>
+          </div>
         </div>
 
-        <div style="position: absolute; right: 22px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace;">
-          <div style="font-size: 10px; letter-spacing: 0.18em; color: rgba(127,217,192,0.7);">HEADING</div>
-          <div style="font-size: 40px; font-weight: 700; color: #eaf2fa; line-height: 1; text-shadow: 0 2px 12px rgba(0,0,0,0.8);">{{ heading }}</div>
-          <div style="font-size: 11px; color: rgba(234,242,250,0.6);">{{ headingCardinal }} · mag</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 120px; height: 120px;">
+          <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.4);"></div>
+          <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(53,208,165,0.4);"></div>
+          <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 34px; height: 34px; border: 1px solid rgba(53,208,165,0.55); border-radius: 50%;"></div>
         </div>
 
+        <div style="position: absolute; left: 50%; top: calc(50% + 70px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+          <div style="width: 72px; height: 52px; border: 2px solid #2c4653; border-radius: 6px; position: relative;">
+            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 20px; height: 20px; border: 2px solid #2c4653; border-radius: 50%;"></div>
+          </div>
+          <span style="font-size: 10px; color: #33505e;">NO VIDEO SOURCE</span>
+          <span style="font-size: 9px; color: #2a4350; white-space: nowrap;">camera stream not connected</span>
+        </div>
+
+        <div style="position: absolute; right: 22px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+          <span style="font-size: 9px; color: #8fd9c4;">HEADING</span>
+          <span style="font-size: 40px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ heading }}</span>
+          <span style="font-size: 10px; color: #c9d3de;">{{ headingCardinal }} · mag</span>
+        </div>
+
+        <div style="position: absolute; left: 22px; bottom: 20px; display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 9px; color: #8fd9c4;">DEPTH</span>
+          <span style="font-size: 24px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ depthLabel }}</span>
+        </div>
+        <div style="position: absolute; right: 22px; bottom: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+          <span style="font-size: 9px; color: #8fd9c4;">THRUST GAIN</span>
+          <span style="font-size: 24px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ gainLabel }}</span>
+        </div>
       </div>
 
-      <div style="height: 118px; display: grid; grid-template-columns: 1fr; border-top: 1px solid #1f2933; background: #0e131a;">
-        <div style="display: flex; flex-direction: column; min-height: 0;">
-          <div style="display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid #1f2933; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #8fa2b5;">
-            EVENT LOG
-            <span style="color: #5f7183; letter-spacing: 0;">· telemetry stream 50 Hz</span>
-          </div>
-          <div style="flex: 1; overflow: hidden; padding: 6px 12px; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; line-height: 1.55;">
-            <sc-for list="{{ logLines }}" as="l" hint-placeholder-count="4">
-              <div style="display: flex; gap: 10px;">
-                <span style="color: #4d5d6d;">{{ l.t }}</span>
-                <span style="{{ l.tagStyle }}">{{ l.tag }}</span>
-                <span style="color: #9fb0c2;">{{ l.msg }}</span>
-              </div>
-            </sc-for>
-          </div>
+      <div style="height: 130px; display: flex; flex-direction: column; border-top: 1px solid #1f2933; background: #0e131a;">
+        <div style="padding: 8px 12px; font-size: 10px; color: #c9d3de;">EVENT LOG <span style="color: #5f7183;">· command stream 50 Hz</span></div>
+        <div style="flex: 1; overflow: hidden; padding: 6px 12px; font-size: 11px; line-height: 1.3;">
+          <sc-for list="{{ logLines }}" as="l" hint-placeholder-count="2">
+            <div style="display: flex; gap: 10px;">
+              <span style="color: #4d5d6d;">{{ l.t }}</span>
+              <span style="{{ l.tagStyle }}">{{ l.tag }}</span>
+              <span style="color: #c9d3de;">{{ l.msg }}</span>
+            </div>
+          </sc-for>
         </div>
       </div>
     </div>
 
     <div style="display: flex; flex-direction: column; min-height: 0; border-left: 1px solid #1f2933; background: #0e131a;">
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #131a22; border-bottom: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">TELEMETRY</div>
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">RX ← PI</div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 10px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 10px;">
+        <span style="font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">TELEMETRY</span>
+        <span style="color: #5f7183;">RX ← PI</span>
       </div>
-
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1f2933; border-bottom: 1px solid #1f2933;">
         <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="4">
-          <div style="background: #0e131a; padding: 11px 12px; display: flex; flex-direction: column; gap: 3px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-              <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #5f7183;">{{ m.name }}</div>
-              <div onClick="{{ m.toggle }}" title="Switch units" style="{{ m.toggleStyle }}" style-hover="border-color: #35d0a5; color: #eaf2fa;">{{ m.toggleLabel }}</div>
+          <div style="background: #0e131a; padding: 12px 10px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 8px; color: #8fa2b5;">{{ m.name }}</span>
+              <div onClick="{{ m.toggle }}" title="Switch units" style="{{ m.toggleStyle }}">{{ m.toggleLabel }}</div>
             </div>
-            <div style="{{ m.valueStyle }}">{{ m.value }}<span style="font-size: 11px; color: #5f7183; font-weight: 500;"> {{ m.unit }}</span></div>
+            <div style="font-size: 22px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ m.value }}<span style="font-size: 10px; color: #5f7183; font-weight: 500;"> {{ m.unit }}</span></div>
           </div>
         </sc-for>
       </div>
 
-      <div style="padding: 12px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">IMU ATTITUDE</div>
+      <div style="padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #1f2933;">
+        <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">IMU ATTITUDE</span>
         <sc-for list="{{ imu }}" as="a" hint-placeholder-count="3">
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px;">
-              <span style="color: #9fb0c2; letter-spacing: 0.06em;">{{ a.name }}</span>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+              <span style="color: #c9d3de;">{{ a.name }}</span>
               <span style="color: #eaf2fa; font-weight: 700;">{{ a.label }}</span>
             </div>
-            <div style="position: relative; height: 6px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933;">
-              <div style="position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: #2c3a48;"></div>
+            <div style="position: relative; height: 4px; border-radius: 2px; background: #070a0e; border: 1px solid #1a2430;">
+              <div style="position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px; background: #2c3a48;"></div>
               <div style="{{ a.fillStyle }}"></div>
             </div>
           </div>
         </sc-for>
       </div>
 
-      <div style="padding: 12px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #1f2933;">
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">POWER</div>
-        <div style="display: flex; flex-direction: column; gap: 2px;">
-          <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #5f7183;">BATTERY</div>
-          <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 32px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ voltage }}<span style="font-size: 12px; color: #5f7183; font-weight: 500;"> V</span></div>
+      <div style="padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #1f2933;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">POWER</span>
+          <span style="font-size: 8px; color: #8fa2b5;">BATTERY</span>
         </div>
-        <div style="position: relative; height: 8px; border-radius: 4px; background: #070a0e; border: 1px solid #1f2933; overflow: hidden;">
-          <div style="{{ socFillStyle }}"></div>
+        <div style="font-size: 30px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ voltage }}<span style="font-size: 11px; color: #5f7183; font-weight: 500;"> V</span></div>
+        <div style="height: 6px; border-radius: 3px; background: #070a0e; border: 1px solid #1a2430; overflow: hidden;">
+          <div style="height: 100%; width: 72%; background: #35a585; border-radius: 3px;"></div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">
-          <span>SOC {{ soc }}%</span><span>{{ runtime }} remaining</span>
+        <div style="display: flex; justify-content: space-between; font-size: 9px; color: #5f7183;">
+          <span>SOC est. 72%</span><span>{{ current }} A</span>
         </div>
       </div>
 
-      <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-        <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: #8fa2b5;">SYSTEM STATUS</div>
+      <div style="padding: 12px 10px; display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">SYSTEM STATUS</span>
         <sc-for list="{{ statuses }}" as="s" hint-placeholder-count="4">
-          <div style="display: flex; align-items: center; gap: 8px; padding: 6px 9px; border: 1px solid #1f2933; border-radius: 3px; background: #10161d;">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 6px 9px; border: 1px solid #1f2933; border-radius: 2px; background: #10161d;">
             <div style="{{ s.dotStyle }}"></div>
-            <div style="font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; color: #9fb0c2; flex: 1;">{{ s.name }}</div>
-            <div style="{{ s.valueStyle }}">{{ s.value }}</div>
+            <span style="font-size: 11px; color: #c9d3de; flex: 1;">{{ s.name }}</span>
+            <span style="{{ s.valueStyle }}">{{ s.value }}</span>
           </div>
         </sc-for>
       </div>
     </div>
   </div>
 
-  <div style="display: flex; align-items: center; gap: 14px; padding: 0 12px; background: #10151c; border-top: 1px solid #1f2933; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 10px; color: #5f7183;">
-    <span style="color: #9fb0c2;">{{ statusMessage }}</span>
+  <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px; background: #10151c; border-top: 1px solid #1f2933; font-size: 10px; color: #5f7183;">
+    <span style="color: #c9d3de;">{{ statusMessage }}</span>
     <div style="flex: 1;"></div>
-    <span>eth0 · 1000 Mb/s full duplex</span>
-    <span style="width: 1px; height: 11px; background: #23303c;"></span>
     <span>TX {{ txCount }} pkt</span>
-    <span style="width: 1px; height: 11px; background: #23303c;"></span>
+    <span style="color: #2c3a48;">|</span>
     <span>RX {{ rxCount }} pkt</span>
-    <span style="width: 1px; height: 11px; background: #23303c;"></span>
-    <span>v0.4.1</span>
+    <span style="color: #2c3a48;">|</span>
+    <span>v0.5.0</span>
   </div>
-</div>
 
+  <sc-if value="{{ helpMenuOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeHelpMenu }}" style="position: absolute; inset: 26px 0 0 0; z-index: 15;"></div>
+  </sc-if>
+
+  <sc-if value="{{ mapOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeMap }}" style="position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35);">
+      <div onClick="{{ stop }}" style="width: 440px; background: #0e131a; border: 1px solid #23303c; border-radius: 4px; box-shadow: 0 18px 50px rgba(0,0,0,0.7); color: #d7e0ea; overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 10px;">
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #c9d3de;">{{ map.title }}</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div onClick="{{ closeMap }}" style="width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 12px; color: #8fa2b5; cursor: pointer;" style-hover="background: #1f2933; color: #eaf2fa;">✕</div>
+          </div>
+        </div>
+        <div style="padding: 6px 14px 4px; display: flex; flex-direction: column;">
+          <span style="font-size: 9px; letter-spacing: 0.1em; color: #5f7183; padding: 10px 0 6px;">DRIVE</span>
+          <div style="display: grid; grid-template-columns: 120px 1fr; row-gap: 7px; align-items: center; font-size: 11px;">
+            <div style="display: flex;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">L STICK</span></div><span style="color: #c9d3de;">Forward / back + side to side</span>
+            <div style="display: flex;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">R STICK ←→</span></div><span style="color: #c9d3de;">Rotate (yaw)</span>
+            <div style="display: flex; gap: 4px;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ map.l2 }}</span><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ map.r2 }}</span></div><span style="color: #c9d3de;">Descend / ascend <span style="color: #5f7183;">· analog</span></span>
+            <div style="display: flex; gap: 4px;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ map.l1 }}</span><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ map.r1 }}</span></div><span style="color: #c9d3de;">Thrust gain down / up</span>
+            <div style="display: flex;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">D-PAD ↑↓</span></div><span style="color: #c9d3de;">Camera tilt</span>
+          </div>
+          <span style="font-size: 9px; letter-spacing: 0.1em; color: #5f7183; padding: 16px 0 6px;">VEHICLE</span>
+          <div style="display: grid; grid-template-columns: 120px 1fr; row-gap: 7px; align-items: center; font-size: 11px;">
+            <div style="display: flex;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ map.start }}</span></div><span style="color: #c9d3de;">Hold 1 s to arm · tap to disarm</span>
+            <div style="display: flex; gap: 4px;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ map.sel }}</span></div><span style="color: #ff6b6e;">E-STOP</span>
+          </div>
+          <span style="font-size: 9px; letter-spacing: 0.1em; color: #5f7183; padding: 16px 0 6px;">CONSOLE</span>
+          <div style="display: grid; grid-template-columns: 120px 1fr; row-gap: 7px; align-items: center; font-size: 11px;">
+            <div style="display: flex;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ map.tri }}</span></div><span style="color: #c9d3de;">Toggle SI / imperial units</span>
+            <div style="display: flex;"><span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ map.sq }}</span></div><span style="color: #c9d3de;">Operator mark in log</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 10px 14px; border-top: 1px solid #1f2933; background: #0a0e13;">
+          <span style="font-size: 10px; color: #8fa2b5;">Keyboard <span style="padding: 2px 6px; border: 1px solid #7f2b2e; border-radius: 2px; color: #ff6b6e;">SPACE</span> — E-STOP</span>
+          <div onClick="{{ closeMap }}" style="width: 72px; padding: 6px 0; text-align: center; font-size: 11px; font-weight: 600; border: 1px solid #2c3a48; border-radius: 3px; background: #1a2029; color: #eaf2fa; cursor: pointer;" style-hover="border-color: #35d0a5; color: #35d0a5;">OK</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#35d0a5&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#35d0a5&quot;,&quot;#7fb2ff&quot;,&quot;#ffd479&quot;,&quot;#ff7a59&quot;],&quot;section&quot;:&quot;Theme&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;controller&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;ds3&quot;,&quot;xbox&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
-  state = {
-    throttles: [38, -38, 24, -24, 55, 55],
-    brightness: 62,
-    armed: true,
-    linked: true,
-    t: 0,
-    units: { depth: false, pressure: false, water: false, internal: false },
-    tx: 41208,
-    rx: 41197,
-  };
+  state = { armed: false, t: 0, gain: 50, tilt: 0, tx: 0, rx: 0, imp: false, pad: null, log: [], helpMenuOpen: false, mapOpen: false };
 
   componentDidMount() {
-    this.timer = setInterval(() => {
-      this.setState(s => ({ t: s.t + 1, tx: s.tx + 5, rx: s.rx + 5 }));
-    }, 100);
+    this.prev = {};
+    this.startHeld = 0;
+    this.dpadHeld = 0;
+    this.addLog('SYS', 'Console v0.5.0 started in DEMO mode');
+    this.addLog('LINK', 'Telemetry received — link up');
+    this.onKey = e => {
+      if (e.code === 'Space') { e.preventDefault(); this.estop('keyboard SPACE'); }
+      if (e.key === 'Escape') this.setState({ mapOpen: false, helpMenuOpen: false });
+    };
+    window.addEventListener('keydown', this.onKey);
+    this.timer = setInterval(() => this.tick(), 20);
   }
-  componentWillUnmount() { clearInterval(this.timer); }
+  componentWillUnmount() { clearInterval(this.timer); window.removeEventListener('keydown', this.onKey); }
 
-  wob(seed, amp) {
-    const t = this.state.t / 10;
-    return (Math.sin(t * 0.7 + seed) + Math.sin(t * 1.9 + seed * 2.3) * 0.4) * amp;
+  hms(d) { return [d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()].map(n => String(n).padStart(2, '0')).join(':'); }
+  addLog(tag, msg) { this.setState(s => ({ log: [{ t: this.hms(new Date()), tag, msg }].concat(s.log).slice(0, 6) })); }
+  estop(src) {
+    this.setState({ armed: false });
+    this.addLog('STOP', 'E-STOP — ' + src);
+  }
+  setArmed(v) {
+    if (this.state.armed === v) return;
+    this.setState({ armed: v });
+    this.addLog('ARM', v ? 'Thrusters armed' : 'Thrusters disarmed');
   }
 
-  setFromPointer(e, cb, bipolar) {
-    const r = e.currentTarget.getBoundingClientRect();
-    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-    cb(bipolar ? Math.round(f * 200 - 100) : Math.round(f * 100));
+  tick() {
+    const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : [];
+    const gp = pads[0];
+    let pad = null;
+    if (gp) {
+      const ax = i => { const v = gp.axes[i] || 0; return Math.abs(v) < 0.08 ? 0 : v; };
+      const bt = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
+      const bv = i => (gp.buttons[i] ? gp.buttons[i].value : 0);
+      this.padId = gp.id;
+      pad = { lx: ax(0), ly: -ax(1), rx: ax(2), l2: bv(6), r2: bv(7), b: gp.buttons.map((_, i) => bt(i)) };
+      const edge = i => bt(i) && !this.prev[i];
+      const rel = i => !bt(i) && this.prev[i];
+      if (!this.state.pad) this.addLog('PAD', 'Controller connected — ' + gp.id.slice(0, 40));
+      if (edge(8)) this.estop('SELECT');
+      if (bt(9)) {
+        this.startHeld += 20;
+        if (this.startHeld >= 1000 && !this.state.armed && !this.armedThisPress) { this.setArmed(true); this.armedThisPress = true; }
+      }
+      if (rel(9)) {
+        if (this.state.armed && !this.armedThisPress && this.startHeld < 1000) this.setArmed(false);
+        this.startHeld = 0; this.armedThisPress = false;
+      }
+      if (edge(4)) this.setState(s => ({ gain: Math.max(10, s.gain - 10) }));
+      if (edge(5)) this.setState(s => ({ gain: Math.min(100, s.gain + 10) }));
+      if (edge(3)) this.setState(s => ({ imp: !s.imp }));
+      if (edge(2)) this.addLog('MARK', 'Operator mark');
+      const dir = bt(12) ? 1 : bt(13) ? -1 : 0;
+      if (dir) {
+        if (this.dpadHeld === 0 || (this.dpadHeld >= 400 && this.dpadHeld % 120 === 0)) this.setState(s => ({ tilt: Math.max(-45, Math.min(45, s.tilt + dir * 5)) }));
+        this.dpadHeld += 20;
+      } else this.dpadHeld = 0;
+      this.prev = {}; gp.buttons.forEach((_, i) => { this.prev[i] = bt(i); });
+    } else if (this.state.pad) {
+      this.addLog('PAD', 'Controller disconnected');
+      if (this.state.armed) this.estop('controller lost');
+    }
+    this.setState(s => ({ t: s.t + 1, pad, padId: gp ? gp.id : s.padId, tx: s.tx + 1, rx: s.rx + 1 }));
   }
+
+  wob(seed, amp) { const t = this.state.t / 50; return (Math.sin(t * 0.7 + seed) + Math.sin(t * 1.9 + seed * 2.3) * 0.4) * amp; }
 
   renderVals() {
     const s = this.state;
-    const accent = this.props.accent ?? '#35d0a5';
-    const names = [
-      ['T1', 'FWD-PORT'], ['T2', 'FWD-STBD'], ['T3', 'AFT-PORT'],
-      ['T4', 'AFT-STBD'], ['T5', 'VERT-PORT'], ['T6', 'VERT-STBD'],
-    ];
-
-    const lx = this.wob(0.5, 0.55), ly = this.wob(2.1, 0.5);
-    const rx = this.wob(3.6, 0.45), ry = this.wob(1.4, 0.6);
-    const mix = [
-      ly + lx, ly - lx, -ly + lx * 0.8, -ly - lx * 0.8, ry, ry,
-    ];
-
+    const accent = '#35d0a5';
+    const p = s.pad || { lx: 0, ly: 0, rx: 0, l2: 0, r2: 0, b: [] };
+    const g = s.gain / 100;
+    const heave = p.r2 - p.l2;
+    const mix = [p.ly + p.lx + p.rx, p.ly - p.lx - p.rx, p.ly - p.lx + p.rx, p.ly + p.lx - p.rx, heave, heave];
+    const names = [['T1', 'FWD-PORT'], ['T2', 'FWD-STBD'], ['T3', 'AFT-PORT'], ['T4', 'AFT-STBD'], ['T5', 'VERT-PORT'], ['T6', 'VERT-STBD']];
     const thrusters = mix.map((raw, i) => {
-      const pct = s.armed ? Math.max(-100, Math.min(100, Math.round(raw * 78))) : 0;
+      const pct = s.armed ? Math.round(Math.max(-1, Math.min(1, raw)) * g * 100) : 0;
       const mag = Math.abs(pct) / 2;
-      const col = pct === 0 ? '#4d5d6d' : (Math.abs(pct) > 80 ? '#ffd479' : accent);
       return {
-        name: names[i][0], role: names[i][1],
-        label: (pct > 0 ? '+' : '') + pct + '%',
-        valueStyle: { color: col, fontWeight: 700, fontVariantNumeric: 'tabular-nums', minWidth: '46px', textAlign: 'right' },
-        fillStyle: {
-          position: 'absolute', top: '2px', bottom: '2px',
-          left: pct >= 0 ? '50%' : (50 - mag) + '%', width: mag + '%',
-          background: col, opacity: 0.85, borderRadius: '2px',
-          transition: 'width 90ms linear, left 90ms linear',
-        },
-        knobStyle: {
-          position: 'absolute', top: '-2px', bottom: '-2px',
-          left: 'calc(' + (50 + pct / 2) + '% - 2px)', width: '4px',
-          background: '#eaf2fa', borderRadius: '2px', boxShadow: '0 0 6px rgba(0,0,0,0.7)',
-        },
+        name: names[i][0], role: names[i][1], label: (pct > 0 ? '+' : '') + pct + '%',
+        valueStyle: { color: pct === 0 ? '#4d5d6d' : accent, textAlign: 'right', fontWeight: pct === 0 ? 400 : 700 },
+        fillStyle: { position: 'absolute', top: '2px', bottom: '2px', left: pct >= 0 ? '50%' : (50 - mag) + '%', width: mag + '%', background: accent, opacity: 0.8, borderRadius: '1px' },
+        knobStyle: { position: 'absolute', top: '-1px', bottom: '-1px', left: 'calc(' + (50 + pct / 2) + '% - 2px)', width: '4px', background: '#eaf2fa', borderRadius: '1px' },
       };
     });
-
-    const stick = (label, x, y) => ({
-      label,
-      dotStyle: {
-        position: 'absolute',
-        left: 'calc(' + (50 + x * 42) + '% - 5px)',
-        top: 'calc(' + (50 - y * 42) + '% - 5px)',
-        width: '10px', height: '10px', borderRadius: '50%',
-        background: accent, boxShadow: '0 0 8px rgba(53,208,165,0.6)',
-        transition: 'left 90ms linear, top 90ms linear',
-      },
+    const dot = (x, y) => ({ position: 'absolute', left: 'calc(' + (50 + x * 42) + '% - 6px)', top: 'calc(' + (50 - y * 42) + '% - 6px)', width: '12px', height: '12px', borderRadius: '50%', background: '#4fd6a8', boxShadow: '0 0 8px rgba(53,208,165,0.6)' });
+    const force = this.props.controller ?? 'auto';
+    const xbox = force === 'xbox' || (force === 'auto' && /xbox|xinput|microsoft|045e/i.test(s.padId || ''));
+    const ctl = xbox
+      ? { name: 'XBOX', l1: 'LB', r1: 'RB', l2: 'LT', r2: 'RT', sel: 'VIEW', start: 'MENU', ps: 'XBOX', b: ['A', 'B', 'X', 'Y'] }
+      : { name: 'DUALSHOCK 3', l1: 'L1', r1: 'R1', l2: 'L2', r2: 'R2', sel: 'SEL', start: 'START', ps: 'PS', b: ['✕', '○', '□', '△'] };
+    const btnLabels = [[ctl.b[0], 0], [ctl.b[1], 1], [ctl.b[2], 2], [ctl.b[3], 3], [ctl.l1, 4], [ctl.r1, 5], [ctl.l2, 6], [ctl.r2, 7], [ctl.sel, 8], [ctl.start, 9], [ctl.ps, 16], ['↑↓', 12]];
+    const buttons = btnLabels.map(([label, i]) => {
+      const on = i === 12 ? (p.b[12] || p.b[13]) : p.b[i];
+      return { label, style: { padding: '4px 0', textAlign: 'center', fontSize: '9px', borderRadius: '2px', border: '1px solid ' + (on ? '#2a6f5c' : '#1f2933'), background: on ? '#123a30' : '#131a22', color: on ? accent : '#8fa2b5' } };
     });
-    const sticks = [stick('L · SURGE/SWAY', lx, ly), stick('R · HEAVE/YAW', rx, ry)];
-
-    const roll = this.wob(1.1, 7.5), pitch = this.wob(2.7, 5.2);
-    const heading = (214 + this.wob(0.4, 3)).toFixed(0).padStart(3, '0');
+    const tiltPos = (45 - s.tilt) / 90 * 160;
+    const ticks = [0, 1, 2, 3, 4, 5, 6].map(i => ({ position: 'absolute', left: '8px', top: (i * 160 / 6) + 'px', width: i % 3 === 0 ? '8px' : '5px', height: '1px', background: 'rgba(53,208,165,0.45)' }));
+    const roll = this.wob(1.1, 4), pitch = this.wob(2.7, 3);
+    const yaw = 214 + this.wob(0.4, 1.5);
     const cards = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-    const yaw = 214 + this.wob(0.4, 3);
-
     const axis = (name, val, max) => ({
       name, label: (val >= 0 ? '+' : '') + val.toFixed(1) + '°',
-      fillStyle: {
-        position: 'absolute', top: 0, bottom: 0,
-        left: val >= 0 ? '50%' : (50 - Math.abs(val) / max * 50) + '%',
-        width: (Math.abs(val) / max * 50) + '%',
-        background: accent, borderRadius: '3px',
-      },
+      fillStyle: { position: 'absolute', top: 0, bottom: 0, left: val >= 0 ? '50%' : (50 - Math.abs(val) / max * 50) + '%', width: (Math.abs(val) / max * 50) + '%', background: '#2f9e7c', borderRadius: '2px' },
     });
-
-    const iTemp = 41.6 + this.wob(3.3, 1.4);
-    const u = s.units || {};
-    const bigVal = (color) => ({
-      fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '24px', fontWeight: 700,
-      lineHeight: 1.1, color,
-    });
-    const toggleStyle = {
-      padding: '2px 6px', border: '1px solid #23303c', borderRadius: '3px', background: '#131a22',
-      fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '9px', fontWeight: 600,
-      letterSpacing: '0.06em', color: '#7c8b9c', cursor: 'pointer', userSelect: 'none',
-    };
-    const metric = (key, name, siVal, siUnit, impVal, impUnit, color) => {
-      const imp = !!u[key];
-      return {
-        name, unit: imp ? impUnit : siUnit, value: imp ? impVal : siVal,
-        valueStyle: bigVal(color),
-        toggleLabel: imp ? 'IMP' : 'SI',
-        toggleStyle: Object.assign({}, toggleStyle, imp ? { borderColor: '#4a5a2e', color: '#c9d67a' } : null),
-        toggle: () => this.setState(st => ({ units: Object.assign({}, st.units, { [key]: !imp }) })),
-      };
-    };
-    const depthM = 12.4 + this.wob(0.9, 0.35);
-    const presBar = 2.24 + this.wob(0.9, 0.03);
-    const wTemp = 8.7 + this.wob(2.2, 0.15);
+    const depth = 12.4 + this.wob(0.9, 0.05);
+    const pres = 2259 + Math.round(this.wob(0.9, 2));
+    const wT = 8.6 + this.wob(2.2, 0.1), iT = 39.1 + this.wob(3.3, 0.15);
+    const tStyle = { padding: '2px 5px', border: '1px solid #2c3a48', borderRadius: '2px', background: '#131a22', fontSize: '8px', color: s.imp ? '#c9d67a' : '#8fa2b5', cursor: 'pointer', userSelect: 'none' };
+    const toggle = () => this.setState(st => ({ imp: !st.imp }));
+    const m = (name, si, su, im, iu) => ({ name, value: s.imp ? im : si, unit: s.imp ? iu : su, toggleLabel: s.imp ? 'IMP' : 'SI', toggleStyle: tStyle, toggle });
     const metrics = [
-      metric('depth', 'DEPTH', depthM.toFixed(2), 'm', (depthM * 3.28084).toFixed(1), 'ft', '#eaf2fa'),
-      metric('pressure', 'PRESSURE', (presBar * 1000).toFixed(0), 'mbar', (presBar * 14.5038).toFixed(1), 'psi', '#eaf2fa'),
-      metric('water', 'WATER TEMP', wTemp.toFixed(1), '°C', (wTemp * 9 / 5 + 32).toFixed(1), '°F', '#eaf2fa'),
-      metric('internal', 'INTERNAL TEMP', iTemp.toFixed(1), '°C', (iTemp * 9 / 5 + 32).toFixed(1), '°F', iTemp > 45 ? '#ffd479' : '#eaf2fa'),
+      m('DEPTH', depth.toFixed(2), 'm', (depth * 3.28084).toFixed(1), 'ft'),
+      m('PRESSURE', String(pres), 'mbar', (pres * 0.0145038).toFixed(1), 'psi'),
+      m('WATER TEMP', wT.toFixed(1), '°C', (wT * 9 / 5 + 32).toFixed(1), '°F'),
+      m('INTERNAL TEMP', iT.toFixed(1), '°C', (iT * 9 / 5 + 32).toFixed(1), '°F'),
     ];
-    const soc = 74;
-    const current = (6.2 + s.throttles.reduce((a, b) => a + Math.abs(b), 0) / 100 * 3.1 + s.brightness / 100 * 2.4).toFixed(1);
-
-    const now = new Date(Date.UTC(2025, 5, 12, 11, 42, 8 + Math.floor(s.t / 10)));
-    const hh = String(now.getUTCHours()).padStart(2, '0');
-    const mm = String(now.getUTCMinutes()).padStart(2, '0');
-    const ss = String(now.getUTCSeconds()).padStart(2, '0');
-
-    const tag = (txt, c) => ({ tag: txt, tagStyle: { color: c, fontWeight: 600, width: '52px' } });
-
+    const mono = { fontSize: '11px', fontWeight: 700 };
+    const dotS = c => ({ width: '7px', height: '7px', borderRadius: '50%', background: c });
+    const hasPad = !!s.pad;
+    const statuses = [
+      { name: 'Telemetry link', value: 'UP', dotStyle: dotS(accent), valueStyle: Object.assign({ color: accent }, mono) },
+      { name: 'Leak sensor', value: 'DRY', dotStyle: dotS(accent), valueStyle: Object.assign({ color: accent }, mono) },
+      { name: 'Controller', value: hasPad ? 'OK' : 'MISSING', dotStyle: dotS(hasPad ? accent : '#ff5c5c'), valueStyle: Object.assign({ color: hasPad ? accent : '#ff5c5c' }, mono) },
+      { name: 'Command stream', value: '50 Hz', dotStyle: dotS('#eaf2fa'), valueStyle: Object.assign({ color: '#eaf2fa' }, mono) },
+    ];
+    const tagCol = { SYS: '#ffd479', LINK: '#7fd9ff', ARM: accent, STOP: '#ff6b6e', PAD: '#c9a8ff', MARK: '#ffd479' };
+    const btnBase = { width: '150px', textAlign: 'center', padding: '7px 0', borderRadius: '3px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', cursor: 'pointer' };
+    const tiltLabel = (s.tilt >= 0 ? '+' : '') + s.tilt + '°';
     return {
-      thrusters,
-      sticks,
-      metrics,
-      brightnessLabel: s.brightness + '%',
-      lightFillStyle: {
-        position: 'absolute', top: 0, bottom: 0, left: 0, width: s.brightness + '%',
-        background: 'linear-gradient(90deg, #6b4d12, #ffd479)', transition: 'width 90ms linear',
-      },
-      lightKnobStyle: {
-        position: 'absolute', top: '-2px', bottom: '-2px',
-        left: 'calc(' + s.brightness + '% - 3px)', width: '6px',
-        background: '#fff3d6', borderRadius: '2px',
-      },
-      lightDown: (e) => { e.currentTarget.setPointerCapture(e.pointerId); this.setFromPointer(e, v => this.setState({ brightness: v }), false); },
-      lightMove: (e) => { if (e.buttons === 1) this.setFromPointer(e, v => this.setState({ brightness: v }), false); },
-      lightUp: (e) => { try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {} },
-      light0: () => this.setState({ brightness: 0 }),
-      light50: () => this.setState({ brightness: 50 }),
-      light100: () => this.setState({ brightness: 100 }),
-
-      armed: s.armed,
+      thrusters, buttons, ticks, metrics, statuses,
+      gainLabel: s.gain + '%',
+      leftDot: dot(p.lx, p.ly), rightDot: dot(p.rx, 0),
+      l2Fill: { height: '100%', width: (p.l2 * 100) + '%', background: accent },
+      r2Fill: { height: '100%', width: (p.r2 * 100) + '%', background: accent },
+      tiltLabel,
+      tiltKnob: { position: 'absolute', top: '-1px', bottom: '-1px', left: 'calc(' + ((s.tilt + 45) / 90 * 100) + '% - 2px)', width: '4px', background: '#eaf2fa', borderRadius: '1px' },
+      tiltPointer: { position: 'absolute', left: '-6px', top: (tiltPos - 5) + 'px', display: 'flex', alignItems: 'center' },
+      padLabel: hasPad ? ctl.name : 'NOT FOUND',
+      padName: ctl.name, ctl,
+      padStyle: { color: hasPad ? accent : '#ff5c5c', fontWeight: 600 },
       armLabel: s.armed ? 'ARMED' : 'DISARMED',
-      toggleArm: () => this.setState(st => ({ armed: !st.armed })),
-      estop: () => this.setState({ armed: false, throttles: [0, 0, 0, 0, 0, 0] }),
-      armButtonStyle: {
-        padding: '7px 18px', borderRadius: '4px', cursor: 'pointer',
-        fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em',
-        border: '1px solid ' + (s.armed ? '#2a6f5c' : '#3a4653'),
-        background: s.armed ? 'linear-gradient(#123a30, #0e2c25)' : 'linear-gradient(#1b222b, #151b23)',
-        color: s.armed ? accent : '#7c8b9c',
-      },
-      armPillStyle: {
-        padding: '5px 12px', borderRadius: '3px', background: 'rgba(10,16,22,0.78)',
-        border: '1px solid ' + (s.armed ? 'rgba(53,208,165,0.5)' : 'rgba(124,139,156,0.35)'),
-        fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '11px', fontWeight: 700,
-        color: s.armed ? accent : '#7c8b9c', letterSpacing: '0.08em',
-      },
-
-      linked: s.linked,
-      linkLabel: s.linked ? 'LINK UP' : 'LINK DOWN',
-      toggleLink: () => this.setState(st => ({ linked: !st.linked })),
-      linkDotStyle: {
-        width: '8px', height: '8px', borderRadius: '50%',
-        background: s.linked ? accent : '#e5484d',
-        boxShadow: '0 0 8px ' + (s.linked ? 'rgba(53,208,165,0.8)' : 'rgba(229,72,77,0.8)'),
-        animation: 'pulseDot 2s ease-in-out infinite',
-      },
-      rtt: (3.4 + Math.abs(this.wob(5, 0.6))).toFixed(1),
-      loss: '0.0',
-
-      clock: hh + ':' + mm + ':' + ss,
-      depth: (12.4 + this.wob(0.9, 0.35)).toFixed(2),
-      altitude: (3.1 + this.wob(4.2, 0.4)).toFixed(1),
-      heading,
+      toggleArm: () => this.setArmed(!s.armed),
+      estop: () => this.estop('console button'),
+      armButtonStyle: Object.assign({}, btnBase, { border: '1px solid ' + (s.armed ? '#2a6f5c' : '#2c3a48'), background: s.armed ? '#123a30' : '#1a2029', color: s.armed ? accent : '#8fa2b5' }),
+      armPill: { position: 'absolute', left: '22px', top: '16px', width: '108px', textAlign: 'center', padding: '5px 0', borderRadius: '2px', border: '1px solid ' + (s.armed ? '#2a6f5c' : '#3a4653'), background: s.armed ? 'rgba(18,58,48,0.8)' : 'rgba(16,21,28,0.8)', fontSize: '10px', color: s.armed ? accent : '#c9d3de' },
+      clock: this.hms(new Date()),
+      horizonStyle: { position: 'absolute', left: '-50%', top: '-50%', width: '200%', height: '200%', background: 'linear-gradient(180deg, #2a4a63 0%, #2a4a63 50%, #3b2c17 50%, #3b2c17 100%)', transform: 'rotate(' + (-roll).toFixed(2) + 'deg) translateY(' + (pitch * 1.2).toFixed(2) + 'px)' },
+      heading: Math.round(yaw).toString(),
       headingCardinal: cards[Math.round((yaw % 360) / 22.5) % 16],
-      camTilt: '−12',
-      waterTemp: (8.7 + this.wob(2.2, 0.15)).toFixed(1),
-      internalTemp: iTemp.toFixed(1),
-      internalTempStyle: {
-        fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '24px', fontWeight: 700,
-        lineHeight: 1.1, color: iTemp > 45 ? '#ffd479' : '#eaf2fa',
-      },
-      pressure: (2.24 + this.wob(0.9, 0.03)).toFixed(2),
-
-      horizonStyle: {
-        position: 'absolute', left: '-50%', top: '-50%', width: '200%', height: '200%',
-        background: 'linear-gradient(180deg, #1d4a63 0%, #1d4a63 50%, #3a2a16 50%, #3a2a16 100%)',
-        transform: 'rotate(' + (-roll).toFixed(2) + 'deg) translateY(' + (pitch * 1.4).toFixed(2) + 'px)',
-        borderTop: '0',
-      },
-
-      imu: [axis('ROLL', roll, 45), axis('PITCH', pitch, 45), axis('YAW', ((yaw + 180) % 360) - 180, 180)],
-
-      voltage: (15.8 - thrusters.reduce((a, t) => a + Math.abs(parseInt(t.label, 10)), 0) / 600).toFixed(2),
-      current,
-      soc,
-      socFillStyle: {
-        position: 'absolute', top: 0, bottom: 0, left: 0, width: soc + '%',
-        background: 'linear-gradient(90deg, #2a6f5c, ' + accent + ')',
-      },
-      runtime: '1 h 12 m',
-
-      statuses: [
-        { name: 'Leak sensor', value: 'DRY', dotStyle: { width: '7px', height: '7px', borderRadius: '50%', background: accent }, valueStyle: { fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '11px', fontWeight: 700, color: accent } },
-        { name: 'Telemetry link', value: '50 Hz', dotStyle: { width: '7px', height: '7px', borderRadius: '50%', background: accent }, valueStyle: { fontFamily: "'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace", fontSize: '11px', fontWeight: 700, color: '#d7e0ea' } },
-      ],
-
-      logLines: [
-        Object.assign({ t: '11:42:01', msg: 'Light PWM set to ' + s.brightness + '%' }, tag('CMD', accent)),
-        Object.assign({ t: '11:41:54', msg: 'Depth hold engaged @ 12.40 m' }, tag('AUTO', '#7fb2ff')),
-        Object.assign({ t: '11:41:22', msg: 'Internal temp rising — 41.6 °C' }, tag('WARN', '#ffd479')),
-        Object.assign({ t: '11:40:07', msg: 'Handshake OK — telemetry @ 50 Hz' }, tag('LINK', accent)),
-      ],
-
-      statusMessage: s.armed ? 'Thrusters armed — streaming control frames' : 'Thrusters disarmed — control frames zeroed',
-      txCount: s.tx.toLocaleString(),
-      rxCount: s.rx.toLocaleString(),
+      depthLabel: s.imp ? (depth * 3.28084).toFixed(1) + ' ft' : depth.toFixed(2) + ' m',
+      imu: [axis('ROLL', roll, 45), axis('PITCH', pitch, 45), axis('YAW', -146 + this.wob(0.4, 1.5), 180)],
+      voltage: (15.8 - (s.armed ? thrusters.reduce((a, t) => a + Math.abs(parseInt(t.label, 10)), 0) / 1500 : 0)).toFixed(2),
+      current: (1.2 + (s.armed ? thrusters.reduce((a, t) => a + Math.abs(parseInt(t.label, 10)), 0) / 40 : 0)).toFixed(1),
+      logLines: s.log.map(l => ({ t: l.t, tag: l.tag, msg: l.msg, tagStyle: { color: tagCol[l.tag] || accent, width: '36px' } })),
+      statusMessage: hasPad ? (s.armed ? 'Armed — streaming control frames at 50 Hz' : 'Controller ready — hold ' + ctl.start + ' 1 s to arm') : 'Connect a DualShock 3 or Xbox controller to drive — see Help',
+      txCount: s.tx, rxCount: s.rx,
+      helpMenuOpen: s.helpMenuOpen, mapOpen: s.mapOpen,
+      helpMenuBtnStyle: { padding: '3px 7px', borderRadius: '3px', color: '#c9d3de', background: s.helpMenuOpen ? '#1f2933' : 'transparent', cursor: 'default' },
+      toggleHelpMenu: () => this.setState(st => ({ helpMenuOpen: !st.helpMenuOpen })),
+      closeHelpMenu: () => this.setState({ helpMenuOpen: false }),
+      openMap: () => this.setState({ helpMenuOpen: false, mapOpen: true, mapKind: 'ds3' }),
+      isXbox: s.mapKind === 'xbox',
+      openXbox: () => this.setState({ helpMenuOpen: false, mapOpen: true, mapKind: 'xbox' }),
+      map: s.mapKind === 'xbox'
+        ? { title: 'Controller Map - Xbox', l2: 'LT', r2: 'RT', l1: 'LB', r1: 'RB', start: 'MENU', sel: 'VIEW', ps: 'XBOX', tri: 'Y', sq: 'X' }
+        : { title: 'Controller Map - Dualshock 3', l2: 'L2', r2: 'R2', l1: 'L1', r1: 'R1', start: 'START', sel: 'SEL', ps: 'PS', tri: '△', sq: '□' },
+      closeMap: () => this.setState({ mapOpen: false }),
+      stop: e => e.stopPropagation(),
     };
   }
 }

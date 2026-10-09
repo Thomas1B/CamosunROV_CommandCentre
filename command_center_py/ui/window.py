@@ -20,7 +20,8 @@ from command_center_py.mixer import mix
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
                           LABEL, ACCENT, WARN, DANGER, BLUE, SANS, mono, lab)
 from command_center_py.ui.widgets import (BipolarBar, TriggerBar, StickView, VideoPane, LevelBarSOC,
-                            SectionHeader, ThrusterRow, Chip, MetricCard, StatusRow)
+                            SectionHeader, ThrusterRow, Chip, MetricCard, StatusRow,
+                            ControllerMapDialog)
 
 
 class ConsoleWindow(QMainWindow):
@@ -124,7 +125,8 @@ class ConsoleWindow(QMainWindow):
         a.triggered.connect(lambda: self.estop("menu"))
         m.addAction(a)
         m = mb.addMenu("Help")
-        m.addAction("Controller map", self.show_controller_map)
+        m.addAction("Dualshock3 Map", lambda: self.show_controller_map("ds3"))
+        m.addAction("Xbox Map", lambda: self.show_controller_map("xbox"))
 
     def _build_toolbar(self):
         bar = QFrame()
@@ -470,19 +472,8 @@ class ConsoleWindow(QMainWindow):
     def refresh_units(self):
         self._update_metrics()
 
-    def show_controller_map(self):
-        QMessageBox.information(self, "DualShock 3 controls", (
-            "Left stick — forward/back + side to side\n"
-            "Right stick left/right — rotate (yaw)\n"
-            "L2 — descend · R2 — ascend (analog)\n"
-            "D-pad ↑ / ↓ — camera tilt\n\n"
-            f"START (hold {ARM_HOLD_S:.0f} s) — arm\n"
-            "START (tap while armed) — disarm\n"
-            "SELECT or PS — E-STOP\n"
-            "L1 / R1 — thrust gain down / up\n"
-            "△ — toggle SI / imperial units\n"
-            "□ — operator mark in log\n\n"
-            "Keyboard SPACE — E-STOP"))
+    def show_controller_map(self, kind="ds3"):
+        ControllerMapDialog(self, kind, ARM_HOLD_S).exec()
 
     # ---------------- control loop ----------------
     def tick(self):
@@ -701,11 +692,11 @@ class ConsoleWindow(QMainWindow):
 
         # status bar
         if self.armed:
-            self.msg_lbl.setText("Thrusters armed — streaming control frames")
+            self.msg_lbl.setText(f"Armed — streaming control frames at {RATE_HZ} Hz")
         elif not pad.connected:
-            self.msg_lbl.setText("Connect the DualShock 3 to drive — see Help ▸ Controller map")
+            self.msg_lbl.setText("Connect a DualShock 3 to drive — see Help")
         else:
-            self.msg_lbl.setText(f"Thrusters disarmed — hold START {ARM_HOLD_S:.0f} s to arm")
+            self.msg_lbl.setText(f"Controller ready — hold START {ARM_HOLD_S:.0f} s to arm")
         self.tx_lbl.setText(f"TX {self.link.tx_count:,} pkt   │")
         self.rx_lbl.setText(f"RX {self.link.rx_count:,} pkt   │")
 

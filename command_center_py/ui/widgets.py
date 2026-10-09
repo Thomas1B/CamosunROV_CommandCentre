@@ -3,7 +3,7 @@
 from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import (QColor, QFont, QLinearGradient, QPainter, QPainterPath,
                            QPen, QPixmap, QRadialGradient)
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
+from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QVBoxLayout, QWidget)
 
 from command_center_py.config import DEADZONE, TILT_MIN, TILT_MAX
@@ -444,3 +444,131 @@ class StatusRow(QFrame):
         self.dot.setStyleSheet(f"background: {color}; border-radius: 3px;")
         self.val.setText(value)
         self.val.setStyleSheet(f"color: {color}; background: transparent;")
+
+
+# ============================================================================
+# CONTROLLER MAP DIALOG  (Help ▸ Dualshock3 Map / Xbox Map)
+# ============================================================================
+# Button names per controller. SDL reports both pads with the same layout, so
+# each Xbox button sits where the matching DualShock 3 button is.
+CONTROLLER_MAPS = {
+    "ds3": dict(title="Controller Map - Dualshock 3", l2="L2", r2="R2", l1="L1", r1="R1",
+                start="START", sel="SEL", ps="PS", tri="△", sq="□"),
+    "xbox": dict(title="Controller Map - Xbox", l2="LT", r2="RT", l1="LB", r1="RB",
+                 start="MENU", sel="VIEW", ps="XBOX", tri="Y", sq="X"),
+}
+
+
+class ControllerMapDialog(QDialog):
+    """Modal card listing what each button does. Esc, ✕ or OK closes it."""
+
+    def __init__(self, parent, kind, arm_hold_s):
+        super().__init__(parent)
+        m = CONTROLLER_MAPS[kind]
+        self.setWindowTitle(m["title"])
+        self.setModal(True)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
+        self.setFixedWidth(440)
+        self.setStyleSheet(f"QDialog {{ background: {PANEL}; border: 1px solid {BORDER2}; }}")
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(1, 1, 1, 1)
+        root.setSpacing(0)
+
+        # title bar
+        head = QFrame()
+        head.setObjectName("mapHead")
+        head.setStyleSheet(f"QFrame#mapHead {{ background: {HEAD}; border-bottom: 1px solid {BORDER}; }}")
+        hh = QHBoxLayout(head)
+        hh.setContentsMargins(14, 8, 8, 8)
+        hh.addWidget(lab(m["title"], 13, "#c9d3de", QFont.Weight.Bold), 1)
+        x = QPushButton("✕")
+        x.setFixedSize(22, 22)
+        x.setFont(mono(12))
+        x.setCursor(Qt.CursorShape.PointingHandCursor)
+        x.setStyleSheet(f"QPushButton {{ border: none; border-radius: 2px; color: {LABEL}; background: transparent; }}"
+                        f"QPushButton:hover {{ background: {BORDER}; color: {BRIGHT}; }}")
+        x.clicked.connect(self.accept)
+        hh.addWidget(x)
+        root.addWidget(head)
+
+        # body: DRIVE / VEHICLE / CONSOLE sections
+        body = QWidget()
+        bv = QVBoxLayout(body)
+        bv.setContentsMargins(14, 6, 14, 4)
+        bv.setSpacing(0)
+        sections = [
+            ("DRIVE", [
+                (["L STICK"], "Forward / back + side to side", None),
+                (["R STICK ←→"], "Rotate (yaw)", None),
+                ([m["l2"], m["r2"]], "Descend / ascend · analog", None),
+                ([m["l1"], m["r1"]], "Thrust gain down / up", None),
+                (["D-PAD ↑↓"], "Camera tilt", None),
+            ]),
+            ("VEHICLE", [
+                ([m["start"]], f"Hold {arm_hold_s:.0f} s to arm · tap to disarm", None),
+                ([m["sel"], m["ps"]], "E-STOP", DANGER),
+            ]),
+            ("CONSOLE", [
+                ([m["tri"]], "Toggle SI / imperial units", None),
+                ([m["sq"]], "Operator mark in log", None),
+            ]),
+        ]
+        for i, (name, rows) in enumerate(sections):
+            head_lbl = lab(name, 9, MUTED)
+            head_lbl.setContentsMargins(0, 10 if i == 0 else 16, 0, 6)
+            bv.addWidget(head_lbl)
+            for keys, text, color in rows:
+                r = QHBoxLayout()
+                r.setSpacing(4)
+                chips = QWidget()
+                chips.setFixedWidth(120)
+                ch = QHBoxLayout(chips)
+                ch.setContentsMargins(0, 0, 0, 0)
+                ch.setSpacing(4)
+                for k in keys:
+                    ch.addWidget(self._chip(k))
+                ch.addStretch(1)
+                r.addWidget(chips)
+                r.addWidget(lab(text, 11, color or "#c9d3de"), 1)
+                bv.addLayout(r)
+                bv.addSpacing(7)
+        root.addWidget(body)
+
+        # footer
+        foot = QFrame()
+        foot.setObjectName("mapFoot")
+        foot.setStyleSheet(f"QFrame#mapFoot {{ background: #0a0e13; border-top: 1px solid {BORDER}; }}")
+        fh = QHBoxLayout(foot)
+        fh.setContentsMargins(14, 10, 14, 10)
+        fh.addWidget(lab("Keyboard", 10, LABEL))
+        fh.addWidget(self._chip("SPACE", DANGER, "#7f2b2e", 10))
+        fh.addWidget(lab("— E-STOP", 10, LABEL))
+        fh.addStretch(1)
+        ok = QPushButton("OK")
+        ok.setFixedWidth(72)
+        ok.setFont(mono(11, QFont.Weight.DemiBold))
+        ok.setCursor(Qt.CursorShape.PointingHandCursor)
+        ok.setDefault(True)
+        ok.setStyleSheet(f"QPushButton {{ padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px;"
+                         f" background: #1a2029; color: {BRIGHT}; }}"
+                         f"QPushButton:hover {{ border-color: {ACCENT}; color: {ACCENT}; }}")
+        ok.clicked.connect(self.accept)
+        fh.addWidget(ok)
+        root.addSpacing(14)
+        root.addWidget(foot)
+
+    @staticmethod
+    def _chip(text, color=BRIGHT, border=GRID, px=11):
+        c = lab(text, px, color)
+        c.setStyleSheet(f"color: {color}; background: {HEAD}; border: 1px solid {border};"
+                        f" border-radius: 2px; padding: 2px 6px;")
+        c.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        return c
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        p = self.parentWidget()
+        if p is not None:   # centre over the console window
+            g = p.frameGeometry()
+            self.move(g.center().x() - self.width() // 2, g.center().y() - self.height() // 2)
