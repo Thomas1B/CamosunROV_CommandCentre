@@ -45,6 +45,8 @@ PROJECT LAYOUT
 
 import argparse
 import ipaddress
+import os
+import signal
 import sys
 
 # Refuse to start outside the project venv or on the wrong Python version.
@@ -62,6 +64,7 @@ if not getattr(sys, "frozen", False):
                  f"found {sys.version.split()[0]} - rebuild .venv with "
                  f"py -{REQUIRED_PYTHON[0]}.{REQUIRED_PYTHON[1]} -m venv .venv (see README).")
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from command_center_py.config import CMD_PORT, PI_HOST, TELEM_PORT
@@ -83,7 +86,42 @@ def ipv4_address(text):
     return str(addr)
 
 
+def install_ctrl_c_handler(app, win):
+    """Let Ctrl+C in the terminal shut the console down cleanly.
+
+    While app.exec() runs, Qt's C++ event loop owns the main thread and Python's
+    default SIGINT handler only raises KeyboardInterrupt inside whatever Qt
+    callback happens to run next, where PySide swallows it - so Ctrl+C did
+    nothing. Instead, catch SIGINT ourselves and close the window through the
+    normal path, so closeEvent() still sends the disarmed/zero-thrust frames to
+    the Pi and stops the gamepad thread.
+
+    Python only runs signal handlers when the interpreter gets control back from
+    Qt. The window's control/UI timers already do that many times a second, but
+    a small keep-alive timer is added so this works even if those are stopped.
+
+    Press Ctrl+C a second time to force-quit if a clean close ever hangs.
+    """
+    state = {"pressed": False}
+
+    def on_sigint(signum, frame):
+        if state["pressed"]:
+            print("\nSecond Ctrl+C - forcing exit.")
+            os._exit(130)
+        state["pressed"] = True
+        print("\nCtrl+C received - disarming and closing (press again to force quit)...")
+        win.close()     # runs ConsoleWindow.closeEvent(): disarm, zero thrusters, stop gamepad
+        app.quit()
+
+    signal.signal(signal.SIGINT, on_sigint)
+
+    keepalive = QTimer(app)
+    keepalive.timeout.connect(lambda: None)   # hands control back to Python so the handler can run
+    keepalive.start(200)
+
+
 def main():
+    print("CamosunROV Command Centre Started.")
     ap = argparse.ArgumentParser(description="Camosun ROV topside console")
     ap.add_argument("--demo", action="store_true", help="simulate the vehicle (no network)")
     ap.add_argument("--host", type=ipv4_address, default=PI_HOST, metavar="IP",
@@ -100,11 +138,11 @@ def main():
     app = QApplication(sys.argv)
     win = ConsoleWindow(args)
     win.show()
+    install_ctrl_c_handler(app, win)
     exit_code = app.exec()          # blocks here until the window is closed
     print("CamosunROV Command Centre closed.")
     sys.exit(exit_code)
 
 
 if __name__ == "__main__":
-    print("CamosunROV Command Centre Started.")
     main()
