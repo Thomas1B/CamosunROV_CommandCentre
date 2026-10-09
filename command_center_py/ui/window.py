@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
 
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, REQUIRE_LINK_TO_ARM,
-                        THRUSTERS)
+                        THRUSTERS, LOSS_PRINT_S)
 from command_center_py.gamepad import Gamepad
 from command_center_py.link import DemoLink, Link
 from command_center_py.mixer import mix
@@ -65,6 +65,9 @@ class ConsoleWindow(QMainWindow):
         self.ui_timer = QTimer(self)
         self.ui_timer.timeout.connect(self.refresh_ui)
         self.ui_timer.start(33)          # ~30 Hz is plenty for the display
+        self.loss_timer = QTimer(self)
+        self.loss_timer.timeout.connect(self.print_lost_packets)
+        self.loss_timer.start(LOSS_PRINT_S * 1000)
 
     # ---------------- UI construction ----------------
     def _build_ui(self):
@@ -493,6 +496,16 @@ class ConsoleWindow(QMainWindow):
             self.tel.update(tel)
         self._failsafes(now)
 
+    def print_lost_packets(self):
+        """Every LOSS_PRINT_S seconds, print lost command packets (laptop -> Pi) to the terminal."""
+        stamp = datetime.now().strftime("%H:%M:%S")
+        counts = self.link.take_lost()
+        if counts is None:
+            print(f"[{stamp}] Packets lost: unknown - no ack/rx_cmds from the Pi yet", flush=True)
+            return
+        since, total = counts
+        print(f"[{stamp}] Packets lost: {since} in last {LOSS_PRINT_S} s (total {total})", flush=True)
+
     def refresh_ui(self):
         self._refresh(self.pad.snapshot(), time.monotonic())
 
@@ -699,9 +712,9 @@ class ConsoleWindow(QMainWindow):
     def closeEvent(self, e):
         self.timer.stop()
         self.ui_timer.stop()
+        self.loss_timer.stop()
         self.armed = False
         for _ in range(3):   # make sure the Pi sees a disarmed frame on exit
             self.link.send(False, [0] * 6, self.tilt)
         self.pad.close()
         super().closeEvent(e)
-        

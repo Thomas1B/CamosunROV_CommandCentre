@@ -55,6 +55,9 @@ class Link:
         self.error = None
         self._sent = {}
         self._loss_ref = None
+        self.lost_total = None      # command packets lost laptop -> Pi; None until the Pi reports counts
+        self._lost_reported = 0
+        self._count_ref = None      # (time, ack seq, rx_cmds) at the last telemetry used for counting
         self.tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.tx.setblocking(False)
         self.rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -116,6 +119,39 @@ class Link:
                 if sent > 0:
                     self.loss_pct = max(0.0, min(100.0, 100.0 * (1 - got / sent)))
                 self._loss_ref = (now, self.tx_count, rx_cmds)
+        if isinstance(ack, int) and isinstance(rx_cmds, int):
+            self._count_lost(now, ack, rx_cmds)
+
+    def _count_lost(self, now, ack, rx_cmds):
+        """Running count of command packets that never reached the Pi.
+
+        Between two telemetry messages, the Pi's ack (last seq it received) tells
+        us how many packets we sent up to that point, and rx_cmds tells us how
+        many it actually received. Using ack instead of our own tx_count means
+        packets still in flight are not miscounted as lost.
+        """
+        ref = self._count_ref
+        if self.lost_total is None:
+            self.lost_total = 0
+        if (ref is None
+                or rx_cmds < ref[2]                # Pi program restarted, its counter reset
+                or now - ref[0] > 600):            # long outage: seq (16-bit, ~21 min at 50 Hz) may have wrapped
+            self._count_ref = (now, ack, rx_cmds)
+            return
+        sent = (ack - ref[1]) & 0xFFFF
+        if sent > 0x8000:                          # out-of-order telemetry (ack went backwards) - ignore it
+            return
+        got = rx_cmds - ref[2]
+        self.lost_total += max(0, sent - got)
+        self._count_ref = (now, ack, rx_cmds)
+
+    def take_lost(self):
+        """Return (lost since the last call, lost total), or None if the Pi hasn't reported counts yet."""
+        if self.lost_total is None:
+            return None
+        since = self.lost_total - self._lost_reported
+        self._lost_reported = self.lost_total
+        return since, self.lost_total
 
 
 class DemoLink(Link):
@@ -134,6 +170,9 @@ class DemoLink(Link):
     def _transmit(self, pkt):
         self.tx_count += 1
         self._last = pkt
+
+    def take_lost(self):
+        return 0, 0          # simulated vehicle - nothing is ever lost
 
     def poll(self):
         if self._last is None:

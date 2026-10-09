@@ -16,6 +16,7 @@ TILT_MIN, TILT_MAX = -45, 45   # camera servo limits in degrees - match the Pi/s
 TILT_STEP = 5
 ARM_HOLD_S = 1.0
 LINK_TIMEOUT_S = 1.0
+LOSS_PRINT_S = 10        # print lost-packet count to the terminal every this many seconds
 REQUIRE_LINK_TO_ARM = True   # set False to bench-test before telemetry exists
 
 # Thruster mix: (name, role, group, (surge, sway, heave, yaw))
