@@ -18,7 +18,8 @@ Main features:
 - Adjustable thrust gain (25 / 50 / 75 / 100 %)
 - Failsafes: the ROV is automatically disarmed if the controller disconnects or the tether link is lost
 - Leak alarm and high internal temperature warning, plus an event log with operator marks
-- Demo mode (`--demo`) with simulated telemetry, for testing without the ROV
+- Main menu: connect to a vehicle (with saved vehicle profiles), demo mode, controller maps
+- Demo mode with simulated telemetry, for testing without the ROV
 - Camera view with HUD (the live video stream is not wired in yet)
 
 ---
@@ -114,8 +115,21 @@ python -m pip install -r py_requirements.txt
 #### 4. Run the console
 
 ```
-python rov_console.py
+py rov_console.py
 ```
+
+No options - the program opens on the main menu:
+
+- **CONNECT VEHICLE** - enter the Pi's IP address and UDP ports (or load a saved
+  profile) and press CONNECT. The console opens once the Pi answers; if there is
+  no answer within 5 s the dialog stays open so you can check the tether and retry.
+  **SAVE PROFILE** stores the settings in `vehicle_profiles/` (one JSON file per vehicle).
+- **DEMO MODE** - simulated vehicle, nothing is transmitted.
+- **CONTROLLER MAP** - DualShock 3 and Xbox button maps.
+- **QUIT** - exit.
+
+Closing the console window (or File > Back to Main Menu) returns to the main menu,
+but only while the ROV is **disarmed**. Ctrl+C in the terminal disarms and exits.
 
 #### Day-to-day
 

@@ -1,11 +1,15 @@
-"""Main console window: layout, arming, failsafes, event log and control loop."""
+"""Main console window: layout, arming, failsafes, event log and control loop.
+
+Opened from the main menu with a live Link (or DemoLink). Closing it returns to the
+main menu - but only once the thrusters are disarmed.
+"""
 
 import html
 import math
 import time
 from datetime import datetime, timezone
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
                                QMessageBox, QPushButton, QScrollArea, QTextEdit,
@@ -14,26 +18,36 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, REQUIRE_LINK_TO_ARM,
                         THRUSTERS, LOSS_PRINT_S)
-from command_center_py.gamepad import Gamepad
-from command_center_py.link import DemoLink, Link
 from command_center_py.mixer import mix
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
-                          LABEL, ACCENT, WARN, DANGER, BLUE, SANS, mono, lab)
+                          LABEL, ACCENT, WARN, DANGER, BLUE, SANS, fs, mono, lab)
 from command_center_py.ui.widgets import (BipolarBar, TriggerBar, StickView, VideoPane, LevelBarSOC,
                             SectionHeader, ThrusterRow, Chip, MetricCard, StatusRow,
-                            ControllerMapDialog)
+                            ControllerMapDialog, CONTROLLER_MAPS, LAYOUT)
 
 
 class ConsoleWindow(QMainWindow):
-    def __init__(self, args):
+    closed = Signal()        # emitted once the console has shut down (back to the main menu)
+
+    def __init__(self, link, pad, demo=False, vehicle=""):
+        """link: an open Link / DemoLink (the console closes it on exit).
+        pad: the shared Gamepad (owned by the app, not closed here)."""
         super().__init__()
-        self.setWindowTitle("Camosun ROV — Control Console")
+        self.setWindowTitle("Camosun ROV — Control Console"
+                            + (" — DEMO" if demo else (f" — {vehicle}" if vehicle else "")))
         self.resize(1440, 900)
         self.setMinimumSize(1200, 760)
 
-        self.demo = args.demo
-        self.link = DemoLink() if args.demo else Link(args.host, args.cmd_port, args.telem_port)
-        self.pad = Gamepad()
+        self.demo = demo
+        self.vehicle = vehicle
+        self.link = link
+        self.pad = pad
+        self._force_close = False
+        self._done = False
+        self.notice = ""
+        self.notice_until = 0.0
+        self.kind = None               # "ds3" or "xbox" - picked with the toggle above STICK INPUT
+        self.k = CONTROLLER_MAPS["ds3"]  # button names for the current layout
 
         self.armed = False
         self.tilt = 0
@@ -51,7 +65,9 @@ class ConsoleWindow(QMainWindow):
         self.leak_alarmed = False
 
         self._build_ui()
-        self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo else ""), BLUE)
+        self._apply_kind(LAYOUT["kind"])
+        self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo
+                                                             else f" — {self.vehicle} @ {self.link.label}"), BLUE)
         if self.pad.error:
             self.log("WARN", self.pad.error, WARN)
         if self.link.error:
@@ -89,7 +105,7 @@ class ConsoleWindow(QMainWindow):
         """)
         f = QFont()
         f.setFamilies(SANS)
-        f.setPixelSize(13)
+        f.setPixelSize(fs(13))
         self.setFont(f)
 
         self._build_menu()
@@ -112,11 +128,11 @@ class ConsoleWindow(QMainWindow):
 
     def _build_menu(self):
         mb = self.menuBar()
-        title = lab("SUBSEA ROV CONSOLE", 11, ACCENT, QFont.Weight.Bold)
+        title = lab("SUBSEA ROV CONSOLE", fs(11), ACCENT, QFont.Weight.Bold)
         title.setContentsMargins(8, 0, 12, 0)
         mb.setCornerWidget(title, Qt.Corner.TopLeftCorner)
         m = mb.addMenu("File")
-        m.addAction("Quit", self.close)
+        m.addAction("Back to Main Menu", self.close)
         m = mb.addMenu("Vehicle")
         a = QAction("Arm / Disarm", self)
         a.triggered.connect(self.toggle_arm_click)
@@ -147,9 +163,9 @@ class ConsoleWindow(QMainWindow):
         self.link_dot = QLabel()
         self.link_dot.setFixedSize(8, 8)
         lh.addWidget(self.link_dot)
-        self.link_lbl = lab("LINK DOWN", 11, TEXT, QFont.Weight.DemiBold)
+        self.link_lbl = lab("LINK DOWN", fs(11), TEXT, QFont.Weight.DemiBold)
         lh.addWidget(self.link_lbl)
-        lh.addWidget(lab(self.link.label, 11, MUTED))
+        lh.addWidget(lab(self.link.label, fs(11), MUTED))
         h.addWidget(link)
 
         stats = QFrame()
@@ -158,26 +174,26 @@ class ConsoleWindow(QMainWindow):
         sh = QHBoxLayout(stats)
         sh.setContentsMargins(11, 5, 11, 5)
         self.stats_lbl = QLabel()
-        self.stats_lbl.setFont(mono(11))
+        self.stats_lbl.setFont(mono(fs(11)))
         sh.addWidget(self.stats_lbl)
         h.addWidget(stats)
 
         h.addStretch(1)
         self.pad_lbl = QLabel()
-        self.pad_lbl.setFont(mono(11))
+        self.pad_lbl.setFont(mono(fs(11)))
         h.addWidget(self.pad_lbl)
 
         self.arm_btn = QPushButton("DISARMED")
-        self.arm_btn.setFont(mono(12, QFont.Weight.Bold))
+        self.arm_btn.setFont(mono(fs(12), QFont.Weight.Bold))
         self.arm_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.arm_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.arm_btn.setMinimumWidth(150)
+        self.arm_btn.setMinimumWidth(fs(150))
         self.arm_btn.clicked.connect(self.toggle_arm_click)
         h.addWidget(self.arm_btn)
         self._arm_style = None
 
         es = QPushButton("E-STOP")
-        es.setFont(mono(12, QFont.Weight.Bold))
+        es.setFont(mono(fs(12), QFont.Weight.Bold))
         es.setCursor(Qt.CursorShape.PointingHandCursor)
         es.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         es.setStyleSheet("QPushButton { padding: 7px 18px; border-radius: 4px; border: 1px solid #7f2b2e;"
@@ -198,7 +214,7 @@ class ConsoleWindow(QMainWindow):
         return f, v
 
     def _build_left(self):
-        outer, ov = self._panel(300, "right")
+        outer, ov = self._panel(fs(272), "right")
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -219,15 +235,39 @@ class ConsoleWindow(QMainWindow):
             self.thr_rows.append(r)
             tv.addWidget(r)
         gain = QHBoxLayout()
-        gain.addWidget(lab("GAIN", 11, DIM))
-        self.gain_lbl = lab("50%", 11, ACCENT, QFont.Weight.Bold)
+        gain.addWidget(lab("GAIN", fs(11), DIM))
+        self.gain_lbl = lab("50%", fs(11), ACCENT, QFont.Weight.Bold)
         gain.addWidget(self.gain_lbl)
         gain.addStretch(1)
-        gain.addWidget(lab("L1 ▼  R1 ▲", 10, MUTED))
+        self.gain_hint = lab("", fs(10), MUTED)
+        gain.addWidget(self.gain_hint)
         tv.addLayout(gain)
         v.addWidget(tw)
 
-        v.addWidget(SectionHeader("STICK INPUT", "DUALSHOCK 3", top_border=True))
+        # controller toggle: DUALSHOCK 3 | XBOX - changes the button labels only
+        # (SDL reads both pads with the same layout, so driving is identical)
+        v.addWidget(self._hline())        # divider between GAIN and CONTROLLER
+        tgw = QWidget()
+        th = QHBoxLayout(tgw)
+        th.setContentsMargins(12, 10, 12, 10)
+        th.setSpacing(0)
+        th.addWidget(lab("CONTROLLER", fs(11), DIM))
+        th.addStretch(1)
+        self.layout_btns = {}
+        for kind, text, side in (("ds3", "DUALSHOCK 3", "left"), ("xbox", "XBOX", "right")):
+            b = QPushButton(text)
+            b.setFont(mono(fs(10), QFont.Weight.DemiBold))
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            b.setFocusPolicy(Qt.FocusPolicy.NoFocus)    # keep SPACE = E-STOP working
+            b.setFixedHeight(fs(22))
+            b.setProperty("side", side)
+            b.clicked.connect(lambda _=False, k=kind: self.set_layout(k))
+            self.layout_btns[kind] = b
+            th.addWidget(b)
+        v.addWidget(tgw)
+
+        self.stick_hdr = SectionHeader("STICK INPUT", "DUALSHOCK 3", top_border=True)
+        v.addWidget(self.stick_hdr)
         sw = QWidget()
         sg = QGridLayout(sw)
         sg.setContentsMargins(12, 10, 12, 10)
@@ -236,8 +276,8 @@ class ConsoleWindow(QMainWindow):
         self.stick_l, self.stick_r = StickView(), StickView(x_only=True)
         sg.addWidget(self.stick_l, 0, 0, Qt.AlignmentFlag.AlignHCenter)
         sg.addWidget(self.stick_r, 0, 1, Qt.AlignmentFlag.AlignHCenter)
-        sg.addWidget(lab("L · FWD/BACK + SIDE", 9, MUTED, align=Qt.AlignmentFlag.AlignHCenter), 1, 0)
-        sg.addWidget(lab("R · ROTATE (YAW)", 9, MUTED, align=Qt.AlignmentFlag.AlignHCenter), 1, 1)
+        sg.addWidget(lab("L · FWD/BACK + SIDE", fs(9), MUTED, align=Qt.AlignmentFlag.AlignHCenter), 1, 0)
+        sg.addWidget(lab("R · ROTATE (YAW)", fs(9), MUTED, align=Qt.AlignmentFlag.AlignHCenter), 1, 1)
         v.addWidget(sw)
 
         trw = QWidget()
@@ -246,8 +286,9 @@ class ConsoleWindow(QMainWindow):
         tg.setHorizontalSpacing(8)
         tg.setVerticalSpacing(4)
         self.l2_bar, self.r2_bar = TriggerBar(BLUE), TriggerBar(ACCENT)
-        tg.addWidget(lab("L2 · DESCEND", 9, MUTED), 0, 0)
-        tg.addWidget(lab("R2 · ASCEND", 9, MUTED), 0, 1)
+        self.l2_lbl, self.r2_lbl = lab("", fs(9), MUTED), lab("", fs(9), MUTED)
+        tg.addWidget(self.l2_lbl, 0, 0)
+        tg.addWidget(self.r2_lbl, 0, 1)
         tg.addWidget(self.l2_bar, 1, 0)
         tg.addWidget(self.r2_bar, 1, 1)
         v.addWidget(trw)
@@ -257,11 +298,10 @@ class ConsoleWindow(QMainWindow):
         cg.setContentsMargins(12, 0, 12, 12)
         cg.setSpacing(4)
         self.chips = {}
-        chip_layout = [("✕", "cross"), ("○", "circle"), ("□", "square"), ("△", "triangle"),
-                       ("L1", "l1"), ("R1", "r1"), ("L2", "l2"), ("R2", "r2"),
-                       ("SEL", "select"), ("START", "start"), ("PS", "ps"), ("↑↓", "dpad")]
-        for i, (text, key) in enumerate(chip_layout):
-            c = Chip(text)
+        chip_layout = ["cross", "circle", "square", "triangle", "l1", "r1", "l2", "r2",
+                       "select", "start", "ps", "dpad"]
+        for i, key in enumerate(chip_layout):
+            c = Chip("")      # text set by _apply_kind() for the connected controller
             self.chips[key] = c
             cg.addWidget(c, i // 4, i % 4)
         v.addWidget(cw)
@@ -272,19 +312,19 @@ class ConsoleWindow(QMainWindow):
         cv.setContentsMargins(12, 10, 12, 10)
         cv.setSpacing(6)
         top = QHBoxLayout()
-        top.addWidget(lab("SERVO ANGLE", 11, DIM))
+        top.addWidget(lab("SERVO ANGLE", fs(11), DIM))
         top.addStretch(1)
-        self.tilt_lbl = lab("+0°", 22, WARN, QFont.Weight.Bold)
+        self.tilt_lbl = lab("+0°", fs(22), WARN, QFont.Weight.Bold)
         top.addWidget(self.tilt_lbl)
         cv.addLayout(top)
         self.tilt_bar = BipolarBar(18)
         cv.addWidget(self.tilt_bar)
         ends = QHBoxLayout()
-        ends.addWidget(lab(f"DOWN {TILT_MIN}°", 9, MUTED))
+        ends.addWidget(lab(f"DOWN {TILT_MIN}°", fs(9), MUTED))
         ends.addStretch(1)
-        ends.addWidget(lab(f"UP +{TILT_MAX}°", 9, MUTED))
+        ends.addWidget(lab(f"UP +{TILT_MAX}°", fs(9), MUTED))
         cv.addLayout(ends)
-        cv.addWidget(lab(f"D-pad ↑↓ · {TILT_STEP}° per step · hold to repeat", 10, MUTED))
+        cv.addWidget(lab(f"D-pad ↑↓ · {TILT_STEP}° per step · hold to repeat", fs(10), MUTED))
         v.addWidget(cw2)
 
         v.addStretch(1)
@@ -294,8 +334,8 @@ class ConsoleWindow(QMainWindow):
         fv = QVBoxLayout(foot)
         fv.setContentsMargins(12, 8, 12, 8)
         fv.setSpacing(2)
-        fv.addWidget(lab(f"PACKET  cmd_v1 · 16 B · {RATE_HZ} Hz", 10, MUTED))
-        fv.addWidget(lab("PAYLOAD 6×int8 throttle + int8 cam tilt", 10, MUTED))
+        fv.addWidget(lab(f"PACKET  cmd_v1 · 16 B · {RATE_HZ} Hz", fs(10), MUTED))
+        fv.addWidget(lab("PAYLOAD 6×int8 throttle + int8 cam tilt", fs(10), MUTED))
         v.addWidget(foot)
 
         scroll.setWidget(inner)
@@ -311,7 +351,7 @@ class ConsoleWindow(QMainWindow):
         v.addWidget(self.video, 1)
 
         logf = QFrame()
-        logf.setFixedHeight(130)
+        logf.setFixedHeight(150)
         logf.setObjectName("logf")
         logf.setStyleSheet(f"QFrame#logf {{ background: {PANEL}; border-top: 1px solid {BORDER}; }}")
         lv = QVBoxLayout(logf)
@@ -322,13 +362,13 @@ class ConsoleWindow(QMainWindow):
         hdr.setStyleSheet(f"QFrame#loghdr {{ border-bottom: 1px solid {BORDER}; }}")
         hh = QHBoxLayout(hdr)
         hh.setContentsMargins(12, 6, 12, 6)
-        hh.addWidget(lab("EVENT LOG", 10, LABEL, QFont.Weight.Bold))
-        hh.addWidget(lab(f"· command stream {RATE_HZ} Hz", 10, MUTED))
+        hh.addWidget(lab("EVENT LOG", fs(10), LABEL, QFont.Weight.Bold))
+        hh.addWidget(lab(f"· command stream {RATE_HZ} Hz", fs(10), MUTED))
         hh.addStretch(1)
         lv.addWidget(hdr)
         self.log_view = QTextEdit()
         self.log_view.setReadOnly(True)
-        self.log_view.setFont(mono(11))
+        self.log_view.setFont(mono(fs(11)))
         self.log_view.document().setMaximumBlockCount(300)
         self.log_view.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.log_view.setStyleSheet(f"QTextEdit {{ background: {PANEL}; border: none; color: {DIM}; padding: 4px 8px; }}")
@@ -337,7 +377,7 @@ class ConsoleWindow(QMainWindow):
         return w
 
     def _build_right(self):
-        outer, v = self._panel(296, "left")
+        outer, v = self._panel(fs(268), "left")
         v.addWidget(SectionHeader("TELEMETRY", "RX ← PI"))
         grid = QFrame()
         grid.setObjectName("mgrid")
@@ -357,13 +397,13 @@ class ConsoleWindow(QMainWindow):
         iv = QVBoxLayout(imu)
         iv.setContentsMargins(12, 12, 12, 12)
         iv.setSpacing(8)
-        iv.addWidget(lab("IMU ATTITUDE", 10, LABEL, QFont.Weight.Bold))
+        iv.addWidget(lab("IMU ATTITUDE", fs(10), LABEL, QFont.Weight.Bold))
         self.imu_rows = {}
         for key in ("ROLL", "PITCH", "YAW"):
             top = QHBoxLayout()
-            top.addWidget(lab(key, 11, DIM))
+            top.addWidget(lab(key, fs(11), DIM))
             top.addStretch(1)
-            val = lab("--", 11, BRIGHT, QFont.Weight.Bold)
+            val = lab("--", fs(11), BRIGHT, QFont.Weight.Bold)
             top.addWidget(val)
             iv.addLayout(top)
             bar = BipolarBar(6, knob=False)
@@ -376,20 +416,13 @@ class ConsoleWindow(QMainWindow):
         pv = QVBoxLayout(pw)
         pv.setContentsMargins(12, 12, 12, 12)
         pv.setSpacing(6)
-        pv.addWidget(lab("POWER", 10, LABEL, QFont.Weight.Bold))
-        pv.addWidget(lab("BATTERY", 9, MUTED))
+        pv.addWidget(lab("POWER", fs(10), LABEL, QFont.Weight.Bold))
+        pv.addWidget(lab("BATTERY", fs(9), MUTED))
         self.volt_lbl = QLabel("--")
         self.volt_lbl.setFont(mono(32, QFont.Weight.Bold))
         pv.addWidget(self.volt_lbl)
         self.soc_bar = LevelBarSOC()
         pv.addWidget(self.soc_bar)
-        row = QHBoxLayout()
-        self.soc_lbl = lab("SOC est. --", 10, MUTED)
-        self.amp_lbl = lab("-- A", 10, MUTED)
-        row.addWidget(self.soc_lbl)
-        row.addStretch(1)
-        row.addWidget(self.amp_lbl)
-        pv.addLayout(row)
         v.addWidget(pw)
         v.addWidget(self._hline())
 
@@ -397,7 +430,7 @@ class ConsoleWindow(QMainWindow):
         sv = QVBoxLayout(sw)
         sv.setContentsMargins(12, 12, 12, 12)
         sv.setSpacing(6)
-        sv.addWidget(lab("SYSTEM STATUS", 10, LABEL, QFont.Weight.Bold))
+        sv.addWidget(lab("SYSTEM STATUS", fs(10), LABEL, QFont.Weight.Bold))
         self.st_leak = StatusRow("Leak sensor")
         self.st_link = StatusRow("Telemetry link")
         self.st_pad = StatusRow("Controller")
@@ -417,14 +450,14 @@ class ConsoleWindow(QMainWindow):
 
     def _build_statusbar(self):
         sb = self.statusBar()
-        sb.setFixedHeight(24)
+        sb.setFixedHeight(fs(24))
         sb.setSizeGripEnabled(False)
-        self.msg_lbl = lab("", 10, DIM)
+        self.msg_lbl = lab("", fs(10), DIM)
         self.msg_lbl.setContentsMargins(10, 0, 0, 0)
         sb.addWidget(self.msg_lbl, 1)
-        self.tx_lbl = lab("", 10, MUTED)
-        self.rx_lbl = lab("", 10, MUTED)
-        for w in (self.tx_lbl, self.rx_lbl, lab(f"v{APP_VERSION}", 10, MUTED)):
+        self.tx_lbl = lab("", fs(10), MUTED)
+        self.rx_lbl = lab("", fs(10), MUTED)
+        for w in (self.tx_lbl, self.rx_lbl, lab(f"v{APP_VERSION}", fs(10), MUTED)):
             sb.addPermanentWidget(w)
 
     # ---------------- actions ----------------
@@ -442,7 +475,7 @@ class ConsoleWindow(QMainWindow):
             self.log("DENY", "Arm refused — centre both sticks first", WARN)
             return
         if pad.connected and max(pad.l2, pad.r2) > 0.15:
-            self.log("DENY", "Arm refused — release L2 and R2 first", WARN)
+            self.log("DENY", f"Arm refused — release {self.k['l2']} and {self.k['r2']} first", WARN)
             return
         if REQUIRE_LINK_TO_ARM and not self.link.up(now):
             self.log("DENY", "Arm refused — no telemetry link to the Pi", WARN)
@@ -472,8 +505,43 @@ class ConsoleWindow(QMainWindow):
     def refresh_units(self):
         self._update_metrics()
 
+    def set_layout(self, kind):
+        """Toggle clicked: switch the button labels and remember it for the main menu."""
+        if kind == self.kind:
+            return
+        LAYOUT["kind"] = kind
+        self._apply_kind(kind)
+        self.log("PAD", f"Button labels set to {self.k['short']}", ACCENT)
+
+    def _apply_kind(self, kind):
+        """Relabel every controller-specific label for a DualShock 3 ("ds3") or Xbox ("xbox") pad."""
+        if kind == self.kind:
+            return
+        self.kind = kind
+        k = self.k = CONTROLLER_MAPS[kind]
+        for name, b in self.layout_btns.items():
+            on = name == kind
+            r = "border-top-left-radius: 3px; border-bottom-left-radius: 3px;" if b.property("side") == "left" \
+                else "border-top-right-radius: 3px; border-bottom-right-radius: 3px; border-left: none;"
+            if on:
+                b.setStyleSheet(f"QPushButton {{ padding: 0 10px; border: 1px solid #2a6f5c; {r}"
+                                f" background: #123a30; color: {ACCENT}; }}")
+            else:
+                b.setStyleSheet(f"QPushButton {{ padding: 0 10px; border: 1px solid {BORDER2}; {r}"
+                                f" background: {HEAD}; color: #7c8b9c; }}"
+                                f"QPushButton:hover {{ color: {BRIGHT}; }}")
+        self.stick_hdr.right.setText(k["short"])
+        self.gain_hint.setText(f"{k['l1']} ▼  {k['r1']} ▲")
+        self.l2_lbl.setText(f"{k['l2']} · DESCEND")
+        self.r2_lbl.setText(f"{k['r2']} · ASCEND")
+        chip_text = {"cross": k["cross"], "circle": k["circle"], "square": k["sq"], "triangle": k["tri"],
+                     "l1": k["l1"], "r1": k["r1"], "l2": k["l2"], "r2": k["r2"],
+                     "select": k["sel"], "start": k["start"], "ps": k["ps"], "dpad": "↑↓"}
+        for key, chip in self.chips.items():
+            chip.setText(chip_text[key])
+
     def show_controller_map(self, kind="ds3"):
-        ControllerMapDialog(self, kind, ARM_HOLD_S).exec()
+        ControllerMapDialog(self, kind, ARM_HOLD_S, scale=fs(100) / 100).exec()
 
     # ---------------- control loop ----------------
     def tick(self):
@@ -516,18 +584,18 @@ class ConsoleWindow(QMainWindow):
         pressed = lambda b: pad.down(b) and not prev.get(b)
 
         if pressed("select") or pressed("ps"):
-            self.estop("controller " + ("SELECT" if pad.down("select") else "PS"))
+            self.estop("controller " + (self.k["sel"] if pad.down("select") else self.k["ps"]))
 
         if pressed("start"):
             if self.armed:
-                self.disarm("START")
+                self.disarm(self.k["start"])
             else:
                 self.arm_hold_start = now
         if not pad.down("start"):
             self.arm_hold_start = None
         elif self.arm_hold_start is not None and not self.armed and now - self.arm_hold_start >= ARM_HOLD_S:
             self.arm_hold_start = None
-            self.try_arm("START held")
+            self.try_arm(f"{self.k['start']} held")
 
         for b, d in (("up", 1), ("down", -1)):
             if pressed(b):
@@ -614,9 +682,10 @@ class ConsoleWindow(QMainWindow):
             f'<span style="color:{MUTED}">RTT </span><b style="color:{TEXT}">{rtt}</b><span style="color:{MUTED}"> ms</span>{sep}'
             f'<span style="color:{MUTED}">LOSS </span><b style="color:{TEXT}">{loss}</b><span style="color:{MUTED}"> %</span>')
         if pad.connected:
-            name = pad.name if len(pad.name) <= 22 else pad.name[:21] + "…"
+            # Show the configured layout, not the driver's device name (DsHidMini can make
+            # a DualShock 3 report itself as an Xbox pad). The real name is in the event log.
             self.pad_lbl.setText(f'<span style="color:#7c8b9c">GAMEPAD </span>'
-                                 f'<b style="color:{ACCENT}">{html.escape(name)} OK</b>'
+                                 f'<b style="color:{ACCENT}">{self.k["short"]} OK</b>'
                                  + ("" if pad.mode == "SDL" else f'<span style="color:{WARN}"> RAW</span>'))
         else:
             self.pad_lbl.setText(f'<span style="color:#7c8b9c">GAMEPAD </span><b style="color:{DANGER}">NOT FOUND</b>')
@@ -663,13 +732,11 @@ class ConsoleWindow(QMainWindow):
             lbl, bar = self.imu_rows[key]
             lbl.setText("--" if val is None else f"{val:+.1f}°")
             bar.set(val or 0.0, ACCENT, mx)
-        v, amps = self._num("voltage"), self._num("current")
+        v = self._num("voltage")
         self.volt_lbl.setText(f'<span style="color:{BRIGHT}">{"--" if v is None else f"{v:.2f}"}</span>'
                               f'<span style="font-size:12px; color:{MUTED}; font-weight:500"> V</span>')
         soc = None if v is None else max(0, min(100, round((v - 13.2) / (16.8 - 13.2) * 100)))  # 4S Li-ion guess
         self.soc_bar.set(soc or 0)
-        self.soc_lbl.setText("SOC est. --" if soc is None else f"SOC est. {soc}%")
-        self.amp_lbl.setText("-- A" if amps is None else f"{amps:.1f} A")
 
         leak = self.tel.get("leak")
         if not linked or leak is None:
@@ -688,24 +755,44 @@ class ConsoleWindow(QMainWindow):
             roll=roll or 0.0, pitch=pitch or 0.0, heading=yaw or 0.0,
             depth=None if d is None else (d * 3.28084 if imp else d), depth_unit="ft" if imp else "m",
             armed=self.armed, arm_progress=hold, gain=GAIN_STEPS[self.gain_idx], tilt=self.tilt,
+            start_btn=self.k["start"],
             clock=datetime.now(timezone.utc).strftime("%H:%M:%S"))
 
         # status bar
-        if self.armed:
+        if now < self.notice_until:
+            self.msg_lbl.setText(self.notice)
+        elif self.armed:
             self.msg_lbl.setText(f"Armed — streaming control frames at {RATE_HZ} Hz")
         elif not pad.connected:
-            self.msg_lbl.setText("Connect a DualShock 3 to drive — see Help")
+            self.msg_lbl.setText(f"Connect a {self.k['short'].title().replace('Dualshock', 'DualShock')} to drive — see Help")
         else:
-            self.msg_lbl.setText(f"Controller ready — hold START {ARM_HOLD_S:.0f} s to arm")
+            self.msg_lbl.setText(f"Controller ready — hold {self.k['start']} {ARM_HOLD_S:.0f} s to arm")
         self.tx_lbl.setText(f"TX {self.link.tx_count:,} pkt   │")
         self.rx_lbl.setText(f"RX {self.link.rx_count:,} pkt   │")
 
     def closeEvent(self, e):
-        self.timer.stop()
-        self.ui_timer.stop()
-        self.loss_timer.stop()
-        self.armed = False
-        for _ in range(3):   # make sure the Pi sees a disarmed frame on exit
-            self.link.send(False, [0] * 6, self.tilt)
-        self.pad.close()
+        # Never leave the console with live thrusters: closing is refused while armed.
+        # (Ctrl+C in the terminal uses force_close(), which disarms first.)
+        if self.armed and not self._force_close:
+            e.ignore()
+            self.log("DENY", f"Disarm the ROV before leaving the console (tap {self.k['start']} or click ARMED)", WARN)
+            self.notice = "Disarm the ROV before leaving the console"
+            self.notice_until = time.monotonic() + 4.0
+            return
+        if not self._done:
+            self._done = True
+            self.timer.stop()
+            self.ui_timer.stop()
+            self.loss_timer.stop()
+            self.armed = False
+            for _ in range(3):   # make sure the Pi sees a disarmed frame on exit
+                self.link.send(False, [0] * 6, self.tilt)
+            self.link.close()
+            self.closed.emit()
         super().closeEvent(e)
+
+    def force_close(self):
+        """Disarm, send zero frames and close even if armed (Ctrl+C / program exit)."""
+        self.armed = False
+        self._force_close = True
+        self.close()

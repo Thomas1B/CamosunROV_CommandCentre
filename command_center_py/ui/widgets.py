@@ -6,9 +6,9 @@ from PySide6.QtGui import (QColor, QFont, QLinearGradient, QPainter, QPainterPat
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QVBoxLayout, QWidget)
 
-from command_center_py.config import DEADZONE, TILT_MIN, TILT_MAX
+from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, TILT_MIN, TILT_MAX
 from command_center_py.ui.theme import (PANEL, HEAD, WELL, BORDER, BORDER2, GRID, TEXT, BRIGHT,
-                          MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, mono, lab)
+                          MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, fs, mono, lab)
 
 
 # ============================================================================
@@ -125,7 +125,8 @@ class VideoPane(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._bg = None
         self.s = dict(roll=0.0, pitch=0.0, heading=0.0, depth=None, armed=False,
-                      arm_progress=0.0, gain=50, clock="--:--:--", depth_unit="m", tilt=0)
+                      arm_progress=0.0, gain=50, clock="--:--:--", depth_unit="m", tilt=0,
+                      start_btn="START")
 
     def set_state(self, **kw):
         self.s.update(kw)
@@ -167,10 +168,10 @@ class VideoPane(QWidget):
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawRoundedRect(QRectF(cx - 37, cy + 70, 74, 54), 8, 8)
         p.drawEllipse(QPointF(cx, cy + 97), 11, 11)
-        p.setFont(mono(11))
-        p.drawText(QRectF(0, cy + 132, w, 18), Qt.AlignmentFlag.AlignHCenter, "NO VIDEO SOURCE")
-        p.setFont(mono(10))
-        p.drawText(QRectF(0, cy + 150, w, 16), Qt.AlignmentFlag.AlignHCenter, "camera stream not connected")
+        p.setFont(mono(fs(11)))
+        p.drawText(QRectF(0, cy + 132, w, fs(18)), Qt.AlignmentFlag.AlignHCenter, "NO VIDEO SOURCE")
+        p.setFont(mono(fs(10)))
+        p.drawText(QRectF(0, cy + 132 + fs(18), w, fs(16)), Qt.AlignmentFlag.AlignHCenter, "camera stream not connected")
 
         # crosshair
         ch = QColor(ACCENT)
@@ -184,11 +185,11 @@ class VideoPane(QWidget):
 
         # arm state pill
         armed = s["armed"]
-        pill = QRectF(22, 16, 108, 24)
+        pill = QRectF(22, 16, fs(108), fs(24))
         p.setPen(QPen(QColor(ACCENT if armed else "#3a4653"), 1))
         p.setBrush(QColor(10, 16, 22, 200))
         p.drawRoundedRect(pill, 3, 3)
-        p.setFont(mono(11, QFont.Weight.Bold))
+        p.setFont(mono(fs(11), QFont.Weight.Bold))
         p.setPen(QColor(ACCENT if armed else "#7c8b9c"))
         p.drawText(pill, Qt.AlignmentFlag.AlignCenter, "ARMED" if armed else "DISARMED")
 
@@ -219,9 +220,9 @@ class VideoPane(QWidget):
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor(WARN))
         p.drawEllipse(ar.center(), 3, 3)
-        p.setFont(mono(9))
+        p.setFont(mono(fs(9)))
         p.setPen(QColor(127, 217, 192, 190))
-        p.drawText(QRectF(cx - 60, ar.bottom() + 3, 120, 14), Qt.AlignmentFlag.AlignHCenter, "ATTITUDE")
+        p.drawText(QRectF(cx - 60, ar.bottom() + 3, 120, fs(14)), Qt.AlignmentFlag.AlignHCenter, "ATTITUDE")
 
         # heading
         hdg = s["heading"] % 360
@@ -255,7 +256,7 @@ class VideoPane(QWidget):
         top = cy - sh / 2
         p.setPen(QPen(QColor(127, 217, 192, 90), 1))
         p.drawLine(QPointF(sx, top), QPointF(sx, top + sh))
-        p.setFont(mono(9))
+        p.setFont(mono(fs(9)))
         for deg in range(TILT_MIN, TILT_MAX + 1, 15):
             y = cy - deg / max(abs(TILT_MIN), TILT_MAX) * sh / 2
             p.setPen(QPen(QColor(127, 217, 192, 90), 1))
@@ -270,10 +271,10 @@ class VideoPane(QWidget):
         p.setBrush(QColor(WARN))
         p.drawPath(tri)
         p.setPen(QColor(127, 217, 192, 180))
-        p.drawText(QRectF(sx - 8, top - 20, 120, 14), Qt.AlignmentFlag.AlignLeft, "CAM TILT")
-        p.setFont(mono(12, QFont.Weight.Bold))
+        p.drawText(QRectF(sx - 8, top - 6 - fs(14), 160, fs(14)), Qt.AlignmentFlag.AlignLeft, "CAM TILT")
+        p.setFont(mono(fs(12), QFont.Weight.Bold))
         p.setPen(QColor(BRIGHT))
-        p.drawText(QRectF(sx + 12, ty - 9, 80, 18), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        p.drawText(QRectF(sx + 12, ty - fs(9), 100, fs(18)), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                    f"{s['tilt']:+d}°")
 
         # hold-to-arm progress
@@ -286,9 +287,10 @@ class VideoPane(QWidget):
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(QColor(ACCENT))
             p.drawRoundedRect(QRectF(bar.left(), bar.top(), bar.width() * prog, bar.height()), 3, 3)
-            p.setFont(mono(11, QFont.Weight.Bold))
+            p.setFont(mono(fs(11), QFont.Weight.Bold))
             p.setPen(QColor(ACCENT))
-            p.drawText(QRectF(0, cy + 44, w, 18), Qt.AlignmentFlag.AlignHCenter, "HOLD START TO ARM")
+            p.drawText(QRectF(0, cy + 44, w, fs(18)), Qt.AlignmentFlag.AlignHCenter,
+                       f"HOLD {s['start_btn']} TO ARM")
 
 
 class LevelBarSOC(QWidget):
@@ -327,10 +329,11 @@ class SectionHeader(QFrame):
                            + (f" border-top: 1px solid {BORDER};" if top_border else "") + " }")
         lay = QHBoxLayout(self)
         lay.setContentsMargins(12, 8, 12, 8)
-        lay.addWidget(lab(title, 10, LABEL, QFont.Weight.Bold))
+        lay.addWidget(lab(title, fs(10), LABEL, QFont.Weight.Bold))
         lay.addStretch(1)
-        if right:
-            lay.addWidget(lab(right, 10, MUTED))
+        self.right = lab(right, fs(10), MUTED)
+        lay.addWidget(self.right)
+        self.right.setVisible(bool(right))
 
 
 class ThrusterRow(QWidget):
@@ -340,12 +343,12 @@ class ThrusterRow(QWidget):
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(5)
         top = QHBoxLayout()
-        top.addWidget(lab(name, 11, DIM, QFont.Weight.DemiBold))
+        top.addWidget(lab(name, fs(11), DIM, QFont.Weight.DemiBold))
         top.addStretch(1)
-        top.addWidget(lab(role, 10, MUTED))
+        top.addWidget(lab(role, fs(10), MUTED))
         top.addStretch(1)
-        self.val = lab("0%", 11, OFF, QFont.Weight.Bold, Qt.AlignmentFlag.AlignRight)
-        self.val.setMinimumWidth(46)
+        self.val = lab("0%", fs(11), OFF, QFont.Weight.Bold, Qt.AlignmentFlag.AlignRight)
+        self.val.setMinimumWidth(fs(46))
         top.addWidget(self.val)
         v.addLayout(top)
         self.bar = BipolarBar(18)
@@ -364,9 +367,9 @@ class ThrusterRow(QWidget):
 class Chip(QLabel):
     def __init__(self, text):
         super().__init__(text)
-        self.setFont(mono(10, QFont.Weight.DemiBold))
+        self.setFont(mono(fs(10), QFont.Weight.DemiBold))
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setFixedHeight(20)
+        self.setFixedHeight(fs(20))
         self._on = None
         self.set(False)
 
@@ -432,8 +435,8 @@ class StatusRow(QFrame):
         self.dot = QLabel()
         self.dot.setFixedSize(7, 7)
         h.addWidget(self.dot)
-        h.addWidget(lab(name, 11, DIM), 1)
-        self.val = lab("--", 11, TEXT, QFont.Weight.Bold)
+        h.addWidget(lab(name, fs(11), DIM), 1)
+        self.val = lab("--", fs(11), TEXT, QFont.Weight.Bold)
         h.addWidget(self.val)
         self._last = None
 
@@ -447,28 +450,97 @@ class StatusRow(QFrame):
 
 
 # ============================================================================
-# CONTROLLER MAP DIALOG  (Help ▸ Dualshock3 Map / Xbox Map)
+# CONTROLLER MAPS  (console Help ▸ ... Map, and the main menu's CONTROLLER MAP card)
 # ============================================================================
 # Button names per controller. SDL reports both pads with the same layout, so
 # each Xbox button sits where the matching DualShock 3 button is.
 CONTROLLER_MAPS = {
-    "ds3": dict(title="Controller Map - Dualshock 3", l2="L2", r2="R2", l1="L1", r1="R1",
+    "ds3": dict(title="Controller Map - Dualshock 3", short="DUALSHOCK 3", cross="✕", circle="○",
+                l2="L2", r2="R2", l1="L1", r1="R1",
                 start="START", sel="SEL", ps="PS", tri="△", sq="□"),
-    "xbox": dict(title="Controller Map - Xbox", l2="LT", r2="RT", l1="LB", r1="RB",
+    "xbox": dict(title="Controller Map - Xbox", short="XBOX", cross="A", circle="B",
+                 l2="LT", r2="RT", l1="LB", r1="RB",
                  start="MENU", sel="VIEW", ps="XBOX", tri="Y", sq="X"),
 }
+
+
+# Button-label layout in use right now ("ds3" or "xbox"). Starts from CONTROLLER_LAYOUT in
+# config.py; the console's DUALSHOCK 3 / XBOX toggle changes it, and the main menu follows it.
+# Kept for as long as the program runs (not saved to disk).
+LAYOUT = {"kind": CONTROLLER_LAYOUT}
+
+
+def key_chip(text, color=BRIGHT, border=GRID, px=11):
+    """Small key-cap label, e.g. [L2] or [SPACE]."""
+    c = lab(text, px, color)
+    c.setStyleSheet(f"color: {color}; background: {HEAD}; border: 1px solid {border};"
+                    f" border-radius: 2px; padding: 2px 6px;")
+    c.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+    return c
+
+
+def controller_map_body(kind, arm_hold_s, scale=1.0):
+    """DRIVE / VEHICLE / CONSOLE button list for one controller ("ds3" or "xbox").
+
+    Shared by the console's Help dialog and the main menu's CONTROLLER MAP card.
+    scale enlarges the text (the console uses its bigger font scale, the menu 1.0).
+    """
+    z = lambda v: round(v * scale)
+    m = CONTROLLER_MAPS[kind]
+    body = QWidget()
+    bv = QVBoxLayout(body)
+    bv.setContentsMargins(0, 0, 0, 0)
+    bv.setSpacing(0)
+    sections = [
+        ("DRIVE", [
+            (["L STICK"], "Forward / back + side to side", None),
+            (["R STICK ←→"], "Rotate (yaw)", None),
+            ([m["l2"], m["r2"]], "Descend / ascend · analog", None),
+            ([m["l1"], m["r1"]], "Thrust gain down / up", None),
+            (["D-PAD ↑↓"], "Camera tilt", None),
+        ]),
+        ("VEHICLE", [
+            ([m["start"]], f"Hold {arm_hold_s:.0f} s to arm · tap to disarm", None),
+            ([m["sel"], m["ps"]], "E-STOP", DANGER),
+        ]),
+        ("CONSOLE", [
+            ([m["tri"]], "Toggle SI / imperial units", None),
+            ([m["sq"]], "Operator mark in log", None),
+        ]),
+    ]
+    for i, (name, rows) in enumerate(sections):
+        head_lbl = lab(name, z(9), MUTED)
+        head_lbl.setContentsMargins(0, 10 if i == 0 else 16, 0, 6)
+        bv.addWidget(head_lbl)
+        for keys, text, color in rows:
+            r = QHBoxLayout()
+            r.setSpacing(4)
+            chips = QWidget()
+            chips.setFixedWidth(z(124))
+            ch = QHBoxLayout(chips)
+            ch.setContentsMargins(0, 0, 0, 0)
+            ch.setSpacing(4)
+            for k in keys:
+                ch.addWidget(key_chip(k, px=z(11)))
+            ch.addStretch(1)
+            r.addWidget(chips)
+            r.addWidget(lab(text, z(11), color or "#c9d3de"), 1)
+            bv.addLayout(r)
+            bv.addSpacing(7)
+    return body
 
 
 class ControllerMapDialog(QDialog):
     """Modal card listing what each button does. Esc, ✕ or OK closes it."""
 
-    def __init__(self, parent, kind, arm_hold_s):
+    def __init__(self, parent, kind, arm_hold_s, scale=1.0):
         super().__init__(parent)
         m = CONTROLLER_MAPS[kind]
+        z = lambda v: round(v * scale)
         self.setWindowTitle(m["title"])
         self.setModal(True)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
-        self.setFixedWidth(440)
+        self.setFixedWidth(z(440))
         self.setStyleSheet(f"QDialog {{ background: {PANEL}; border: 1px solid {BORDER2}; }}")
 
         root = QVBoxLayout(self)
@@ -481,10 +553,10 @@ class ControllerMapDialog(QDialog):
         head.setStyleSheet(f"QFrame#mapHead {{ background: {HEAD}; border-bottom: 1px solid {BORDER}; }}")
         hh = QHBoxLayout(head)
         hh.setContentsMargins(14, 8, 8, 8)
-        hh.addWidget(lab(m["title"], 13, "#c9d3de", QFont.Weight.Bold), 1)
+        hh.addWidget(lab(m["title"], z(13), "#c9d3de", QFont.Weight.Bold), 1)
         x = QPushButton("✕")
-        x.setFixedSize(22, 22)
-        x.setFont(mono(12))
+        x.setFixedSize(z(22), z(22))
+        x.setFont(mono(z(12)))
         x.setCursor(Qt.CursorShape.PointingHandCursor)
         x.setStyleSheet(f"QPushButton {{ border: none; border-radius: 2px; color: {LABEL}; background: transparent; }}"
                         f"QPushButton:hover {{ background: {BORDER}; color: {BRIGHT}; }}")
@@ -493,46 +565,8 @@ class ControllerMapDialog(QDialog):
         root.addWidget(head)
 
         # body: DRIVE / VEHICLE / CONSOLE sections
-        body = QWidget()
-        bv = QVBoxLayout(body)
-        bv.setContentsMargins(14, 6, 14, 4)
-        bv.setSpacing(0)
-        sections = [
-            ("DRIVE", [
-                (["L STICK"], "Forward / back + side to side", None),
-                (["R STICK ←→"], "Rotate (yaw)", None),
-                ([m["l2"], m["r2"]], "Descend / ascend · analog", None),
-                ([m["l1"], m["r1"]], "Thrust gain down / up", None),
-                (["D-PAD ↑↓"], "Camera tilt", None),
-            ]),
-            ("VEHICLE", [
-                ([m["start"]], f"Hold {arm_hold_s:.0f} s to arm · tap to disarm", None),
-                ([m["sel"], m["ps"]], "E-STOP", DANGER),
-            ]),
-            ("CONSOLE", [
-                ([m["tri"]], "Toggle SI / imperial units", None),
-                ([m["sq"]], "Operator mark in log", None),
-            ]),
-        ]
-        for i, (name, rows) in enumerate(sections):
-            head_lbl = lab(name, 9, MUTED)
-            head_lbl.setContentsMargins(0, 10 if i == 0 else 16, 0, 6)
-            bv.addWidget(head_lbl)
-            for keys, text, color in rows:
-                r = QHBoxLayout()
-                r.setSpacing(4)
-                chips = QWidget()
-                chips.setFixedWidth(120)
-                ch = QHBoxLayout(chips)
-                ch.setContentsMargins(0, 0, 0, 0)
-                ch.setSpacing(4)
-                for k in keys:
-                    ch.addWidget(self._chip(k))
-                ch.addStretch(1)
-                r.addWidget(chips)
-                r.addWidget(lab(text, 11, color or "#c9d3de"), 1)
-                bv.addLayout(r)
-                bv.addSpacing(7)
+        body = controller_map_body(kind, arm_hold_s, scale)
+        body.layout().setContentsMargins(14, 6, 14, 4)
         root.addWidget(body)
 
         # footer
@@ -541,13 +575,13 @@ class ControllerMapDialog(QDialog):
         foot.setStyleSheet(f"QFrame#mapFoot {{ background: #0a0e13; border-top: 1px solid {BORDER}; }}")
         fh = QHBoxLayout(foot)
         fh.setContentsMargins(14, 10, 14, 10)
-        fh.addWidget(lab("Keyboard", 10, LABEL))
-        fh.addWidget(self._chip("SPACE", DANGER, "#7f2b2e", 10))
-        fh.addWidget(lab("— E-STOP", 10, LABEL))
+        fh.addWidget(lab("Keyboard", z(10), LABEL))
+        fh.addWidget(key_chip("SPACE", DANGER, "#7f2b2e", z(10)))
+        fh.addWidget(lab("— E-STOP", z(10), LABEL))
         fh.addStretch(1)
         ok = QPushButton("OK")
-        ok.setFixedWidth(72)
-        ok.setFont(mono(11, QFont.Weight.DemiBold))
+        ok.setFixedWidth(z(72))
+        ok.setFont(mono(z(11), QFont.Weight.DemiBold))
         ok.setCursor(Qt.CursorShape.PointingHandCursor)
         ok.setDefault(True)
         ok.setStyleSheet(f"QPushButton {{ padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px;"
@@ -557,14 +591,6 @@ class ControllerMapDialog(QDialog):
         fh.addWidget(ok)
         root.addSpacing(14)
         root.addWidget(foot)
-
-    @staticmethod
-    def _chip(text, color=BRIGHT, border=GRID, px=11):
-        c = lab(text, px, color)
-        c.setStyleSheet(f"color: {color}; background: {HEAD}; border: 1px solid {border};"
-                        f" border-radius: 2px; padding: 2px 6px;")
-        c.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        return c
 
     def showEvent(self, e):
         super().showEvent(e)
