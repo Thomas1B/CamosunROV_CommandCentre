@@ -1,5 +1,0 @@
-__pycache__/
-*.pyc
-
-# Virtual environment - each collaborator builds their own (see README)
-.venv/

@@ -45,8 +45,8 @@ PROJECT LAYOUT
     command_center_py/link.py ........... UDP command packets out, JSON telemetry in, demo simulator
     command_center_py/ui/theme.py ....... colours, fonts, label helper
     command_center_py/ui/widgets.py ..... custom-painted gauges and composite widgets
-    command_center_py/ui/menu.py ........ main menu, CONNECT VEHICLE and CONTROLLER MAP dialogs
-    command_center_py/ui/window.py ...... main console window: layout, arming, failsafes, event log
+    command_center_py/ui/start_window.py  main menu, CONNECT VEHICLE and CONTROLLER MAP dialogs
+    command_center_py/ui/main_window.py . main console window: layout, arming, failsafes, event log
 
     Wire contract (packet layout) is documented in command_center_py/link.py.
 -----------------------------------------------------------------------------

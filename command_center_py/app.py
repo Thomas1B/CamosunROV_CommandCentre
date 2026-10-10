@@ -14,8 +14,8 @@ from PySide6.QtWidgets import QApplication
 
 from command_center_py.gamepad import Gamepad
 from command_center_py.link import DemoLink
-from command_center_py.ui.menu import MainMenu
-from command_center_py.ui.window import ConsoleWindow
+from command_center_py.ui.start_window import MainMenu
+from command_center_py.ui.main_window import ConsoleWindow
 
 
 ICON_SVG = Path(__file__).resolve().parent / "ui" / "assets" / "camosunrov-icon.svg"
