@@ -309,7 +309,7 @@ class ConnectCard(Card):
         row = QHBoxLayout()
         row.setSpacing(s(10))
         self.name_edit = line_edit(DEFAULT_VEHICLE_NAME, "ROV-01")
-        self.name_edit.textEdited.connect(self._refresh)
+        self.name_edit.textEdited.connect(self._name_edited)
         row.addWidget(self.name_edit, 1)
         self.profile_box = QComboBox()
         self.profile_box.setFixedWidth(s(150))
@@ -416,6 +416,17 @@ class ConnectCard(Card):
             if t != e.text():
                 e.setText(t)
         self._set("idle")
+
+    # Profile messages ("saved", "loaded", ...) describe the name as it was at that
+    # moment; once the user edits the name they no longer apply, so drop back to idle.
+    # Other states (bad IP/port, timeout) are about other fields and stay visible.
+    _NAME_STATES = ("saved", "loaded", "deleted", "noname")
+
+    def _name_edited(self, *_):
+        if self.state in self._NAME_STATES:
+            self._set("idle")
+        else:
+            self._refresh()
 
     def _values(self):
         return (self.name_edit.text().strip(), self.ip_edit.text().strip(),
