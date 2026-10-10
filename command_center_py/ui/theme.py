@@ -12,6 +12,18 @@ MONO = ["IBM Plex Mono", "Cascadia Mono", "Consolas", "DejaVu Sans Mono", "monos
 SANS = ["IBM Plex Sans", "Segoe UI", "DejaVu Sans", "sans-serif"]
 
 
+# Console text is drawn this much bigger than the original mockup sizes (1.0 = mockup).
+# Applies to the control console only - the main menu keeps the design sizes.
+# Not scaled (kept as designed): HUD depth / thrust gain / heading / clock, battery
+# voltage, and the four telemetry cards (depth, pressure, water temp, internal temp).
+CONSOLE_FONT_SCALE = 1.25
+
+
+def fs(px):
+    """Console font size: px scaled by CONSOLE_FONT_SCALE."""
+    return round(px * CONSOLE_FONT_SCALE)
+
+
 def mono(px, weight=QFont.Weight.Normal):
     f = QFont()
     f.setFamilies(MONO)

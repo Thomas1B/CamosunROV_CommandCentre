@@ -23,6 +23,7 @@ Telemetry  Pi -> laptop, UDP, TELEM_PORT, JSON object per datagram, any keys opt
 """
 
 import binascii
+import ipaddress
 import json
 import math
 import socket
@@ -33,6 +34,27 @@ from command_center_py.config import LINK_TIMEOUT_S, RATE_HZ, TILT_MAX, TILT_MIN
 
 
 CMD_STRUCT = struct.Struct("<2sBBH6bbx")   # 14 bytes, + 2-byte CRC = 16
+
+
+def check_ipv4(text):
+    """Return (address, None) for a usable IPv4 address like 192.168.2.2, else (None, reason)."""
+    text = (text or "").strip()
+    try:
+        addr = ipaddress.IPv4Address(text)   # strict: exactly 4 parts, each 0-255, no leading zeros
+    except ipaddress.AddressValueError:
+        return None, "Enter a valid IPv4 address, e.g. 192.168.2.2"
+    if addr.is_unspecified or addr == ipaddress.IPv4Address("255.255.255.255") or addr.is_multicast:
+        return None, "That can't be the Pi's address (unspecified, broadcast or multicast)"
+    return str(addr), None
+
+
+def check_port(text):
+    """Return the port as an int if text is 1..65535, else None."""
+    text = (text or "").strip()
+    if not text.isdigit():
+        return None
+    port = int(text)
+    return port if 1 <= port <= 65535 else None
 
 
 def pack_command(seq, armed, throttles, tilt):
@@ -71,6 +93,14 @@ class Link:
 
     def up(self, now):
         return now - self.last_rx < LINK_TIMEOUT_S
+
+    def close(self):
+        """Release both sockets so the telemetry port can be bound again next time."""
+        for sock in (self.tx, self.rx):
+            try:
+                sock.close()
+            except OSError:
+                pass
 
     def send(self, armed, throttles, tilt):
         self.seq = (self.seq + 1) & 0xFFFF
