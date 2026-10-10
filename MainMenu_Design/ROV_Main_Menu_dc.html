@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Offline build: every dependency is a local file, nothing is fetched from the internet. -->
+<link rel="stylesheet" href="./fonts/ibm-plex.css">
+<script src="./vendor/react.production.min.js"></script>
+<script src="./vendor/react-dom.production.min.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="./fonts/ibm-plex.css">
+<style>body{margin:0;background:#07090c}a{color:#35d0a5;text-decoration:none}a:hover{color:#5ee7c1}</style>
+</helmet>
+<div style="position: relative; width: 100%; height: 100vh; min-width: 1100px; min-height: 720px; display: grid; grid-template-rows: minmax(0,1fr) 22px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 12px; overflow: hidden; box-sizing: border-box;">
+
+  <div style="display: grid; grid-template-columns: minmax(0,1fr); min-height: 0;">
+
+    <div style="position: relative; min-width: 0; display: flex; flex-direction: column; justify-content: flex-start; padding: 64px 72px 0; background: radial-gradient(110% 90% at 30% 40%, #12293a 0%, #0b1a25 45%, #070d13 100%); overflow: hidden;">
+      <div style="position: absolute; right: -120px; top: 50%; transform: translateY(-50%); width: 520px; height: 520px; border-radius: 50%; border: 1px solid rgba(53,208,165,0.12);"></div>
+      <div style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); width: 240px; height: 240px; border-radius: 50%; border: 1px solid rgba(53,208,165,0.18);"></div>
+      <div style="position: absolute; right: 139px; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.1);"></div>
+      <div style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(53,208,165,0.06);"></div>
+
+      <div style="position: relative; display: flex; align-items: center; gap: 28px; margin-bottom: 64px;">
+        <img src="assets/camosunrov-logo-dark.svg" alt="CamosunROV logo" style="width: 168px; height: auto; flex: none; display: block;"></img>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 44px; font-weight: 700; color: #eaf2fa; line-height: 1; letter-spacing: 0.02em;"><span style="font-size: 60px;">CamosunROV</span> - Command Centre</span>
+        <span style="font-size: 14px; color: #5f7183;">v0.5.0 · build 2026.10</span>
+      </div>
+      </div>
+
+      <div style="position: relative; display: flex; flex-direction: column; gap: 4px; max-width: 520px;">
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="7">
+          <div onMouseEnter="{{ it.hover }}" onClick="{{ it.select }}" style="{{ it.rowStyle }}">
+            <span style="{{ it.idxStyle }}">{{ it.idx }}</span>
+            <span style="{{ it.labelStyle }}">{{ it.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="position: relative; display: flex; align-items: center; gap: 28px; margin-top: 56px; font-size: 13px; color: #8fa2b5; text-transform: uppercase; letter-spacing: 0.04em;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 9px; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">↑↓</span>navigate</div>
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 9px; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">{{ ctl.ok }}</span>select</div>
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 9px; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">{{ ctl.back }}</span>back</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px; background: #10151c; border-top: 1px solid #1f2933; font-size: 10px; color: #5f7183;">
+    <span style="color: #c9d3de;">{{ statusMessage }}</span>
+    <div style="flex: 1;"></div>
+    <span>MAIN MENU</span>
+    <span style="color: #2c3a48;">|</span>
+    <span>v0.5.0</span>
+  </div>
+
+  <sc-if value="{{ connOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeConn }}" style="position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
+      <div onClick="{{ stop }}" style="zoom: 1.25; width: 460px; max-width: calc(100% - 48px); background: #0e131a; border: 1px solid #23303c; border-radius: 4px; box-shadow: 0 18px 50px rgba(0,0,0,0.7); overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #131a22; border-bottom: 1px solid #1f2933;">
+          <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: #eaf2fa;">CONNECT VEHICLE</span>
+          <div onClick="{{ closeConn }}" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 13px; color: #8fa2b5; cursor: pointer;" style-hover="background: #1f2933; color: #eaf2fa;">✕</div>
+        </div>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-size: 9px; letter-spacing: 0.1em; color: #8fa2b5;">VEHICLE NAME</span>
+            <div style="display: grid; grid-template-columns: minmax(0,1fr) 150px; gap: 10px;">
+              <input value="{{ conn.name }}" onChange="{{ setName }}" placeholder="ROV-01" style="padding: 9px 10px; border: 1px solid #2c3a48; border-radius: 3px; background: #070a0e; color: #eaf2fa; font: 13px 'IBM Plex Mono', monospace; outline: none; min-width: 0;" style-focus="border-color: #35d0a5;"></input>
+              <select value="{{ profileSel }}" onChange="{{ pickProfile }}" style="padding: 0 8px; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #c9d3de; font: 11px 'IBM Plex Mono', monospace; outline: none; cursor: pointer;">
+                <option value="" disabled="disabled" hidden="hidden">{{ profilePlaceholder }}</option>
+                <sc-for list="{{ profileOpts }}" as="p" hint-placeholder-count="0">
+                  <option value="{{ p.name }}">{{ p.name }}</option>
+                </sc-for>
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 9px; letter-spacing: 0.1em; color: #8fa2b5;">IP ADDRESS</span>
+              <input value="{{ conn.ip }}" onChange="{{ setIp }}" placeholder="192.168.2.2" style="{{ ipStyle }}" style-focus="border-color: #35d0a5;"></input>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 9px; letter-spacing: 0.1em; color: #8fa2b5;">COMMAND PORT · PI LISTENS</span>
+              <input value="{{ conn.cmdPort }}" onChange="{{ setCmdPort }}" placeholder="5600" style="{{ cmdPortStyle }}" style-focus="border-color: #35d0a5;"></input>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 9px; letter-spacing: 0.1em; color: #8fa2b5;">TELEMETRY PORT · CONSOLE LISTENS</span>
+              <input value="{{ conn.telPort }}" onChange="{{ setTelPort }}" placeholder="5601" style="{{ telPortStyle }}" style-focus="border-color: #35d0a5;"></input>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; min-height: 18px; font-size: 11px; margin-top: 10px;">
+            <div style="{{ connDot }}"></div>
+            <span style="{{ connMsgStyle }}">{{ connMsg }}</span>
+          </div>
+          <span style="font-size: 11px; color: #8fa2b5; margin-top: -6px;">50 Hz command rate (20 ms) — fixed</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid #1f2933; background: #0a0e13;">
+          <div onClick="{{ saveProfile }}" style="padding: 7px 12px; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #c9d3de; cursor: pointer;" style-hover="border-color: #35d0a5; color: #35d0a5;">SAVE PROFILE</div>
+          <sc-if value="{{ canDelete }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ deleteProfile }}" style="padding: 7px 10px; font-size: 11px; color: #8fa2b5; cursor: pointer;" style-hover="color: #ff6b6e;">DELETE</div>
+          </sc-if>
+          <div style="flex: 1;"></div>
+          <div onClick="{{ closeConn }}" style="width: 84px; padding: 7px 0; text-align: center; font-size: 11px; font-weight: 600; border: 1px solid #2c3a48; border-radius: 3px; background: #1a2029; color: #c9d3de; cursor: pointer;" style-hover="color: #eaf2fa;">CANCEL</div>
+          <div onClick="{{ doConnect }}" style="{{ connBtnStyle }}" style-hover="border-color: #35d0a5; color: #5ee7c1;">{{ connBtnLabel }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ mapOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeMap }}" style="position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
+      <div onClick="{{ stop }}" style="width: 860px; max-width: calc(100% - 48px); background: #0e131a; border: 1px solid #23303c; border-radius: 4px; box-shadow: 0 18px 50px rgba(0,0,0,0.7); overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #131a22; border-bottom: 1px solid #1f2933;">
+          <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: #eaf2fa;">CONTROLLER MAPS</span>
+          <div onClick="{{ closeMap }}" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 13px; color: #8fa2b5; cursor: pointer;" style-hover="background: #1f2933; color: #eaf2fa;">✕</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1f2933;">
+          <sc-for list="{{ maps }}" as="mp" hint-placeholder-count="2">
+            <div style="background: #0e131a; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #35d0a5; padding-bottom: 4px;">{{ mp.title }}</span>
+              <sc-for list="{{ mp.groups }}" as="g" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column; gap: 7px;">
+                  <span style="font-size: 9px; letter-spacing: 0.1em; color: #5f7183; padding-top: 10px;">{{ g.name }}</span>
+                  <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+                    <div style="display: grid; grid-template-columns: 124px 1fr; align-items: center; gap: 10px; font-size: 11px;">
+                      <div style="display: flex; gap: 4px;">
+                        <sc-for list="{{ r.keys }}" as="k" hint-placeholder-count="1">
+                          <span style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ k }}</span>
+                        </sc-for>
+                      </div>
+                      <span style="{{ r.style }}">{{ r.desc }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid #1f2933; background: #0a0e13;">
+          <span style="font-size: 10px; color: #8fa2b5;">Keyboard <span style="padding: 2px 6px; border: 1px solid #7f2b2e; border-radius: 2px; color: #ff6b6e;">SPACE</span> — E-STOP · <span style="color: #c9d3de;">ESC</span> to close</span>
+          <div onClick="{{ closeMap }}" style="width: 72px; padding: 6px 0; text-align: center; font-size: 11px; font-weight: 600; border: 1px solid #2c3a48; border-radius: 3px; background: #1a2029; color: #eaf2fa; cursor: pointer;" style-hover="border-color: #35d0a5; color: #35d0a5;">OK</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:800},&quot;controller&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;ds3&quot;,&quot;xbox&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { sel: 0, log: [], pad: false, padId: '', now: Date.now(), mapOpen: false, connOpen: false, conn: { name: 'ROV-01', ip: '192.168.2.2', cmdPort: '5600', telPort: '5601', proto: 'UDP', rate: '50' }, connState: 'idle', profiles: this.loadProfiles() };
+
+
+
+  items = [
+    { label: 'CONNECT VEHICLE', hint: 'UDP · 192.168.2.2', action: 'CONNECT', desc: 'Open a control link to the vehicle on the tether. Telemetry starts streaming once the Pi answers.', facts: [['LAST VEHICLE', 'ROV-01'], ['PORT', '5760']] },
+    { label: 'DEMO MODE', hint: 'simulated vehicle', action: 'START DEMO', desc: 'Drive a simulated vehicle with live-looking telemetry. Nothing is transmitted — safe for practice.', facts: [['RATE', '50 Hz'], ['TX', 'OFF']] },
+    { label: 'CONTROLLER MAP', hint: '', action: 'OPEN MAP', desc: 'Check stick ranges, set deadzones and review the button map for DualShock 3 or Xbox pads.', facts: [['DEADZONE', '8%'], ['LAYOUT', 'AUTO']] },
+    { label: 'QUIT', hint: '', action: 'QUIT', desc: 'Close the console. Any armed vehicle is disarmed first.', facts: [['VEHICLE', 'NONE'], ['STATE', 'SAFE']] },
+  ];
+
+  componentDidMount() {
+    this.prev = {};
+    this.addLog('SYS', 'Console v0.5.0 started');
+    this.onKey = e => {
+      if (this.state.mapOpen) { if (e.key === 'Escape' || e.key === 'Enter') this.setState({ mapOpen: false }); return; }
+      if (this.state.connOpen) { if (e.key === 'Escape') this.closeConn(); if (e.key === 'Enter') this.doConnect(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); this.move(1); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); this.move(-1); }
+      if (e.key === 'Enter') this.launch();
+    };
+    window.addEventListener('keydown', this.onKey);
+    this.timer = setInterval(() => this.tick(), 50);
+  }
+  validIp(ip) { return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(n => +n <= 255) || /^[a-z0-9][a-z0-9.-]*\.local$/i.test(ip); }
+  loadProfiles() { try { return JSON.parse(localStorage.getItem('camosunrov.profiles') || '[]'); } catch (e) { return []; } }
+  storeProfiles(list) {
+    // Python bridge: if exposed, it owns persistence (e.g. profiles.json). Falls back to localStorage in the browser.
+    const py = window.pywebview && window.pywebview.api;
+    if (py && py.save_profiles) py.save_profiles(list); else localStorage.setItem('camosunrov.profiles', JSON.stringify(list));
+  }
+  saveProfile() {
+    const c = this.state.conn, name = (c.name || '').trim();
+    if (!name) { this.setState({ connState: 'noname' }); return; }
+    if (!this.validIp(c.ip)) { this.setState({ connState: 'badip' }); return; }
+    const p = { name, ip: c.ip, cmdPort: c.cmdPort, telPort: c.telPort, proto: c.proto };
+    const list = this.state.profiles.filter(x => x.name !== name).concat([p]).sort((a, b) => a.name.localeCompare(b.name));
+    this.storeProfiles(list);
+    this.setState({ profiles: list, connState: 'saved' });
+    this.addLog('SYS', 'Profile saved — ' + name);
+  }
+  deleteProfile() {
+    const name = this.state.conn.name, list = this.state.profiles.filter(x => x.name !== name);
+    this.storeProfiles(list);
+    this.setState({ profiles: list, connState: 'deleted' });
+  }
+  closeConn() { clearTimeout(this.connT); this.setState({ connOpen: false, connState: 'idle' }); }
+  doConnect() {
+    const c = this.state.conn;
+    if (!this.validIp(c.ip)) { this.setState({ connState: 'badip' }); return; }
+    const okPort = v => /^\d+$/.test(v) && +v > 0 && +v <= 65535;
+    if (!okPort(c.cmdPort) || !okPort(c.telPort)) { this.setState({ connState: 'badport' }); return; }
+    if (c.cmdPort === c.telPort) { this.setState({ connState: 'sameport' }); return; }
+    if (this.state.connState === 'connecting') return;
+    this.setState({ connState: 'connecting' });
+    this.addLog('LINK', 'Connecting ' + c.proto + ' ' + c.ip + ' · cmd ' + c.cmdPort + ' · telem ' + c.telPort);
+    this.connT = setTimeout(() => { this.setState({ connState: 'timeout' }); this.addLog('LINK', 'No answer from ' + c.ip); }, 2500);
+  }
+  componentWillUnmount() { clearTimeout(this.connT); clearInterval(this.timer); window.removeEventListener('keydown', this.onKey); }
+
+  hms(d) { return [d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()].map(n => String(n).padStart(2, '0')).join(':'); }
+  addLog(tag, msg) { this.setState(s => ({ log: [{ t: this.hms(new Date()), tag, msg }].concat(s.log).slice(0, 4) })); }
+  move(d) { this.setState(s => ({ sel: (s.sel + d + this.items.length) % this.items.length })); }
+  launch(i) {
+    const it = this.items[i ?? this.state.sel];
+    if (it.label === 'CONTROLLER MAP') this.setState({ mapOpen: true });
+    if (it.label === 'CONNECT VEHICLE') { this.setState({ connOpen: true, connState: 'idle' }); return; }
+    this.addLog(it.label === 'QUIT' ? 'STOP' : 'MENU', it.action + ' — ' + it.label.toLowerCase());
+  }
+
+  tick() {
+    const gp = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean)[0] : null;
+    if (gp) {
+      const bt = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
+      const edge = i => bt(i) && !this.prev[i];
+      if (!this.state.pad) this.addLog('PAD', 'Controller connected');
+      if (this.state.mapOpen) { if (edge(0) || edge(1)) this.setState({ mapOpen: false }); }
+      else if (this.state.connOpen) { if (edge(1)) this.closeConn(); if (edge(0)) this.doConnect(); }
+      else {
+      if (edge(12)) this.move(-1);
+      if (edge(13)) this.move(1);
+      if (edge(0)) this.launch();
+      }
+      this.prev = {}; gp.buttons.forEach((_, i) => { this.prev[i] = bt(i); });
+    } else if (this.state.pad) this.addLog('PAD', 'Controller disconnected');
+    this.setState({ pad: !!gp, padId: gp ? gp.id : this.state.padId, now: Date.now() });
+  }
+
+  renderVals() {
+    const s = this.state, accent = '#35d0a5';
+    const force = this.props.controller ?? 'auto';
+    const xbox = force === 'xbox' || (force === 'auto' && /xbox|xinput|microsoft|045e/i.test(s.padId || ''));
+    const ctl = xbox ? { name: 'XBOX', ok: 'A', back: 'B' } : { name: 'DUALSHOCK 3', ok: '✕', back: '○' };
+    const fmtDur = sec => sec >= 3600
+      ? Math.floor(sec / 3600) + 'h ' + String(Math.floor(sec % 3600 / 60)).padStart(2, '0') + 'm ' + String(sec % 60).padStart(2, '0') + 's'
+      : Math.floor(sec / 60) + 'm ' + String(sec % 60).padStart(2, '0') + 's';
+    const portStyle = bad => ({ padding: '9px 10px', border: '1px solid ' + (bad ? '#7f2b2e' : '#2c3a48'), borderRadius: '3px', background: '#070a0e', color: '#eaf2fa', font: "13px 'IBM Plex Mono', monospace", outline: 'none', minWidth: 0 });
+    const opt = (label, on, pick) => ({ label, pick, style: { flex: 1, padding: '8px 0', textAlign: 'center', fontSize: '11px', fontWeight: 600, borderRadius: '3px', border: '1px solid ' + (on ? '#2a6f5c' : '#2c3a48'), background: on ? '#123a30' : '#131a22', color: on ? accent : '#8fa2b5', cursor: 'pointer' } });
+    const items = this.items.map((it, i) => {
+      const on = i === s.sel, quit = it.label === 'QUIT';
+      return {
+        idx: '—', label: it.label, hint: it.label === 'CONNECT VEHICLE' ? s.conn.proto + ' · ' + s.conn.ip : it.hint,
+        hover: () => this.setState({ sel: i }),
+        select: () => { this.setState({ sel: i }); this.launch(i); },
+        rowStyle: { display: 'grid', gridTemplateColumns: '36px 1fr auto', alignItems: 'center', padding: '11px 14px', borderRadius: '3px', border: '1px solid ' + (on ? (quit ? '#7f2b2e' : '#2a6f5c') : 'transparent'), background: on ? (quit ? 'rgba(42,16,18,0.85)' : 'rgba(18,58,48,0.75)') : 'transparent', cursor: 'pointer' },
+        idxStyle: { fontSize: '10px', color: on ? (quit ? '#ff6b6e' : accent) : '#4d5d6d' },
+        labelStyle: { fontSize: '17px', fontWeight: 700, letterSpacing: '0.06em', color: on ? (quit ? '#ff6b6e' : '#eaf2fa') : '#8fa2b5' },
+        hintStyle: { fontSize: '13px', color: on ? '#8fd9c4' : '#6b7d8f' },
+      };
+    });
+    const c = this.items[s.sel];
+    const quit = c.label === 'QUIT';
+    const dot = col => ({ width: '7px', height: '7px', borderRadius: '50%', background: col });
+    const mono = col => ({ fontSize: '11px', fontWeight: 700, color: col });
+    const chk = (name, ok, okV, badV, badCol) => ({ name, value: ok ? okV : badV, dotStyle: dot(ok ? accent : badCol), valueStyle: mono(ok ? accent : badCol) });
+    const tagCol = { SYS: '#ffd479', MENU: accent, STOP: '#ff6b6e', PAD: '#c9a8ff' };
+    return {
+      items, ctl, count: this.items.length,
+      mapOpen: s.mapOpen,
+      connOpen: s.connOpen, conn: s.conn,
+      profileOpts: s.profiles,
+      profileSel: s.profiles.some(p => p.name === s.conn.name) ? s.conn.name : '',
+      profilePlaceholder: s.profiles.length ? 'Load profile…' : 'No saved profiles',
+      pickProfile: e => { const p = s.profiles.find(x => x.name === e.target.value); if (p) this.setState(st => ({ conn: Object.assign({}, st.conn, { cmdPort: '5600', telPort: '5601' }, p), connState: 'loaded' })); },
+      saveProfile: () => this.saveProfile(),
+      deleteProfile: () => this.deleteProfile(),
+      canDelete: s.profiles.some(p => p.name === s.conn.name),
+      closeConn: () => this.closeConn(),
+      doConnect: () => this.doConnect(),
+      setName: e => { const v = e.target.value; this.setState(st => ({ conn: Object.assign({}, st.conn, { name: v }) })); },
+      setIp: e => { const v = e.target.value.trim(); this.setState(st => ({ conn: Object.assign({}, st.conn, { ip: v }), connState: 'idle' })); },
+      setCmdPort: e => { const v = e.target.value.replace(/\D/g, '').slice(0, 5); this.setState(st => ({ conn: Object.assign({}, st.conn, { cmdPort: v }), connState: 'idle' })); },
+      setTelPort: e => { const v = e.target.value.replace(/\D/g, '').slice(0, 5); this.setState(st => ({ conn: Object.assign({}, st.conn, { telPort: v }), connState: 'idle' })); },
+      cmdPortStyle: portStyle(s.connState === 'badport' || s.connState === 'sameport'),
+      telPortStyle: portStyle(s.connState === 'badport' || s.connState === 'sameport'),
+      ipStyle: { padding: '9px 10px', border: '1px solid ' + (s.connState === 'badip' ? '#7f2b2e' : '#2c3a48'), borderRadius: '3px', background: '#070a0e', color: '#eaf2fa', font: "13px 'IBM Plex Mono', monospace", outline: 'none', minWidth: 0 },
+      protoOpts: ['TCP', 'UDP'].map(v => opt(v, s.conn.proto === v, () => this.setState(st => ({ conn: Object.assign({}, st.conn, { proto: v }) })))),
+      rateOpts: ['25', '50', '100'].map(v => opt(v + ' Hz', s.conn.rate === v, () => this.setState(st => ({ conn: Object.assign({}, st.conn, { rate: v }) })))),
+      recents: [['ROV-01', '192.168.2.2', '5760', 'UDP', '3d ago'], ['BENCH-PI', 'raspberrypi.local', '5760', 'UDP', '2w ago']].map(([name, ip, port, proto, when]) => ({ name, addr: proto + ' · ' + ip + ':' + port, when, pick: () => this.setState(st => ({ conn: Object.assign({}, st.conn, { name, ip, port, proto }), connState: 'idle' })) })),
+      connMsg: ({ idle: 'Vehicle must be powered and the tether connected.', badip: 'Enter a valid IPv4 address or .local hostname', badport: 'Ports must be 1–65535', sameport: 'Command and telemetry ports must differ', noname: 'Enter a vehicle name to save a profile', saved: 'Profile "' + s.conn.name + '" saved', loaded: 'Profile "' + s.conn.name + '" loaded', deleted: 'Profile deleted', connecting: 'Connecting to ' + s.conn.ip + ' · cmd ' + s.conn.cmdPort + '…', timeout: 'No answer from ' + s.conn.ip + ' — check tether and power' })[s.connState],
+      connMsgStyle: { color: ({ idle: '#8fa2b5', badip: '#ff6b6e', badport: '#ff6b6e', sameport: '#ff6b6e', noname: '#ff6b6e', saved: '#35d0a5', loaded: '#35d0a5', deleted: '#8fa2b5', connecting: '#ffd479', timeout: '#ff6b6e' })[s.connState] },
+      connDot: { display: s.connState === 'idle' ? 'none' : 'block', width: '7px', height: '7px', borderRadius: '50%', flex: 'none', background: ({ idle: '#5f7183', badip: '#ff5c5c', badport: '#ff5c5c', sameport: '#ff5c5c', noname: '#ff5c5c', saved: '#35d0a5', loaded: '#35d0a5', deleted: '#5f7183', connecting: '#ffd479', timeout: '#ff5c5c' })[s.connState] },
+      connBtnLabel: s.connState === 'connecting' ? 'CONNECTING…' : s.connState === 'timeout' ? 'RETRY' : 'CONNECT',
+      connBtnStyle: { width: '120px', padding: '7px 0', textAlign: 'center', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', border: '1px solid #2a6f5c', borderRadius: '3px', background: '#123a30', color: accent, cursor: 'pointer', opacity: s.connState === 'connecting' ? 0.7 : 1 },
+      closeMap: () => this.setState({ mapOpen: false }),
+      stop: e => e.stopPropagation(),
+      maps: [
+        { title: 'DUALSHOCK 3', k: { l2: 'L2', r2: 'R2', l1: 'L1', r1: 'R1', start: 'START', sel: 'SEL', tri: '△', sq: '□' } },
+        { title: 'XBOX', k: { l2: 'LT', r2: 'RT', l1: 'LB', r1: 'RB', start: 'MENU', sel: 'VIEW', tri: 'Y', sq: 'X' } },
+      ].map(({ title, k }) => {
+        const r = (keys, desc, red) => ({ keys, desc, style: { color: red ? '#ff6b6e' : '#c9d3de' } });
+        return { title, groups: [
+          { name: 'DRIVE', rows: [r(['L STICK'], 'Forward / back + side to side'), r(['R STICK ←→'], 'Rotate (yaw)'), r([k.l2, k.r2], 'Descend / ascend'), r([k.l1, k.r1], 'Thrust gain down / up'), r(['D-PAD ↑↓'], 'Camera tilt')] },
+          { name: 'VEHICLE', rows: [r([k.start], 'Hold 1 s to arm · tap to disarm'), r([k.sel], 'E-STOP', true)] },
+          { name: 'CONSOLE', rows: [r([k.tri], 'Toggle SI / imperial units'), r([k.sq], 'Operator mark in log')] },
+        ] };
+      }),
+      cur: { label: c.label, idx: '0' + (s.sel + 1), desc: c.desc, action: c.action + '  →', facts: c.facts.map(([k, v]) => ({ k, v })) },
+      launch: () => this.launch(),
+      launchStyle: { textAlign: 'center', padding: '9px 0', borderRadius: '3px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', cursor: 'pointer', border: '1px solid ' + (quit ? '#7f2b2e' : '#2a6f5c'), background: quit ? '#2a1012' : '#123a30', color: quit ? '#ff6b6e' : accent },
+      showPreflight: this.props.showPreflight ?? true,
+      checks: [
+        chk('Controller', s.pad, 'OK', 'MISSING', '#ff5c5c'),
+        chk('Tether link', false, 'UP', 'IDLE', '#8fa2b5'),
+        chk('Leak sensor', true, 'DRY', 'WET', '#ff5c5c'),
+        chk('Log storage', true, '82% FREE', 'FULL', '#ff5c5c'),
+      ],
+      padLabel: s.pad ? ctl.name : 'NOT FOUND',
+      padStyle: { color: s.pad ? accent : '#ff5c5c', fontWeight: 600 },
+      clock: this.hms(new Date(s.now)),
+      logLines: s.log.map(l => ({ t: l.t, tag: l.tag, msg: l.msg, tagStyle: { color: tagCol[l.tag] || accent, width: '34px', flex: 'none' } })),
+      statusMessage: s.pad ? 'D-pad to navigate · ' + ctl.ok + ' to select' : 'Arrow keys + Enter to navigate — or connect a controller',
+    };
+  }
+}
+</script>
+</body>
+</html>
