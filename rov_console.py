@@ -51,6 +51,7 @@ PROJECT LAYOUT
     Wire contract (packet layout) is documented in command_center_py/link.py.
 -----------------------------------------------------------------------------
 """
+print("CamosunROV Command Centre Started.")
 
 import os
 import signal
@@ -126,7 +127,6 @@ def main():
     if len(sys.argv) > 1:
         sys.exit("rov_console.py takes no options - run it as:  py rov_console.py\n"
                  "Choose CONNECT VEHICLE or DEMO MODE in the main menu.")
-    print("CamosunROV Command Centre Started.")
     use_own_taskbar_icon()
     app = QApplication(sys.argv)
     rov = RovApp()
