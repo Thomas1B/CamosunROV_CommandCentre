@@ -11,6 +11,8 @@ DEFAULT_VEHICLE_NAME = "ROV-01"
 PI_HOST = "192.168.2.2"
 CMD_PORT = 5600
 TELEM_PORT = 5601
+VIDEO_PORT = 5602        # camera stream from the Pi (camera_stream.py), H.264 in MPEG-TS over UDP
+VIDEO_STALE_S = 1.5      # no new video frame for this long -> show "VIDEO LOST" over the last frame
 RATE_HZ = 50
 CONNECT_TIMEOUT_S = 5.0  # CONNECT waits this long for telemetry from the Pi before giving up
 

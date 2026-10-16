@@ -16,10 +16,15 @@ Command packet  laptop -> Pi, UDP, CMD_PORT, 50 Hz, 16 bytes, little-endian
                        (Python: binascii.crc_hqx(pkt[:14], 0xFFFF))
     The Pi should zero all thrusters if no valid packet arrives for ~250 ms.
 
-Telemetry  Pi -> laptop, UDP, TELEM_PORT, JSON object per datagram, any keys optional:
-    {"depth_m": 12.4, "pressure_mbar": 2240, "water_c": 8.7, "internal_c": 41.6,
-     "roll": 1.2, "pitch": -0.4, "yaw": 214.0, "voltage": 15.8, "current": 8.3,
-     "leak": false, "ack": <last cmd seq received>, "rx_cmds": <total cmds received>}
+    flags bit1 = recover (clear an STM32 leak shutdown) is understood by the Pi
+    (rov_bridge.py) but not sent by this console yet.
+
+Telemetry  Pi -> laptop, UDP, TELEM_PORT, JSON object per datagram, any keys optional,
+SI units. A value is null while its sensor is faulted or the STM32 is not answering:
+    {"depth_m": 12.4, "pressure_kpa": 224.0, "water_c": 8.7, "internal_c": 41.6,
+     "roll": 1.2, "pitch": -0.4, "yaw": 214.0, "voltage": 15.8,
+     "leak": false, "faults": ["TEMP"], "fault_flags": 8, "stm32": true,
+     "uart_errors": 0, "ack": <last cmd seq received>, "rx_cmds": <total cmds received>}
 """
 
 import binascii
@@ -225,14 +230,13 @@ class DemoLink(Link):
         wob = lambda s, a: (math.sin(t * 0.7 + s) + 0.4 * math.sin(t * 1.9 + s * 2.3)) * a
         msg = {
             "depth_m": self.depth + wob(0.9, 0.02),
-            "pressure_mbar": 1013.25 + self.depth * 100.5,
+            "pressure_kpa": 101.325 + self.depth * 10.05,
             "water_c": 8.7 + wob(2.2, 0.15),
             "internal_c": self.temp,
             "roll": wob(1.1, 3.0) + (thr[0] - thr[1]) / 40.0,
             "pitch": wob(2.7, 2.0) - (thr[0] + thr[1] - thr[2] - thr[3]) / 80.0,
             "yaw": self.heading,
             "voltage": 15.8 - load * 0.9,
-            "current": 1.2 + load * 18.0,
             "leak": False,
             "ack": seq,
             "rx_cmds": self.tx_count,

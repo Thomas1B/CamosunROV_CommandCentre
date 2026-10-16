@@ -118,18 +118,27 @@ class StickView(QWidget):
 
 
 class VideoPane(QWidget):
-    """Camera area with HUD. Video itself is a placeholder until the stream is wired in."""
+    """Camera area with HUD. The live frame (from video.VideoReceiver) is drawn
+    letterboxed underneath the HUD; with no frame, a placeholder and the stream status."""
 
     def __init__(self):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._bg = None
+        self.frame = None              # QImage of the newest video frame, or None
+        self.video_live = False        # False -> frame (if any) is the last one before the stream stopped
+        self.video_status = "camera stream not connected"
         self.s = dict(roll=0.0, pitch=0.0, heading=0.0, depth=None, armed=False,
                       arm_progress=0.0, gain=50, clock="--:--:--", depth_unit="m", tilt=0,
                       start_btn="START")
 
     def set_state(self, **kw):
         self.s.update(kw)
+        self.update()
+
+    def set_video(self, frame, live, status):
+        """frame: QImage or None. live: True while new frames keep arriving."""
+        self.frame, self.video_live, self.video_status = frame, live, status
         self.update()
 
     def resizeEvent(self, e):
@@ -162,16 +171,36 @@ class VideoPane(QWidget):
         p.drawPixmap(0, 0, self._bg)
         cx, cy = w / 2, h / 2
 
-        # placeholder camera
-        dimc = QColor("#2c4653")
-        p.setPen(QPen(dimc, 2))
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawRoundedRect(QRectF(cx - 37, cy + 70, 74, 54), 8, 8)
-        p.drawEllipse(QPointF(cx, cy + 97), 11, 11)
-        p.setFont(mono(fs(11)))
-        p.drawText(QRectF(0, cy + 132, w, fs(18)), Qt.AlignmentFlag.AlignHCenter, "NO VIDEO SOURCE")
-        p.setFont(mono(fs(10)))
-        p.drawText(QRectF(0, cy + 132 + fs(18), w, fs(16)), Qt.AlignmentFlag.AlignHCenter, "camera stream not connected")
+        if self.frame is not None and not self.frame.isNull():
+            # live video, scaled to fit and centred (letterboxed, aspect kept)
+            fw, fh = self.frame.width(), self.frame.height()
+            k = min(w / fw, h / fh)
+            target = QRectF((w - fw * k) / 2, (h - fh * k) / 2, fw * k, fh * k)
+            p.save()
+            p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            p.drawImage(target, self.frame)
+            p.restore()
+            if not self.video_live:
+                # frozen on the last frame: dim it and say so
+                p.fillRect(target, QColor(5, 7, 10, 150))
+                p.setFont(mono(fs(13), QFont.Weight.Bold))
+                p.setPen(QColor(DANGER))
+                p.drawText(QRectF(0, cy + 70, w, fs(20)), Qt.AlignmentFlag.AlignHCenter, "VIDEO LOST")
+                p.setFont(mono(fs(10)))
+                p.setPen(QColor("#7c8b9c"))
+                p.drawText(QRectF(0, cy + 70 + fs(22), w, fs(16)), Qt.AlignmentFlag.AlignHCenter,
+                           self.video_status)
+        else:
+            # placeholder camera
+            dimc = QColor("#2c4653")
+            p.setPen(QPen(dimc, 2))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(QRectF(cx - 37, cy + 70, 74, 54), 8, 8)
+            p.drawEllipse(QPointF(cx, cy + 97), 11, 11)
+            p.setFont(mono(fs(11)))
+            p.drawText(QRectF(0, cy + 132, w, fs(18)), Qt.AlignmentFlag.AlignHCenter, "NO VIDEO SOURCE")
+            p.setFont(mono(fs(10)))
+            p.drawText(QRectF(0, cy + 132 + fs(18), w, fs(16)), Qt.AlignmentFlag.AlignHCenter, self.video_status)
 
         # crosshair
         ch = QColor(ACCENT)

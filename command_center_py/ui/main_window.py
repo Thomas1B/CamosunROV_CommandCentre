@@ -17,8 +17,9 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
 
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, REQUIRE_LINK_TO_ARM,
-                        THRUSTERS, LOSS_PRINT_S)
+                        THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S)
 from command_center_py.mixer import mix
+from command_center_py.video import VideoReceiver
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
                           LABEL, ACCENT, WARN, DANGER, BLUE, SANS, fs, mono, lab)
 from command_center_py.ui.widgets import (BipolarBar, TriggerBar, StickView, VideoPane, LevelBarSOC,
@@ -66,6 +67,16 @@ class ConsoleWindow(QMainWindow):
 
         self._build_ui()
         self._apply_kind(LAYOUT["kind"])
+
+        # Live camera (not in demo mode - there is no camera to listen to).
+        self.video_rx = None
+        self._video_id = 0
+        self._video_last_new = 0.0
+        self._video_was_live = False
+        if demo:
+            self.video.set_video(None, False, "demo mode - no camera")
+        else:
+            self.video_rx = VideoReceiver(VIDEO_PORT)
         self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo
                                                              else f" — {self.vehicle} @ {self.link.label}"), BLUE)
         if self.pad.error:
@@ -658,11 +669,11 @@ class ConsoleWindow(QMainWindow):
         return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
     def _update_metrics(self):
-        d, p, wt, it = (self._num(k) for k in ("depth_m", "pressure_mbar", "water_c", "internal_c"))
+        d, p, wt, it = (self._num(k) for k in ("depth_m", "pressure_kpa", "water_c", "internal_c"))
         f = lambda v, fmt: "--" if v is None else format(v, fmt)
         c2f = lambda c: None if c is None else c * 9 / 5 + 32
         self.metrics["depth"].set(f(d, ".2f"), "m", f(None if d is None else d * 3.28084, ".1f"), "ft")
-        self.metrics["pressure"].set(f(p, ".0f"), "mbar", f(None if p is None else p * 0.0145038, ".1f"), "psi")
+        self.metrics["pressure"].set(f(p, ".1f"), "kPa", f(None if p is None else p * 0.145038, ".1f"), "psi")
         self.metrics["water"].set(f(wt, ".1f"), "°C", f(c2f(wt), ".1f"), "°F")
         self.metrics["internal"].set(f(it, ".1f"), "°C", f(c2f(it), ".1f"), "°F",
                                      WARN if (it is not None and it > 45) else BRIGHT)
@@ -748,7 +759,8 @@ class ConsoleWindow(QMainWindow):
                         (ACCENT if pad.mode == "SDL" else WARN) if pad.connected else DANGER)
         self.st_cmd.set(f"{RATE_HZ} Hz", TEXT)
 
-        # video HUD
+        # video frame + HUD
+        self._update_video(now)
         imp = self.metrics["depth"].imperial
         d = self._num("depth_m")
         self.video.set_state(
@@ -770,6 +782,21 @@ class ConsoleWindow(QMainWindow):
         self.tx_lbl.setText(f"TX {self.link.tx_count:,} pkt   │")
         self.rx_lbl.setText(f"RX {self.link.rx_count:,} pkt   │")
 
+    def _update_video(self, now):
+        if self.video_rx is None:
+            return
+        img, fid, status = self.video_rx.latest()
+        if fid != self._video_id:
+            self._video_id = fid
+            self._video_last_new = now
+        live = img is not None and now - self._video_last_new < VIDEO_STALE_S
+        if live and not self._video_was_live:
+            self.log("VIDEO", f"Camera stream {status}", ACCENT)
+        elif self._video_was_live and not live:
+            self.log("VIDEO", "Camera stream lost", WARN)
+        self._video_was_live = live
+        self.video.set_video(img, live, status)
+
     def closeEvent(self, e):
         # Never leave the console with live thrusters: closing is refused while armed.
         # (Ctrl+C in the terminal uses force_close(), which disarms first.)
@@ -784,6 +811,8 @@ class ConsoleWindow(QMainWindow):
             self.timer.stop()
             self.ui_timer.stop()
             self.loss_timer.stop()
+            if self.video_rx is not None:
+                self.video_rx.stop()      # frees UDP VIDEO_PORT for the next session
             self.armed = False
             for _ in range(3):   # make sure the Pi sees a disarmed frame on exit
                 self.link.send(False, [0] * 6, self.tilt)

@@ -12,3 +12,4 @@ PySide6_Essentials==6.11.2   # (installed by PySide6)
 PySide6_Addons==6.11.2       # (installed by PySide6)
 shiboken6==6.11.2            # (installed by PySide6)
 pygame-ce==2.5.8             # DualShock 3 input via SDL2 - do NOT also install plain "pygame"
+av==18.0.0                   # PyAV: decodes the ROV camera stream (H.264), same version as the Pi
