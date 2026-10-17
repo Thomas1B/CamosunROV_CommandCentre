@@ -45,10 +45,10 @@ REQUIRE_LINK_TO_ARM = True   # set False to bench-test before telemetry exists
 # !! VERIFY SIGNS ON THE BENCH WITH PROPS OFF - flip a coefficient's sign
 # !! (or the whole row, for a reversed prop) until each stick does the right thing.
 THRUSTERS = [
-    ("T1", "FWD-PORT",  "H", (1,  1, 0,  1)),
-    ("T2", "FWD-STBD",  "H", (1, -1, 0, -1)),
-    ("T3", "AFT-PORT",  "H", (1, -1, 0,  1)),
-    ("T4", "AFT-STBD",  "H", (1,  1, 0, -1)),
-    ("T5", "VERT-PORT", "V", (0,  0, 1,  0)),
-    ("T6", "VERT-STBD", "V", (0,  0, 1,  0)),
+    ("T1", "BOW-PORT",  "H", (1,  1, 0,  1)),
+    ("T2", "BOW-STBD",  "H", (1, -1, 0, -1)),
+    ("T3", "STERN-PORT",  "H", (1, -1, 0,  1)),
+    ("T4", "STERN-STBD",  "H", (1,  1, 0, -1)),
+    ("T5", "BOW-VERT", "V", (0,  0, 1,  0)),
+    ("T6", "STERN-VERT", "V", (0,  0, 1,  0)),
 ]

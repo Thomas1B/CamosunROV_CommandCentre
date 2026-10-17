@@ -77,7 +77,7 @@ class TriggerBar(QWidget):
 class StickView(QWidget):
     def __init__(self, x_only=False):
         super().__init__()
-        self.setFixedSize(112, 112)
+        self.setFixedSize(84, 84)
         self.x = self.y = 0.0
         self.pressed = False
         self.x_only = x_only
@@ -225,7 +225,7 @@ class VideoPane(QWidget):
         # clock
         p.setFont(mono(11))
         p.setPen(QColor("#7fd9c0"))
-        p.drawText(QRectF(w - 222, 18, 200, 18), Qt.AlignmentFlag.AlignRight, f"{s['clock']} UTC")
+        p.drawText(QRectF(w - 222, 18, 200, 18), Qt.AlignmentFlag.AlignRight, f"{s['clock']} LOCAL")
 
         # attitude ball
         ar = QRectF(cx - 44, 14, 88, 88)
@@ -372,7 +372,9 @@ class ThrusterRow(QWidget):
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(5)
         top = QHBoxLayout()
-        top.addWidget(lab(name, fs(11), DIM, QFont.Weight.DemiBold))
+        self.name = lab(name, fs(11), DIM, QFont.Weight.DemiBold)
+        self.name.setMinimumWidth(fs(46))     # same width as the % label so the role sits dead centre
+        top.addWidget(self.name)
         top.addStretch(1)
         top.addWidget(lab(role, fs(10), MUTED))
         top.addStretch(1)

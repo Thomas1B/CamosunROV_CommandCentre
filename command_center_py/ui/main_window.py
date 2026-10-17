@@ -247,13 +247,34 @@ class ConsoleWindow(QMainWindow):
             tv.addWidget(r)
         gain = QHBoxLayout()
         gain.addWidget(lab("GAIN", fs(11), DIM))
-        self.gain_lbl = lab("50%", fs(11), ACCENT, QFont.Weight.Bold)
+        self.gain_lbl = lab("50%", fs(11), DIM, QFont.Weight.Bold)
         gain.addWidget(self.gain_lbl)
         gain.addStretch(1)
         self.gain_hint = lab("", fs(10), MUTED)
         gain.addWidget(self.gain_hint)
         tv.addLayout(gain)
         v.addWidget(tw)
+
+        v.addWidget(SectionHeader("CAMERA TILT", "D-PAD", top_border=True))
+        cw2 = QWidget()
+        cv = QVBoxLayout(cw2)
+        cv.setContentsMargins(12, 10, 12, 10)
+        cv.setSpacing(6)
+        top = QHBoxLayout()
+        top.addWidget(lab("SERVO ANGLE", fs(11), DIM))
+        top.addStretch(1)
+        self.tilt_lbl = lab("+0°", fs(22), WARN, QFont.Weight.Bold)
+        top.addWidget(self.tilt_lbl)
+        cv.addLayout(top)
+        self.tilt_bar = BipolarBar(18)
+        cv.addWidget(self.tilt_bar)
+        ends = QHBoxLayout()
+        ends.addWidget(lab(f"DOWN {TILT_MIN}°", fs(9), MUTED))
+        ends.addStretch(1)
+        ends.addWidget(lab(f"UP +{TILT_MAX}°", fs(9), MUTED))
+        cv.addLayout(ends)
+        cv.addWidget(lab(f"D-pad ↑↓ · {TILT_STEP}° per step · hold to repeat", fs(10), MUTED))
+        v.addWidget(cw2)
 
         # controller toggle: DUALSHOCK 3 | XBOX - changes the button labels only
         # (SDL reads both pads with the same layout, so driving is identical)
@@ -317,37 +338,9 @@ class ConsoleWindow(QMainWindow):
             cg.addWidget(c, i // 4, i % 4)
         v.addWidget(cw)
 
-        v.addWidget(SectionHeader("CAMERA TILT", "D-PAD", top_border=True))
-        cw2 = QWidget()
-        cv = QVBoxLayout(cw2)
-        cv.setContentsMargins(12, 10, 12, 10)
-        cv.setSpacing(6)
-        top = QHBoxLayout()
-        top.addWidget(lab("SERVO ANGLE", fs(11), DIM))
-        top.addStretch(1)
-        self.tilt_lbl = lab("+0°", fs(22), WARN, QFont.Weight.Bold)
-        top.addWidget(self.tilt_lbl)
-        cv.addLayout(top)
-        self.tilt_bar = BipolarBar(18)
-        cv.addWidget(self.tilt_bar)
-        ends = QHBoxLayout()
-        ends.addWidget(lab(f"DOWN {TILT_MIN}°", fs(9), MUTED))
-        ends.addStretch(1)
-        ends.addWidget(lab(f"UP +{TILT_MAX}°", fs(9), MUTED))
-        cv.addLayout(ends)
-        cv.addWidget(lab(f"D-pad ↑↓ · {TILT_STEP}° per step · hold to repeat", fs(10), MUTED))
-        v.addWidget(cw2)
+        
 
         v.addStretch(1)
-        foot = QFrame()
-        foot.setObjectName("foot")
-        foot.setStyleSheet(f"QFrame#foot {{ background: #0a0e13; border-top: 1px solid {BORDER}; }}")
-        fv = QVBoxLayout(foot)
-        fv.setContentsMargins(12, 8, 12, 8)
-        fv.setSpacing(2)
-        fv.addWidget(lab(f"PACKET  cmd_v1 · 16 B · {RATE_HZ} Hz", fs(10), MUTED))
-        fv.addWidget(lab("PAYLOAD 6×int8 throttle + int8 cam tilt", fs(10), MUTED))
-        v.addWidget(foot)
 
         scroll.setWidget(inner)
         ov.addWidget(scroll)
@@ -473,7 +466,7 @@ class ConsoleWindow(QMainWindow):
 
     # ---------------- actions ----------------
     def log(self, tag, msg, color=ACCENT):
-        t = datetime.now(timezone.utc).strftime("%H:%M:%S")
+        t = datetime.now().strftime("%H:%M:%S")
         tagp = html.escape(tag).ljust(5).replace(" ", "&nbsp;")
         self.log_view.append(f'<span style="color:#4d5d6d">{t}</span>&nbsp;&nbsp;'
                              f'<span style="color:{color}; font-weight:600">{tagp}</span>&nbsp;'
@@ -768,7 +761,7 @@ class ConsoleWindow(QMainWindow):
             depth=None if d is None else (d * 3.28084 if imp else d), depth_unit="ft" if imp else "m",
             armed=self.armed, arm_progress=hold, gain=GAIN_STEPS[self.gain_idx], tilt=self.tilt,
             start_btn=self.k["start"],
-            clock=datetime.now(timezone.utc).strftime("%H:%M:%S"))
+            clock=datetime.now().strftime("%H:%M:%S"))
 
         # status bar
         if now < self.notice_until:
