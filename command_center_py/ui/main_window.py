@@ -17,7 +17,8 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
 
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, REQUIRE_LINK_TO_ARM,
-                        THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S)
+                        THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD)
+from command_center_py.demo_pad import DemoPad
 from command_center_py.mixer import mix
 from command_center_py.video import VideoReceiver
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
@@ -46,7 +47,8 @@ class ConsoleWindow(QMainWindow):
         self.demo = demo
         self.vehicle = vehicle
         self.link = link
-        self.pad = pad
+        # demo mode: a simulated controller drives the vehicle until a real one is plugged in
+        self.pad = DemoPad(pad, lambda: self.armed) if (demo and DEMO_SIM_PAD) else pad
         self._force_close = False
         self._done = False
         self.notice = ""

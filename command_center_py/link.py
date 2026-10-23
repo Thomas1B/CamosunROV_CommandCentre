@@ -31,11 +31,13 @@ import binascii
 import ipaddress
 import json
 import math
+import random
 import socket
 import struct
 import time
 
-from command_center_py.config import LINK_TIMEOUT_S, RATE_HZ, TILT_MAX, TILT_MIN, VIDEO_PORT
+from command_center_py.config import (DEMO_PACKET_LOSS, LINK_TIMEOUT_S, RATE_HZ, TILT_MAX, TILT_MIN,
+                                      VIDEO_PORT)
 
 
 CMD_STRUCT = struct.Struct("<2sBBH6bbx")   # 14 bytes, + 2-byte CRC = 16
@@ -206,14 +208,24 @@ class DemoLink(Link):
         self.heading = 214.0
         self.t0 = time.monotonic()
         self.temp = 39.5
-        self._last = None
+        self._last = None           # newest command the simulated Pi actually received
+        self.rx_cmds = 0            # commands the simulated Pi received (reported as rx_cmds)
+        self._rng = random.Random()
+        self._drop_left = 0
+        self._next_drop = time.monotonic() + self._rng.uniform(6.0, 15.0)
 
     def _transmit(self, pkt):
         self.tx_count += 1
+        if DEMO_PACKET_LOSS:
+            now = time.monotonic()
+            if self._drop_left == 0 and now >= self._next_drop:
+                self._drop_left = self._rng.randint(1, 4)        # lose a short burst
+                self._next_drop = now + self._rng.uniform(6.0, 15.0)
+            if self._drop_left > 0:
+                self._drop_left -= 1
+                return                                           # never reaches the "Pi"
         self._last = pkt
-
-    def take_lost(self):
-        return 0, 0          # simulated vehicle - no real link, so print 0/0
+        self.rx_cmds += 1
 
     def poll(self):
         if self._last is None:
@@ -239,8 +251,8 @@ class DemoLink(Link):
             "yaw": (self.heading + wob(0.4, 15.0)) % 360,
             "voltage": 15.8 - load * 0.9,
             "leak": False,
-            "ack": seq,
-            "rx_cmds": self.tx_count,
+            "ack": seq,                 # last command received, as the real Pi reports it
+            "rx_cmds": self.rx_cmds,
         }
         self._account(msg)
         return msg

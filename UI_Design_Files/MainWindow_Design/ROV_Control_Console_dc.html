@@ -366,7 +366,7 @@ class Component extends DCLogic {
   state = {
     kind: null, armed: false, gainIdx: 1, tilt: 0, tx: 0, rx: 0, pad: null, log: [],
     imp: [false, false, false, false], menu: null, mapOpen: false, mapKind: 'ds3', holdStart: null, now: 0,
-    depth: 12.4, heading: 214.0, temp: 39.5, thr: [0, 0, 0, 0, 0, 0],
+    depth: 12.4, heading: 214.0, temp: 39.5, thr: [0, 0, 0, 0, 0, 0], lost: 0,
   };
 
   componentDidMount() {
@@ -501,13 +501,19 @@ class Component extends DCLogic {
     }
     this.wasPad = !!gp;
 
+    // DemoLink packet loss: every 6-15 s a burst of 1-4 command packets never reaches the "Pi"
+    if (this.nextDrop === undefined) this.nextDrop = now + 6000 + Math.random() * 9000;
+    if (!this.dropLeft && now >= this.nextDrop) { this.dropLeft = 1 + Math.floor(Math.random() * 4); this.nextDrop = now + 6000 + Math.random() * 9000; }
+    const dropped = this.dropLeft > 0;
+    if (dropped) this.dropLeft -= 1;
+
     // DemoLink: crude vehicle model answering each command frame
     const thr = this.state.armed && pad ? this.mix(pad) : [0, 0, 0, 0, 0, 0];
     const dt = 1 / RATE_HZ;
     const heave = (thr[4] + thr[5]) / 200, yaw = (thr[0] - thr[1] + thr[2] - thr[3]) / 400;
     const load = thr.reduce((a, x) => a + Math.abs(x), 0) / 600;
     this.setState(s => ({
-      pad, thr, now, tx: s.tx + 1, rx: s.rx + 1,
+      pad, thr, now, tx: s.tx + 1, rx: s.rx + 1, lost: s.lost + (dropped ? 1 : 0),
       depth: Math.max(0, s.depth - heave * 0.6 * dt),
       heading: (((s.heading + yaw * 35 * dt) % 360) + 360) % 360,
       temp: s.temp + ((38 + 10 * load) - s.temp) * 0.002,
@@ -664,7 +670,7 @@ class Component extends DCLogic {
       statusMessage: s.armed ? 'Armed — streaming control frames at 50 Hz'
         : (!hasPad ? 'Connect a ' + shortName + ' to drive — see Help' : 'Controller ready — hold ' + k.start + ' 1 s to arm'),
       txCount: s.tx.toLocaleString('en-US'), rxCount: s.rx.toLocaleString('en-US'),
-      lostCount: Math.max(0, s.tx - s.rx).toLocaleString('en-US'),
+      lostCount: s.lost.toLocaleString('en-US'),
       mapOpen: s.mapOpen, map,
       closeMap: () => this.setState({ mapOpen: false }),
       stop: e => e.stopPropagation(),

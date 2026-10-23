@@ -36,6 +36,10 @@ TILT_MIN, TILT_MAX = -45, 45   # camera servo limits in degrees - match the Pi/s
 TILT_STEP = 5
 ARM_HOLD_S = 1.0
 LINK_TIMEOUT_S = 1.0
+# DEMO MODE extras
+DEMO_SIM_PAD = True          # no controller plugged in -> a simulated one drives the demo vehicle
+DEMO_PACKET_LOSS = True      # the demo link drops a short burst of command packets every 6-15 s
+
 LOSS_PRINT_S = 10        # print lost-packet count to the terminal every this many seconds
 REQUIRE_LINK_TO_ARM = True   # set False to bench-test before telemetry exists
 
