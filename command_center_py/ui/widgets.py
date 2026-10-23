@@ -212,15 +212,15 @@ class VideoPane(QWidget):
             p.setPen(QPen(ch, 1))
             p.drawEllipse(QPointF(cx, cy), 17, 17)
 
-        # arm state pill
-        armed = s["armed"]
-        pill = QRectF(22, 16, fs(108), fs(24))
-        p.setPen(QPen(QColor(ACCENT if armed else "#3a4653"), 1))
-        p.setBrush(QColor(10, 16, 22, 200))
-        p.drawRoundedRect(pill, 3, 3)
-        p.setFont(mono(fs(11), QFont.Weight.Bold))
-        p.setPen(QColor(ACCENT if armed else "#7c8b9c"))
-        p.drawText(pill, Qt.AlignmentFlag.AlignCenter, "ARMED" if armed else "DISARMED")
+        # # arm state pill
+        # armed = s["armed"]
+        # pill = QRectF(22, 16, fs(108), fs(24))
+        # p.setPen(QPen(QColor(ACCENT if armed else "#3a4653"), 1))
+        # p.setBrush(QColor(10, 16, 22, 200))
+        # p.drawRoundedRect(pill, 3, 3)
+        # p.setFont(mono(fs(11), QFont.Weight.Bold))
+        # p.setPen(QColor(ACCENT if armed else "#7c8b9c"))
+        # p.drawText(pill, Qt.AlignmentFlag.AlignCenter, "ARMED" if armed else "DISARMED")
 
         # clock
         p.setFont(mono(11))
@@ -345,7 +345,7 @@ class ThrusterRow(QWidget):
         self.val.setMinimumWidth(fs(46))
         top.addWidget(self.val)
         v.addLayout(top)
-        self.bar = BipolarBar(18)
+        self.bar = BipolarBar(10)
         v.addWidget(self.bar)
         self._col = None
 
