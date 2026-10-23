@@ -261,7 +261,7 @@ class ConsoleWindow(QMainWindow):
         cv.setContentsMargins(12, 10, 12, 10)
         cv.setSpacing(6)
         top = QHBoxLayout()
-        top.addWidget(lab("SERVO ANGLE", fs(11), DIM))
+        top.addWidget(lab("Camera Tilt", fs(11), DIM))
         top.addStretch(1)
         self.tilt_lbl = lab("+0°", fs(22), WARN, QFont.Weight.Bold)
         top.addWidget(self.tilt_lbl)

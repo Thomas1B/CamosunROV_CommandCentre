@@ -272,13 +272,13 @@ class VideoPane(QWidget):
         # depth (bottom-left) and gain (bottom-right)
         p.setFont(mono(10))
         p.setPen(QColor(127, 217, 192, 180))
-        p.drawText(QRectF(22, h - 64, 200, 14), Qt.AlignmentFlag.AlignLeft, "DEPTH")
-        p.drawText(QRectF(w - 222, h - 64, 200, 14), Qt.AlignmentFlag.AlignRight, "THRUST GAIN")
-        p.setFont(mono(26, QFont.Weight.Bold))
-        p.setPen(QColor(BRIGHT))
-        d = "--.--" if s["depth"] is None else f"{s['depth']:.2f}"
-        p.drawText(QRectF(22, h - 50, 300, 34), Qt.AlignmentFlag.AlignLeft, f"{d} {s['depth_unit']}")
-        p.drawText(QRectF(w - 222, h - 50, 200, 34), Qt.AlignmentFlag.AlignRight, f"{s['gain']}%")
+        # p.drawText(QRectF(22, h - 64, 200, 14), Qt.AlignmentFlag.AlignLeft, "DEPTH")
+        # p.drawText(QRectF(w - 222, h - 64, 200, 14), Qt.AlignmentFlag.AlignRight, "THRUST GAIN")
+        # p.setFont(mono(26, QFont.Weight.Bold))
+        # p.setPen(QColor(BRIGHT))
+        # d = "--.--" if s["depth"] is None else f"{s['depth']:.2f}"
+        # p.drawText(QRectF(22, h - 50, 300, 34), Qt.AlignmentFlag.AlignLeft, f"{d} {s['depth_unit']}")
+        # p.drawText(QRectF(w - 222, h - 50, 200, 34), Qt.AlignmentFlag.AlignRight, f"{s['gain']}%")
 
         # camera tilt scale (left edge)
         sx, sh = 30.0, 160.0
