@@ -402,6 +402,7 @@ class ConsoleWindow(QMainWindow):
         iv.setContentsMargins(12, 12, 12, 12)
         iv.setSpacing(8)
         iv.addWidget(lab("IMU ATTITUDE", fs(10), LABEL, QFont.Weight.Bold))
+        
         self.imu_rows = {}
         for key in ("ROLL", "PITCH", "YAW"):
             top = QHBoxLayout()

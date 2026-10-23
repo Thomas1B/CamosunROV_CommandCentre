@@ -202,15 +202,15 @@ class VideoPane(QWidget):
             p.setFont(mono(fs(10)))
             p.drawText(QRectF(0, cy + 132 + fs(18), w, fs(16)), Qt.AlignmentFlag.AlignHCenter, self.video_status)
 
-        # crosshair
-        ch = QColor(ACCENT)
-        ch.setAlpha(90)
-        p.setPen(QPen(ch, 1))
-        p.drawLine(QPointF(cx - 60, cy), QPointF(cx + 60, cy))
-        p.drawLine(QPointF(cx, cy - 60), QPointF(cx, cy + 60))
-        ch.setAlpha(130)
-        p.setPen(QPen(ch, 1))
-        p.drawEllipse(QPointF(cx, cy), 17, 17)
+            # crosshair
+            ch = QColor(ACCENT)
+            ch.setAlpha(90)
+            p.setPen(QPen(ch, 1))
+            p.drawLine(QPointF(cx - 60, cy), QPointF(cx + 60, cy))
+            p.drawLine(QPointF(cx, cy - 60), QPointF(cx, cy + 60))
+            ch.setAlpha(130)
+            p.setPen(QPen(ch, 1))
+            p.drawEllipse(QPointF(cx, cy), 17, 17)
 
         # arm state pill
         armed = s["armed"]
@@ -268,43 +268,6 @@ class VideoPane(QWidget):
         p.setPen(QColor(234, 242, 250, 150))
         p.drawText(QRectF(right.left(), right.top() + 62, 200, 16), Qt.AlignmentFlag.AlignRight,
                    f"{cards[int(round(hdg / 22.5)) % 16]} · mag")
-
-        # depth (bottom-left) and gain (bottom-right)
-        p.setFont(mono(10))
-        p.setPen(QColor(127, 217, 192, 180))
-        # p.drawText(QRectF(22, h - 64, 200, 14), Qt.AlignmentFlag.AlignLeft, "DEPTH")
-        # p.drawText(QRectF(w - 222, h - 64, 200, 14), Qt.AlignmentFlag.AlignRight, "THRUST GAIN")
-        # p.setFont(mono(26, QFont.Weight.Bold))
-        # p.setPen(QColor(BRIGHT))
-        # d = "--.--" if s["depth"] is None else f"{s['depth']:.2f}"
-        # p.drawText(QRectF(22, h - 50, 300, 34), Qt.AlignmentFlag.AlignLeft, f"{d} {s['depth_unit']}")
-        # p.drawText(QRectF(w - 222, h - 50, 200, 34), Qt.AlignmentFlag.AlignRight, f"{s['gain']}%")
-
-        # camera tilt scale (left edge)
-        sx, sh = 30.0, 160.0
-        top = cy - sh / 2
-        p.setPen(QPen(QColor(127, 217, 192, 90), 1))
-        p.drawLine(QPointF(sx, top), QPointF(sx, top + sh))
-        p.setFont(mono(fs(9)))
-        for deg in range(TILT_MIN, TILT_MAX + 1, 15):
-            y = cy - deg / max(abs(TILT_MIN), TILT_MAX) * sh / 2
-            p.setPen(QPen(QColor(127, 217, 192, 90), 1))
-            p.drawLine(QPointF(sx, y), QPointF(sx + (8 if deg == 0 else 4), y))
-        ty = cy - s["tilt"] / max(abs(TILT_MIN), TILT_MAX) * sh / 2
-        tri = QPainterPath()
-        tri.moveTo(sx - 2, ty)
-        tri.lineTo(sx - 10, ty - 5)
-        tri.lineTo(sx - 10, ty + 5)
-        tri.closeSubpath()
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(WARN))
-        p.drawPath(tri)
-        p.setPen(QColor(127, 217, 192, 180))
-        p.drawText(QRectF(sx - 8, top - 6 - fs(14), 160, fs(14)), Qt.AlignmentFlag.AlignLeft, "CAM TILT")
-        p.setFont(mono(fs(12), QFont.Weight.Bold))
-        p.setPen(QColor(BRIGHT))
-        p.drawText(QRectF(sx + 12, ty - fs(9), 100, fs(18)), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                   f"{s['tilt']:+d}°")
 
         # hold-to-arm progress
         prog = s["arm_progress"]
