@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Offline build: every dependency is a local file, nothing is fetched from the internet. -->
-<link rel="stylesheet" href="./fonts/ibm-plex.css">
-<script src="./vendor/react.production.min.js"></script>
-<script src="./vendor/react-dom.production.min.js"></script>
-<script src="./support.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Offline build: every dependency is a local file, nothing is fetched from the internet. -->
+  <link rel="stylesheet" href="./fonts/ibm-plex.css">
+  <script src="./vendor/react.production.min.js"></script>
+  <script src="./vendor/react-dom.production.min.js"></script>
+  <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
@@ -29,7 +30,7 @@
         <img src="assets/camosunrov-logo-dark.svg" alt="CamosunROV logo" style="width: 168px; height: auto; flex: none; display: block;"></img>
       <div style="display: flex; flex-direction: column; gap: 6px;">
         <span style="font-size: 44px; font-weight: 700; color: #eaf2fa; line-height: 1; letter-spacing: 0.02em;"><span style="font-size: 60px;">CamosunROV</span> - Command Centre</span>
-        <span style="font-size: 14px; color: #5f7183;">v0.5.0 · build 2026.10</span>
+        <span style="font-size: 14px; color: #5f7183; margin-top: 10px; margin-bottom: -10px;">v0.5.0 · build 2026.10</span>
       </div>
       </div>
 
@@ -42,10 +43,10 @@
         </sc-for>
       </div>
 
-      <div style="position: relative; display: flex; align-items: center; gap: 28px; margin-top: 56px; font-size: 13px; color: #8fa2b5; text-transform: uppercase; letter-spacing: 0.04em;">
-        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 9px; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">↑↓</span>navigate</div>
-        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 9px; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">{{ ctl.ok }}</span>select</div>
-        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 9px; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">{{ ctl.back }}</span>back</div>
+      <div style="position: relative; display: flex; align-items: center; gap: 28px; margin-top: 56px; font-size: 13px; color: #8fa2b5; text-transform: uppercase; letter-spacing: 0.5px;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 13px; line-height: 17px; letter-spacing: 0; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">↑↓</span>navigate</div>
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 13px; line-height: 17px; letter-spacing: 0; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">{{ ctl.ok }}</span>select</div>
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 4px 13px; line-height: 17px; letter-spacing: 0; border: 1px solid #2c3a48; border-radius: 3px; background: #131a22; color: #eaf2fa;">{{ ctl.back }}</span>back</div>
       </div>
     </div>
 
@@ -93,6 +94,10 @@
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <span style="font-size: 9px; letter-spacing: 0.1em; color: #8fa2b5;">TELEMETRY PORT · CONSOLE LISTENS</span>
               <input value="{{ conn.telPort }}" onChange="{{ setTelPort }}" placeholder="5601" style="{{ telPortStyle }}" style-focus="border-color: #35d0a5;"></input>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 9px; letter-spacing: 0.1em; color: #8fa2b5;">VIDEO PORT · CONSOLE LISTENS</span>
+              <input value="{{ conn.vidPort }}" onChange="{{ setVidPort }}" placeholder="5602" style="{{ vidPortStyle }}" style-focus="border-color: #35d0a5;"></input>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; min-height: 18px; font-size: 11px; margin-top: 10px;">
@@ -154,7 +159,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:800},&quot;controller&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;ds3&quot;,&quot;xbox&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
-  state = { sel: 0, log: [], pad: false, padId: '', now: Date.now(), mapOpen: false, connOpen: false, conn: { name: 'ROV-01', ip: '192.168.2.2', cmdPort: '5600', telPort: '5601', proto: 'UDP', rate: '50' }, connState: 'idle', profiles: this.loadProfiles() };
+  state = { sel: 0, log: [], pad: false, padId: '', now: Date.now(), mapOpen: false, connOpen: false, conn: { name: 'ROV-01', ip: '192.168.2.2', cmdPort: '5600', telPort: '5601', vidPort: '5602', proto: 'UDP', rate: '50' }, connState: 'idle', profiles: this.loadProfiles() };
 
 
 
@@ -179,7 +184,7 @@ class Component extends DCLogic {
     this.timer = setInterval(() => this.tick(), 50);
   }
   validIp(ip) { return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(n => +n <= 255) || /^[a-z0-9][a-z0-9.-]*\.local$/i.test(ip); }
-  loadProfiles() { try { return JSON.parse(localStorage.getItem('camosunrov.profiles') || '[]'); } catch (e) { return []; } }
+  loadProfiles() { const demo = [{ name: 'DEMO', ip: '192.168.2.2', cmdPort: '5600', telPort: '5601', vidPort: '5602' }]; /* mirrors vehicle_profiles/DEMO.json */ try { const l = JSON.parse(localStorage.getItem('camosunrov.profiles') || '[]'); return l.length ? l : demo; } catch (e) { return demo; } }
   storeProfiles(list) {
     // Python bridge: if exposed, it owns persistence (e.g. profiles.json). Falls back to localStorage in the browser.
     const py = window.pywebview && window.pywebview.api;
@@ -189,7 +194,7 @@ class Component extends DCLogic {
     const c = this.state.conn, name = (c.name || '').trim();
     if (!name) { this.setState({ connState: 'noname' }); return; }
     if (!this.validIp(c.ip)) { this.setState({ connState: 'badip' }); return; }
-    const p = { name, ip: c.ip, cmdPort: c.cmdPort, telPort: c.telPort, proto: c.proto };
+    const p = { name, ip: c.ip, cmdPort: c.cmdPort, telPort: c.telPort, vidPort: c.vidPort, proto: c.proto };
     const list = this.state.profiles.filter(x => x.name !== name).concat([p]).sort((a, b) => a.name.localeCompare(b.name));
     this.storeProfiles(list);
     this.setState({ profiles: list, connState: 'saved' });
@@ -205,11 +210,11 @@ class Component extends DCLogic {
     const c = this.state.conn;
     if (!this.validIp(c.ip)) { this.setState({ connState: 'badip' }); return; }
     const okPort = v => /^\d+$/.test(v) && +v > 0 && +v <= 65535;
-    if (!okPort(c.cmdPort) || !okPort(c.telPort)) { this.setState({ connState: 'badport' }); return; }
-    if (c.cmdPort === c.telPort) { this.setState({ connState: 'sameport' }); return; }
+    if (!okPort(c.cmdPort) || !okPort(c.telPort) || !okPort(c.vidPort)) { this.setState({ connState: 'badport' }); return; }
+    if (new Set([c.cmdPort, c.telPort, c.vidPort]).size < 3) { this.setState({ connState: 'sameport' }); return; }
     if (this.state.connState === 'connecting') return;
     this.setState({ connState: 'connecting' });
-    this.addLog('LINK', 'Connecting ' + c.proto + ' ' + c.ip + ' · cmd ' + c.cmdPort + ' · telem ' + c.telPort);
+    this.addLog('LINK', 'Connecting ' + c.proto + ' ' + c.ip + ' · cmd ' + c.cmdPort + ' · telem ' + c.telPort + ' · video ' + c.vidPort);
     this.connT = setTimeout(() => { this.setState({ connState: 'timeout' }); this.addLog('LINK', 'No answer from ' + c.ip); }, 2500);
   }
   componentWillUnmount() { clearTimeout(this.connT); clearInterval(this.timer); window.removeEventListener('keydown', this.onKey); }
@@ -260,7 +265,7 @@ class Component extends DCLogic {
         select: () => { this.setState({ sel: i }); this.launch(i); },
         rowStyle: { display: 'grid', gridTemplateColumns: '36px 1fr auto', alignItems: 'center', padding: '11px 14px', borderRadius: '3px', border: '1px solid ' + (on ? (quit ? '#7f2b2e' : '#2a6f5c') : 'transparent'), background: on ? (quit ? 'rgba(42,16,18,0.85)' : 'rgba(18,58,48,0.75)') : 'transparent', cursor: 'pointer' },
         idxStyle: { fontSize: '10px', color: on ? (quit ? '#ff6b6e' : accent) : '#4d5d6d' },
-        labelStyle: { fontSize: '17px', fontWeight: 700, letterSpacing: '0.06em', color: on ? (quit ? '#ff6b6e' : '#eaf2fa') : '#8fa2b5' },
+        labelStyle: { fontSize: '17px', lineHeight: '23px', fontWeight: 700, letterSpacing: '0.06em', color: on ? (quit ? '#ff6b6e' : '#eaf2fa') : '#8fa2b5' },
         hintStyle: { fontSize: '13px', color: on ? '#8fd9c4' : '#6b7d8f' },
       };
     });
@@ -277,7 +282,7 @@ class Component extends DCLogic {
       profileOpts: s.profiles,
       profileSel: s.profiles.some(p => p.name === s.conn.name) ? s.conn.name : '',
       profilePlaceholder: s.profiles.length ? 'Load profile…' : 'No saved profiles',
-      pickProfile: e => { const p = s.profiles.find(x => x.name === e.target.value); if (p) this.setState(st => ({ conn: Object.assign({}, st.conn, { cmdPort: '5600', telPort: '5601' }, p), connState: 'loaded' })); },
+      pickProfile: e => { const p = s.profiles.find(x => x.name === e.target.value); if (p) this.setState(st => ({ conn: Object.assign({}, st.conn, { cmdPort: '5600', telPort: '5601', vidPort: '5602' }, p), connState: 'loaded' })); },
       saveProfile: () => this.saveProfile(),
       deleteProfile: () => this.deleteProfile(),
       canDelete: s.profiles.some(p => p.name === s.conn.name),
@@ -289,11 +294,13 @@ class Component extends DCLogic {
       setTelPort: e => { const v = e.target.value.replace(/\D/g, '').slice(0, 5); this.setState(st => ({ conn: Object.assign({}, st.conn, { telPort: v }), connState: 'idle' })); },
       cmdPortStyle: portStyle(s.connState === 'badport' || s.connState === 'sameport'),
       telPortStyle: portStyle(s.connState === 'badport' || s.connState === 'sameport'),
+      vidPortStyle: portStyle(s.connState === 'badport' || s.connState === 'sameport'),
+      setVidPort: e => { const v = e.target.value.replace(/\D/g, '').slice(0, 5); this.setState(st => ({ conn: Object.assign({}, st.conn, { vidPort: v }), connState: 'idle' })); },
       ipStyle: { padding: '9px 10px', border: '1px solid ' + (s.connState === 'badip' ? '#7f2b2e' : '#2c3a48'), borderRadius: '3px', background: '#070a0e', color: '#eaf2fa', font: "13px 'IBM Plex Mono', monospace", outline: 'none', minWidth: 0 },
       protoOpts: ['TCP', 'UDP'].map(v => opt(v, s.conn.proto === v, () => this.setState(st => ({ conn: Object.assign({}, st.conn, { proto: v }) })))),
       rateOpts: ['25', '50', '100'].map(v => opt(v + ' Hz', s.conn.rate === v, () => this.setState(st => ({ conn: Object.assign({}, st.conn, { rate: v }) })))),
       recents: [['ROV-01', '192.168.2.2', '5760', 'UDP', '3d ago'], ['BENCH-PI', 'raspberrypi.local', '5760', 'UDP', '2w ago']].map(([name, ip, port, proto, when]) => ({ name, addr: proto + ' · ' + ip + ':' + port, when, pick: () => this.setState(st => ({ conn: Object.assign({}, st.conn, { name, ip, port, proto }), connState: 'idle' })) })),
-      connMsg: ({ idle: 'Vehicle must be powered and the tether connected.', badip: 'Enter a valid IPv4 address or .local hostname', badport: 'Ports must be 1–65535', sameport: 'Command and telemetry ports must differ', noname: 'Enter a vehicle name to save a profile', saved: 'Profile "' + s.conn.name + '" saved', loaded: 'Profile "' + s.conn.name + '" loaded', deleted: 'Profile deleted', connecting: 'Connecting to ' + s.conn.ip + ' · cmd ' + s.conn.cmdPort + '…', timeout: 'No answer from ' + s.conn.ip + ' — check tether and power' })[s.connState],
+      connMsg: ({ idle: 'Vehicle must be powered and the tether connected.', badip: 'Enter a valid IPv4 address or .local hostname', badport: 'Ports must be 1–65535', sameport: 'Command, telemetry and video ports must all differ', noname: 'Enter a vehicle name to save a profile', saved: 'Profile "' + s.conn.name + '" saved', loaded: 'Profile "' + s.conn.name + '" loaded', deleted: 'Profile deleted', connecting: 'Connecting to ' + s.conn.ip + ' · cmd ' + s.conn.cmdPort + '…', timeout: 'No answer from ' + s.conn.ip + ' — check tether and power' })[s.connState],
       connMsgStyle: { color: ({ idle: '#8fa2b5', badip: '#ff6b6e', badport: '#ff6b6e', sameport: '#ff6b6e', noname: '#ff6b6e', saved: '#35d0a5', loaded: '#35d0a5', deleted: '#8fa2b5', connecting: '#ffd479', timeout: '#ff6b6e' })[s.connState] },
       connDot: { display: s.connState === 'idle' ? 'none' : 'block', width: '7px', height: '7px', borderRadius: '50%', flex: 'none', background: ({ idle: '#5f7183', badip: '#ff5c5c', badport: '#ff5c5c', sameport: '#ff5c5c', noname: '#ff5c5c', saved: '#35d0a5', loaded: '#35d0a5', deleted: '#5f7183', connecting: '#ffd479', timeout: '#ff5c5c' })[s.connState] },
       connBtnLabel: s.connState === 'connecting' ? 'CONNECTING…' : s.connState === 'timeout' ? 'RETRY' : 'CONNECT',
@@ -301,13 +308,13 @@ class Component extends DCLogic {
       closeMap: () => this.setState({ mapOpen: false }),
       stop: e => e.stopPropagation(),
       maps: [
-        { title: 'DUALSHOCK 3', k: { l2: 'L2', r2: 'R2', l1: 'L1', r1: 'R1', start: 'START', sel: 'SEL', tri: '△', sq: '□' } },
-        { title: 'XBOX', k: { l2: 'LT', r2: 'RT', l1: 'LB', r1: 'RB', start: 'MENU', sel: 'VIEW', tri: 'Y', sq: 'X' } },
+        { title: 'DUALSHOCK 3', k: { l2: 'L2', r2: 'R2', l1: 'L1', r1: 'R1', start: 'START', sel: 'SEL', ps: 'PS', tri: '△', sq: '□' } },
+        { title: 'XBOX', k: { l2: 'LT', r2: 'RT', l1: 'LB', r1: 'RB', start: 'MENU', sel: 'VIEW', ps: 'XBOX', tri: 'Y', sq: 'X' } },
       ].map(({ title, k }) => {
         const r = (keys, desc, red) => ({ keys, desc, style: { color: red ? '#ff6b6e' : '#c9d3de' } });
         return { title, groups: [
-          { name: 'DRIVE', rows: [r(['L STICK'], 'Forward / back + side to side'), r(['R STICK ←→'], 'Rotate (yaw)'), r([k.l2, k.r2], 'Descend / ascend'), r([k.l1, k.r1], 'Thrust gain down / up'), r(['D-PAD ↑↓'], 'Camera tilt')] },
-          { name: 'VEHICLE', rows: [r([k.start], 'Hold 1 s to arm · tap to disarm'), r([k.sel], 'E-STOP', true)] },
+          { name: 'DRIVE', rows: [r(['L STICK'], 'Forward / back + side to side'), r(['R STICK ←→'], 'Rotate (yaw)'), r([k.l2, k.r2], 'Descend / ascend · analog'), r([k.l1, k.r1], 'Thrust gain down / up'), r(['D-PAD ↑↓'], 'Camera tilt')] },
+          { name: 'VEHICLE', rows: [r([k.start], 'Hold 1 s to arm · tap to disarm'), r([k.sel, k.ps], 'E-STOP', true)] },
           { name: 'CONSOLE', rows: [r([k.tri], 'Toggle SI / imperial units'), r([k.sq], 'Operator mark in log')] },
         ] };
       }),

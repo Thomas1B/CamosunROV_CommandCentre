@@ -38,9 +38,15 @@ SANS = ["IBM Plex Sans", "Segoe UI", "DejaVu Sans", "sans-serif"]
 
 # Console text is drawn this much bigger than the original mockup sizes (1.0 = mockup).
 # Applies to the control console only - the main menu keeps the design sizes.
-# Not scaled (kept as designed): HUD depth / thrust gain / heading / clock, battery
-# voltage, and the four telemetry cards (depth, pressure, water temp, internal temp).
+# Not scaled: the right-panel readings, which use VALUE_PX / UNIT_PX below.
 CONSOLE_FONT_SCALE = 1.25
+
+
+# Right-panel readings (telemetry cards, heading, roll/pitch/yaw, battery voltage): one size for
+# every number and one for every unit, so the panel reads as a single column of data.
+# Matches the UI design: values 16 pt, units / status values 12 pt (CSS pt = 4/3 px).
+VALUE_PX = 21            # 16 pt
+UNIT_PX = 16             # 12 pt
 
 
 def fs(px):

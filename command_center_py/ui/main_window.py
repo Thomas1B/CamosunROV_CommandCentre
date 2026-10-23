@@ -21,10 +21,14 @@ from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_
 from command_center_py.mixer import mix
 from command_center_py.video import VideoReceiver
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
-                          LABEL, ACCENT, WARN, DANGER, BLUE, SANS, fs, mono, lab)
+                          LABEL, ACCENT, WARN, DANGER, BLUE, SANS, VALUE_PX, UNIT_PX, fs, mono, lab)
 from command_center_py.ui.widgets import (BipolarBar, TriggerBar, StickView, VideoPane, LevelBarSOC,
                             SectionHeader, ThrusterRow, Chip, MetricCard, StatusRow,
                             ControllerMapDialog, CONTROLLER_MAPS, LAYOUT)
+
+
+CARDINALS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+             "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
 
 
 class ConsoleWindow(QMainWindow):
@@ -76,7 +80,7 @@ class ConsoleWindow(QMainWindow):
         if demo:
             self.video.set_video(None, False, "demo mode - no camera")
         else:
-            self.video_rx = VideoReceiver(VIDEO_PORT)
+            self.video_rx = VideoReceiver(getattr(link, "video_port", VIDEO_PORT))
         self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo
                                                              else f" — {self.vehicle} @ {self.link.label}"), BLUE)
         if self.pad.error:
@@ -396,20 +400,34 @@ class ConsoleWindow(QMainWindow):
             self.metrics[key] = card
             g.addWidget(card, i // 2, i % 2)
         v.addWidget(grid)
+        v.addWidget(self._hline())
 
         imu = QWidget()
         iv = QVBoxLayout(imu)
         iv.setContentsMargins(12, 12, 12, 12)
         iv.setSpacing(8)
         iv.addWidget(lab("IMU ATTITUDE", fs(10), LABEL, QFont.Weight.Bold))
-        
+
+        # heading: same row layout as ROLL / PITCH / YAW ("HEADING ....... 214°  SW"), no bar,
+        # with a divider underneath
+        hrow = QHBoxLayout()
+        hrow.setSpacing(20)
+        hrow.addWidget(lab("HEADING", fs(11), DIM), 0, Qt.AlignmentFlag.AlignBaseline)
+        hrow.addStretch(1)
+        self.heading_lbl = lab("--", VALUE_PX, BRIGHT, QFont.Weight.Bold)
+        hrow.addWidget(self.heading_lbl, 0, Qt.AlignmentFlag.AlignBaseline)
+        self.cardinal_lbl = lab("", VALUE_PX, BRIGHT, QFont.Weight.Bold)
+        hrow.addWidget(self.cardinal_lbl, 0, Qt.AlignmentFlag.AlignBaseline)
+        iv.addLayout(hrow)
+        iv.addWidget(self._hline())
+
         self.imu_rows = {}
         for key in ("ROLL", "PITCH", "YAW"):
             top = QHBoxLayout()
-            top.addWidget(lab(key, fs(11), DIM))
+            top.addWidget(lab(key, fs(11), DIM), 0, Qt.AlignmentFlag.AlignBaseline)
             top.addStretch(1)
-            val = lab("--", fs(11), BRIGHT, QFont.Weight.Bold)
-            top.addWidget(val)
+            val = lab("--", VALUE_PX, BRIGHT, QFont.Weight.Bold)
+            top.addWidget(val, 0, Qt.AlignmentFlag.AlignBaseline)
             iv.addLayout(top)
             bar = BipolarBar(6, knob=False)
             iv.addWidget(bar)
@@ -421,10 +439,9 @@ class ConsoleWindow(QMainWindow):
         pv = QVBoxLayout(pw)
         pv.setContentsMargins(12, 12, 12, 12)
         pv.setSpacing(6)
-        pv.addWidget(lab("POWER", fs(10), LABEL, QFont.Weight.Bold))
         pv.addWidget(lab("BATTERY", fs(9), MUTED))
         self.volt_lbl = QLabel("--")
-        self.volt_lbl.setFont(mono(32, QFont.Weight.Bold))
+        self.volt_lbl.setFont(mono(VALUE_PX, QFont.Weight.Bold))
         pv.addWidget(self.volt_lbl)
         self.soc_bar = LevelBarSOC()
         pv.addWidget(self.soc_bar)
@@ -462,7 +479,10 @@ class ConsoleWindow(QMainWindow):
         sb.addWidget(self.msg_lbl, 1)
         self.tx_lbl = lab("", fs(10), MUTED)
         self.rx_lbl = lab("", fs(10), MUTED)
-        for w in (self.tx_lbl, self.rx_lbl, lab(f"v{APP_VERSION}", fs(10), MUTED)):
+        self.lost_lbl = lab("", fs(10), MUTED)      # command packets that never reached the Pi
+        ver = lab(f"v{APP_VERSION}", fs(10), MUTED)
+        ver.setContentsMargins(0, 0, 12, 0)          # keep the version off the window edge
+        for w in (self.tx_lbl, self.rx_lbl, self.lost_lbl, ver):
             sb.addPermanentWidget(w)
 
     # ---------------- actions ----------------
@@ -685,7 +705,8 @@ class ConsoleWindow(QMainWindow):
         self.stats_lbl.setText(
             f'<span style="color:{MUTED}">RATE </span><b style="color:{ACCENT}">{RATE_HZ}</b><span style="color:{MUTED}"> Hz</span>{sep}'
             f'<span style="color:{MUTED}">RTT </span><b style="color:{TEXT}">{rtt}</b><span style="color:{MUTED}"> ms</span>{sep}'
-            f'<span style="color:{MUTED}">LOSS </span><b style="color:{TEXT}">{loss}</b><span style="color:{MUTED}"> %</span>')
+            f'<span style="color:{MUTED}">LOSS </span><b style="color:{TEXT}">{loss}</b><span style="color:{MUTED}"> %</span>{sep}'
+            f'<b style="color:#7fd9c0">{datetime.now().strftime("%H:%M:%S")}</b><span style="color:{MUTED}"> LOCAL</span>')
         if pad.connected:
             # Show the configured layout, not the driver's device name (DsHidMini can make
             # a DualShock 3 report itself as an Xbox pad). The real name is in the event log.
@@ -737,9 +758,16 @@ class ConsoleWindow(QMainWindow):
             lbl, bar = self.imu_rows[key]
             lbl.setText("--" if val is None else f"{val:+.1f}°")
             bar.set(val or 0.0, ACCENT, mx)
+        if yaw is None:
+            self.heading_lbl.setText("--")
+            self.cardinal_lbl.setText("")
+        else:
+            hdg = yaw % 360
+            self.heading_lbl.setText(f"{hdg:03.0f}°")
+            self.cardinal_lbl.setText(CARDINALS[int(round(hdg / 22.5)) % 16])
         v = self._num("voltage")
         self.volt_lbl.setText(f'<span style="color:{BRIGHT}">{"--" if v is None else f"{v:.2f}"}</span>'
-                              f'<span style="font-size:12px; color:{MUTED}; font-weight:500"> V</span>')
+                              f'<span style="font-size:{UNIT_PX}px; color:{MUTED}; font-weight:500"> V</span>')
         soc = None if v is None else max(0, min(100, round((v - 13.2) / (16.8 - 13.2) * 100)))  # 4S Li-ion guess
         self.soc_bar.set(soc or 0)
 
@@ -761,8 +789,7 @@ class ConsoleWindow(QMainWindow):
             roll=roll or 0.0, pitch=pitch or 0.0, heading=yaw or 0.0,
             depth=None if d is None else (d * 3.28084 if imp else d), depth_unit="ft" if imp else "m",
             armed=self.armed, arm_progress=hold, gain=GAIN_STEPS[self.gain_idx], tilt=self.tilt,
-            start_btn=self.k["start"],
-            clock=datetime.now().strftime("%H:%M:%S"))
+            start_btn=self.k["start"])
 
         # status bar
         if now < self.notice_until:
@@ -775,6 +802,8 @@ class ConsoleWindow(QMainWindow):
             self.msg_lbl.setText(f"Controller ready — hold {self.k['start']} {ARM_HOLD_S:.0f} s to arm")
         self.tx_lbl.setText(f"TX {self.link.tx_count:,} pkt   │")
         self.rx_lbl.setText(f"RX {self.link.rx_count:,} pkt   │")
+        lost = self.link.lost_total          # None until the Pi has reported ack / rx_cmds
+        self.lost_lbl.setText(f"LOST {'--' if lost is None else f'{lost:,}'} pkt   │")
 
     def _update_video(self, now):
         if self.video_rx is None:
@@ -806,7 +835,7 @@ class ConsoleWindow(QMainWindow):
             self.ui_timer.stop()
             self.loss_timer.stop()
             if self.video_rx is not None:
-                self.video_rx.stop()      # frees UDP VIDEO_PORT for the next session
+                self.video_rx.stop()      # frees the UDP video port for the next session
             self.armed = False
             for _ in range(3):   # make sure the Pi sees a disarmed frame on exit
                 self.link.send(False, [0] * 6, self.tilt)

@@ -12,6 +12,11 @@
 </head>
 
 <body>
+  <!--
+    Mirrors command_center_py/ui/main_window.py + widgets.py (v0.5.0).
+    Sizes: console text uses CONSOLE_FONT_SCALE = 1.25 (fs(px) = round(px * 1.25)),
+    except the HUD clock/heading, battery voltage and the four telemetry cards.
+  -->
   <x-dc>
     <helmet>
       <link rel="stylesheet" href="./fonts/ibm-plex.css">
@@ -32,432 +37,301 @@
       </style>
     </helmet>
 
-    <div
-      style="position: relative; width: 100%; height: 100vh; min-width: 1280px; min-height: 920px; display: grid; grid-template-rows: 26px 44px minmax(0,1fr) 22px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 12px; overflow: hidden; box-sizing: border-box;">
+    <div style="position: relative; width: 100%; height: 100vh; min-width: 1200px; min-height: 760px; display: grid; grid-template-rows: 25px 44px minmax(0,1fr) 30px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 14px; overflow: hidden; box-sizing: border-box;">
 
-      <div
-        style="position: relative; z-index: 20; display: flex; align-items: center; gap: 2px; padding: 0 4px; background: #11161d; border-bottom: 1px solid #1f2933; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 12px; user-select: none;">
-        <div style="padding: 3px 7px; border-radius: 3px; color: #c9d3de;"
-          style-hover="background: #1f2933; color: #eaf2fa;">File</div>
-        <div style="padding: 3px 7px; border-radius: 3px; color: #c9d3de;"
-          style-hover="background: #1f2933; color: #eaf2fa;">Vehicle</div>
-        <div style="position: relative;">
-          <div onClick="{{ toggleHelpMenu }}" style="{{ helpMenuBtnStyle }}"
-            style-hover="background: #1f2933; color: #eaf2fa;">Help</div>
-          <sc-if value="{{ helpMenuOpen }}" hint-placeholder-val="{{ false }}">
-            <div
-              style="position: absolute; left: 0; top: 24px; min-width: 150px; padding: 4px; background: #1b2027; border: 1px solid #2c3540; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
-              <div onClick="{{ openMap }}"
-                style="padding: 6px 14px; border-radius: 4px; color: #eaf2fa; cursor: default;"
-                style-hover="background: #2a323d;">Dualshock3 Map</div>
-              <div onClick="{{ openXbox }}"
-                style="padding: 6px 14px; border-radius: 4px; color: #eaf2fa; cursor: default;"
-                style-hover="background: #2a323d;">Xbox Map</div>
-            </div>
-          </sc-if>
-        </div>
+      <!-- ============ MENU BAR ============ -->
+      <div style="position: relative; z-index: 20; display: flex; align-items: center; gap: 0; padding: 2px 4px; background: #141a22; border-bottom: 1px solid #1f2933; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 13px; user-select: none; box-sizing: border-box;">
+        <sc-for list="{{ menus }}" as="m" hint-placeholder-count="3">
+          <div style="position: relative;">
+            <div onClick="{{ m.toggle }}" style="{{ m.btnStyle }}" style-hover="background: #1f2933; color: #eaf2fa;">{{ m.name }}</div>
+            <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; left: 0; top: 23px; min-width: 190px; padding: 2px 0; background: #131a22; border: 1px solid #23303c; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
+                <sc-for list="{{ m.items }}" as="it" hint-placeholder-count="2">
+                  <div onClick="{{ it.run }}" style="display: flex; justify-content: space-between; gap: 24px; padding: 5px 18px; color: #d7e0ea; cursor: default; white-space: nowrap;" style-hover="background: #1f2933;">
+                    <span>{{ it.label }}</span><span style="color: #5f7183;">{{ it.key }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
       </div>
 
-      <div
-        style="display: flex; align-items: center; gap: 8px; padding: 0 10px; background: #10151c; border-bottom: 1px solid #1f2933;">
-        <div
-          style="display: flex; align-items: center; gap: 8px; padding: 7px 11px; border: 1px solid #23303c; border-radius: 3px; background: #131a22; font-size: 11px;">
-          <div style="width: 7px; height: 7px; border-radius: 50%; background: #35d0a5;"></div>
-          <span style="font-weight: 600; color: #eaf2fa;">LINK UP</span>
+      <!-- ============ TOOLBAR ============ -->
+      <div style="display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #10151c; border-bottom: 1px solid #1f2933; box-sizing: border-box;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-size: 14px;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #35d0a5;"></div>
+          <span style="font-weight: 600; color: #d7e0ea;">LINK UP</span>
           <span style="color: #5f7183;">DEMO · simulated vehicle</span>
         </div>
-        <div
-          style="display: flex; align-items: baseline; gap: 5px; padding: 7px 11px; border: 1px solid #23303c; border-radius: 3px; background: #131a22; font-size: 11px;">
-          <span style="color: #5f7183;">RATE</span><span style="font-weight: 700; color: #35d0a5;">50</span><span
-            style="color: #5f7183;">Hz</span>
-          <span style="color: #2c3a48; margin: 0 2px;">|</span>
-          <span style="color: #5f7183;">RTT</span><span style="font-weight: 700; color: #eaf2fa;">0.0</span><span
-            style="color: #5f7183;">ms</span>
-          <span style="color: #2c3a48; margin: 0 2px;">|</span>
-          <span style="color: #5f7183;">LOSS</span><span style="font-weight: 700; color: #eaf2fa;">0.0</span><span
-            style="color: #5f7183;">%</span>
+        <div style="display: flex; align-items: baseline; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-size: 14px; white-space: pre;">
+          <span style="color: #5f7183;">RATE </span><b style="color: #35d0a5;">50</b><span style="color: #5f7183;"> Hz</span><span style="color: #23303c;"> │ </span><span style="color: #5f7183;">RTT </span><b style="color: #d7e0ea;">0.0</b><span style="color: #5f7183;"> ms</span><span style="color: #23303c;"> │ </span><span style="color: #5f7183;">LOSS </span><b style="color: #d7e0ea;">0.0</b><span style="color: #5f7183;"> %</span><span style="color: #23303c;"> │ </span><b style="color: #7fd9c0;">{{ clock }}</b><span style="color: #5f7183;"> LOCAL</span>
         </div>
         <div style="flex: 1;"></div>
-        <div style="display: flex; gap: 5px; font-size: 11px;">
-          <span style="color: #8fa2b5;">GAMEPAD</span>
-          <span style="{{ padStyle }}">{{ padLabel }}</span>
-        </div>
+        <div style="font-size: 14px; white-space: pre;"><span style="color: #7c8b9c;">GAMEPAD </span><b style="{{ padStyle }}">{{ padLabel }}</b></div>
         <div onClick="{{ toggleArm }}" style="{{ armButtonStyle }}">{{ armLabel }}</div>
-        <div onClick="{{ estop }}"
-          style="width: 80px; text-align: center; padding: 7px 0; border-radius: 3px; border: 1px solid #7f2b2e; background: #2a1012; color: #ff6b6e; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer;"
-          style-hover="background: #57191c; color: #fff;">E-STOP</div>
+        <div onClick="{{ estop }}" style="padding: 7px 18px; border-radius: 4px; border: 1px solid #7f2b2e; background: linear-gradient(180deg, #3a1416, #2a0f11); color: #ff6b6e; font-size: 15px; font-weight: 700; cursor: pointer; user-select: none;" style-hover="background: #57191c; color: #fff;">E-STOP</div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 298px minmax(0,1fr) 296px; min-height: 0;">
+      <!-- ============ BODY ============ -->
+      
 
-        <div
-          style="display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-right: 1px solid #1f2933; background: #0e131a;">
-          <div
-            style="display: flex; justify-content: space-between; padding: 8px 10px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 10px;">
-            <span style="font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">THRUSTER OUTPUT</span>
+      <!-- ============ STATUS BAR ============ -->
+      <div style="display: grid; grid-template-columns: 340px minmax(0,1fr) 335px; min-height: 0;">
+
+        <!-- ---------- LEFT PANEL ---------- -->
+        <div style="display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overflow-x: hidden; border-right: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 12px;">
+            <span style="font-weight: 700; color: #8fa2b5;">THRUSTER OUTPUT</span>
             <span style="color: #5f7183;">TX → PI</span>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 9px; padding: 10px 10px 8px;">
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 8px;">
             <sc-for list="{{ thrusters }}" as="t" hint-placeholder-count="6">
               <div style="display: flex; flex-direction: column; gap: 5px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 10px;">
-                  <span style="color: #c9d3de; font-size: 11px;">{{ t.name }}</span>
-                  <span style="color: #5f7183; text-align: center;">{{ t.role }}</span>
+                <div style="display: grid; grid-template-columns: 58px 1fr 58px; align-items: baseline; line-height: 19px;">
+                  <span style="color: #9fb0c2; font-size: 14px; font-weight: 600;">{{ t.name }}</span>
+                  <span style="color: #5f7183; font-size: 12px; text-align: center;">{{ t.role }}</span>
                   <span style="{{ t.valueStyle }}">{{ t.label }}</span>
                 </div>
-                <div
-                  style="position: relative; height: 16px; border-radius: 2px; background: #070a0e; border: 1px solid #1f2933;">
+                <div style="position: relative; height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
                   <div style="{{ t.fillStyle }}"></div>
+                  <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2c3a48;"></div>
                   <div style="{{ t.knobStyle }}"></div>
                 </div>
               </div>
             </sc-for>
-            <div style="display: flex; justify-content: space-between; font-size: 10px; padding-top: 2px;">
-              <span style="color: #c9d3de;">GAIN <span style="color: #35d0a5; font-weight: 700;">{{ gainLabel
-                  }}</span></span>
-              <span style="color: #5f7183;">{{ ctl.l1 }} ▼ {{ ctl.r1 }} ▲</span>
+            <div style="display: flex; align-items: baseline; gap: 6px; font-size: 14px;">
+              <span style="color: #9fb0c2;">GAIN</span>
+              <span style="color: #9fb0c2; font-weight: 700;">{{ gainLabel }}</span>
+              <div style="flex: 1;"></div>
+              <span style="color: #5f7183; font-size: 12px; white-space: pre;">{{ ctl.l1 }} ▼  {{ ctl.r1 }} ▲</span>
             </div>
           </div>
+          <div style="height: 1px; background: #1f2933; flex: none;"></div>
 
-          <div
-            style="display: flex; justify-content: space-between; padding: 8px 10px; background: #131a22; border-top: 1px solid #1f2933; border-bottom: 1px solid #1f2933; font-size: 10px;">
-            <span style="font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">STICK INPUT</span>
-            <span style="color: #5f7183;">{{ padName }}</span>
-          </div>
-          <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 0 10px;">
-              <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
-                <div
-                  style="position: relative; width: 100%; aspect-ratio: 1 / 1; border: 1px solid #1f2933; border-radius: 3px; background: #070a0e;">
-                  <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
-                  <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #1a2430;"></div>
-                  <div style="{{ leftDot }}"></div>
-                </div>
-                <span style="font-size: 8px; color: #8fa2b5;">L · FWD/BACK + SIDE</span>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
-                <div
-                  style="position: relative; width: 100%; aspect-ratio: 1 / 1; border: 1px solid #1f2933; border-radius: 3px; background: #070a0e;">
-                  <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
-                  <div
-                    style="position: absolute; top: calc(50% - 3px); left: 6px; right: 6px; height: 6px; border-radius: 3px; background: #1d3a33;">
-                  </div>
-                  <div style="{{ rightDot }}"></div>
-                </div>
-                <span style="font-size: 8px; color: #8fa2b5;">R · ROTATE (YAW)</span>
-              </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 8px; color: #8fa2b5;">
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span>{{ ctl.l2 }} · DESCEND</span>
-                <div
-                  style="height: 6px; border-radius: 2px; background: #070a0e; border: 1px solid #1f2933; overflow: hidden;">
-                  <div style="{{ l2Fill }}"></div>
-                </div>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span>{{ ctl.r2 }} · ASCEND</span>
-                <div
-                  style="height: 6px; border-radius: 2px; background: #070a0e; border: 1px solid #1f2933; overflow: hidden;">
-                  <div style="{{ r2Fill }}"></div>
-                </div>
-              </div>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px;">
-              <sc-for list="{{ buttons }}" as="b" hint-placeholder-count="12">
-                <div style="{{ b.style }}">{{ b.label }}</div>
-              </sc-for>
-            </div>
-          </div>
-
-          <div
-            style="display: flex; justify-content: space-between; padding: 8px 10px; background: #131a22; border-top: 1px solid #1f2933; border-bottom: 1px solid #1f2933; font-size: 10px;">
-            <span style="font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">CAMERA TILT</span>
-            <span style="color: #5f7183;">D-PAD</span>
-          </div>
-          <div style="padding: 16px 10px 10px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="font-size: 11px; color: #c9d3de;">SERVO ANGLE</span>
-              <span style="font-size: 20px; font-weight: 700; color: #ffd479; line-height: 1;">{{ tiltLabel }}</span>
+              <span style="font-size: 14px; color: #9fb0c2;">Camera Tilt</span>
+              <span style="font-size: 20px; font-weight: 700; color: #ffd479; line-height: 1.2;">{{ tiltLabel }}</span>
             </div>
-            <div
-              style="position: relative; height: 16px; border-radius: 2px; background: #070a0e; border: 1px solid #1f2933;">
+            <div style="position: relative; height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
+              <div style="{{ tiltFill }}"></div>
+              <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2c3a48;"></div>
               <div style="{{ tiltKnob }}"></div>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 8px; color: #5f7183;">
-              <span>DOWN −45°</span><span>UP +45°</span>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5f7183;">
+              <span>DOWN -45°</span><span>UP +45°</span>
             </div>
-            <div style="font-size: 10px; color: #8fa2b5;">D-pad ↑↓ · 5° per step · hold to repeat</div>
+            <div style="font-size: 12px; color: #5f7183;">D-pad ↑↓ · 5° per step · hold to repeat</div>
+          </div>
+          <div style="height: 1px; background: #1f2933; flex: none;"></div>
+
+          <div style="display: flex; align-items: center; padding: 10px 12px;">
+            <span style="font-size: 14px; color: #9fb0c2;">CONTROLLER</span>
+            <div style="flex: 1;"></div>
+            <div onClick="{{ setDs3 }}" style="{{ ds3BtnStyle }}" style-hover="color: #eaf2fa;">DUALSHOCK 3</div>
+            <div onClick="{{ setXbox }}" style="{{ xboxBtnStyle }}" style-hover="color: #eaf2fa;">XBOX</div>
           </div>
 
-          <div style="flex: 1;"></div>
-          <div
-            style="padding: 8px 10px; border-top: 1px solid #1f2933; background: #0a0e13; font-size: 10px; color: #5f7183; line-height: 1.5;">
-            <div>PACKET <span style="color: #8fa2b5;">cmd_v1 · 16 B · 50 Hz</span></div>
-            <div>PAYLOAD <span style="color: #8fa2b5;">6×int8 throttle + int8 cam tilt</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-top: 1px solid #1f2933; border-bottom: 1px solid #1f2933; font-size: 12px;">
+            <span style="font-weight: 700; color: #8fa2b5;">STICK INPUT</span>
+            <span style="color: #5f7183;">{{ ctl.short }}</span>
           </div>
+          <div style="padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; row-gap: 4px;">
+            <div style="justify-self: center; position: relative; width: 84px; height: 84px; border: 1px solid #1f2933; border-radius: 4px; background: #070a0e; box-sizing: border-box;">
+              <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
+              <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #1a2430;"></div>
+              <div style="position: absolute; left: calc(50% - 7px); top: calc(50% - 7px); width: 14px; height: 14px; border: 1px dashed #2c3a48; border-radius: 50%; box-sizing: border-box;"></div>
+              <div style="{{ leftGlow }}"></div>
+              <div style="{{ leftDot }}"></div>
+            </div>
+            <div style="justify-self: center; position: relative; width: 84px; height: 84px; border: 1px solid #1f2933; border-radius: 4px; background: #070a0e; box-sizing: border-box;">
+              <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
+              <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #1a2430;"></div>
+              <div style="position: absolute; left: calc(50% - 7px); top: calc(50% - 7px); width: 14px; height: 14px; border: 1px dashed #2c3a48; border-radius: 50%; box-sizing: border-box;"></div>
+              <div style="position: absolute; left: calc(50% - 38px); top: calc(50% - 3px); width: 76px; height: 6px; border-radius: 3px; background: rgba(53,208,165,0.18);"></div>
+              <div style="{{ rightGlow }}"></div>
+              <div style="{{ rightDot }}"></div>
+            </div>
+            <span style="font-size: 11px; color: #5f7183; text-align: center;">L · FWD/BACK + SIDE</span>
+            <span style="font-size: 11px; color: #5f7183; text-align: center;">R · ROTATE (YAW)</span>
+          </div>
+          <div style="padding: 5px 12px 10px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; row-gap: 4px; font-size: 11px; color: #5f7183;">
+            <span>{{ ctl.l2 }} · DESCEND</span>
+            <span>{{ ctl.r2 }} · ASCEND</span>
+            <div style="height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden;">
+              <div style="{{ l2Fill }}"></div>
+            </div>
+            <div style="height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden;">
+              <div style="{{ r2Fill }}"></div>
+            </div>
+          </div>
+          <div style="padding: 0 12px 12px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+            <sc-for list="{{ chips }}" as="b" hint-placeholder-count="12">
+              <div style="{{ b.style }}">{{ b.label }}</div>
+            </sc-for>
+          </div>
+          <div style="flex: 1;"></div>
         </div>
 
+        <!-- ---------- CENTRE: VIDEO + EVENT LOG ---------- -->
         <div style="min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #05070a;">
-          <div
-            style="position: relative; flex: 1; min-height: 0; overflow: hidden; background: radial-gradient(110% 90% at 50% 35%, #12293a 0%, #0b1a25 45%, #070d13 100%);">
+          <div style="position: relative; flex: 1; min-height: 0; overflow: hidden; background: repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px), radial-gradient(circle 535px at 50% 40%, #123040 0%, #0a1a24 45%, #05090d 100%);">
 
-            <div style="{{ armPill }}">{{ armLabel }}</div>
-            <div style="position: absolute; right: 22px; top: 18px; font-size: 11px; color: #c9e9df;">{{ clock }} UTC
-            </div>
 
-            <div
-              style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px;">
-              <div
-                style="position: relative; width: 88px; height: 88px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(53,208,165,0.35);">
+            <div style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px;">
+              <div style="position: relative; width: 88px; height: 88px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(53,208,165,0.35); box-sizing: border-box;">
                 <div style="{{ horizonStyle }}"></div>
-                <div
-                  style="position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 56px; height: 2px; background: #ffd479;">
-                </div>
-                <div
-                  style="position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 6px; height: 6px; border-radius: 50%; background: #ffd479;">
-                </div>
+                <div style="position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 54px; height: 2px; background: #ffd479;"></div>
+                <div style="position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 6px; height: 6px; border-radius: 50%; background: #ffd479;"></div>
               </div>
-              <span style="font-size: 8px; color: #8fd9c4;">ATTITUDE</span>
+              <span style="font-size: 11px; color: rgba(127,217,192,0.75);">ATTITUDE</span>
             </div>
 
-            <div
-              style="position: absolute; left: 22px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px;">
-              <span style="font-size: 8px; color: #8fd9c4;">CAM TILT</span>
-              <div style="position: relative; width: 60px; height: 160px;">
-                <div
-                  style="position: absolute; left: 8px; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.45);">
-                </div>
-                <sc-for list="{{ ticks }}" as="k" hint-placeholder-count="7">
-                  <div style="{{ k }}"></div>
-                </sc-for>
-                <div style="{{ tiltPointer }}">
-                  <div
-                    style="width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid #ffd479;">
-                  </div>
-                  <span style="font-size: 10px; font-weight: 700; color: #eaf2fa; margin-left: 12px;">{{ tiltLabel
-                    }}</span>
-                </div>
-              </div>
+            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 120px; height: 120px;">
+              <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.35);"></div>
+              <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(53,208,165,0.35);"></div>
+              <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 34px; height: 34px; border: 1px solid rgba(53,208,165,0.51); border-radius: 50%;"></div>
             </div>
 
-            <div
-              style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 120px; height: 120px;">
-              <div
-                style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.4);">
+            <sc-if value="{{ arming }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; left: calc(50% - 90px); top: calc(50% + 32px); width: 180px; height: 8px; border-radius: 3px; border: 1px solid #23303c; background: #070a0e; box-sizing: border-box; overflow: hidden;">
+                <div style="{{ armProgressFill }}"></div>
               </div>
-              <div
-                style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(53,208,165,0.4);">
-              </div>
-              <div
-                style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 34px; height: 34px; border: 1px solid rgba(53,208,165,0.55); border-radius: 50%;">
-              </div>
-            </div>
+              <div style="position: absolute; left: 0; right: 0; top: calc(50% + 44px); text-align: center; font-size: 14px; font-weight: 700; color: #35d0a5;">HOLD {{ ctl.start }} TO ARM</div>
+            </sc-if>
 
-            <div
-              style="position: absolute; left: 50%; top: calc(50% + 70px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px;">
-              <div
-                style="width: 72px; height: 52px; border: 2px solid #2c4653; border-radius: 6px; position: relative;">
-                <div
-                  style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 20px; height: 20px; border: 2px solid #2c4653; border-radius: 50%;">
-                </div>
-              </div>
-              <span style="font-size: 10px; color: #33505e;">NO VIDEO SOURCE</span>
-              <span style="font-size: 9px; color: #2a4350; white-space: nowrap;">camera stream not connected</span>
-            </div>
-
-            <div
-              style="position: absolute; right: 22px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-              <span style="font-size: 9px; color: #8fd9c4;">HEADING</span>
-              <span style="font-size: 40px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ heading }}</span>
-              <span style="font-size: 10px; color: #c9d3de;">{{ headingCardinal }} · mag</span>
-            </div>
-
-            <div style="position: absolute; left: 22px; bottom: 20px; display: flex; flex-direction: column; gap: 4px;">
-              <span style="font-size: 9px; color: #8fd9c4;">DEPTH</span>
-              <span style="font-size: 24px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ depthLabel }}</span>
-            </div>
-            <div
-              style="position: absolute; right: 22px; bottom: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-              <span style="font-size: 9px; color: #8fd9c4;">THRUST GAIN</span>
-              <span style="font-size: 24px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ gainLabel }}</span>
-            </div>
+            <div style="position: absolute; left: calc(50% - 37px); top: calc(50% + 70px); width: 74px; height: 54px; border: 2px solid #2c4653; border-radius: 8px; box-sizing: border-box;"></div>
+            <div style="position: absolute; left: calc(50% - 11px); top: calc(50% + 86px); width: 22px; height: 22px; border: 2px solid #2c4653; border-radius: 50%; box-sizing: border-box;"></div>
+            <div style="position: absolute; left: 0; right: 0; top: calc(50% + 132px); text-align: center; font-size: 14px; line-height: 18px; color: #2c4653;">NO VIDEO SOURCE</div>
+            <div style="position: absolute; left: 0; right: 0; top: calc(50% + 150px); text-align: center; font-size: 12px; line-height: 16px; color: #2c4653; white-space: nowrap;">demo mode - no camera</div>
           </div>
 
-          <div
-            style="height: 130px; display: flex; flex-direction: column; border-top: 1px solid #1f2933; background: #0e131a;">
-            <div style="padding: 8px 12px; font-size: 10px; color: #c9d3de;">EVENT LOG <span style="color: #5f7183;">·
-                command stream 50 Hz</span></div>
-            <div style="flex: 1; overflow: hidden; padding: 6px 12px; font-size: 11px; line-height: 1.3;">
+          <div style="height: 150px; flex: none; display: flex; flex-direction: column; border-top: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
+            <div style="display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid #1f2933; font-size: 12px;">
+              <span style="font-weight: 700; color: #8fa2b5;">EVENT LOG</span>
+              <span style="color: #5f7183;">· command stream 50 Hz</span>
+            </div>
+            <div style="flex: 1; min-height: 0; overflow: hidden; padding: 8px 12px; font-size: 14px; line-height: 19px; display: flex; flex-direction: column; justify-content: flex-start;">
               <sc-for list="{{ logLines }}" as="l" hint-placeholder-count="2">
-                <div style="display: flex; gap: 10px;">
-                  <span style="color: #4d5d6d;">{{ l.t }}</span>
-                  <span style="{{ l.tagStyle }}">{{ l.tag }}</span>
-                  <span style="color: #c9d3de;">{{ l.msg }}</span>
-                </div>
+                <div style="white-space: pre;"><span style="color: #4d5d6d;">{{ l.t }}  </span><span style="{{ l.tagStyle }}">{{ l.tag }}</span><span style="color: #9fb0c2;">{{ l.msg }}</span></div>
               </sc-for>
             </div>
           </div>
         </div>
 
-        <div
-          style="display: flex; flex-direction: column; min-height: 0; border-left: 1px solid #1f2933; background: #0e131a;">
-          <div
-            style="display: flex; justify-content: space-between; padding: 8px 10px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 10px;">
-            <span style="font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">TELEMETRY</span>
+        <!-- ---------- RIGHT PANEL ---------- -->
+        <div style="display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overflow-x: hidden; border-left: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 12px;">
+            <span style="font-weight: 700; color: #8fa2b5;">TELEMETRY</span>
             <span style="color: #5f7183;">RX ← PI</span>
           </div>
-          <div
-            style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1f2933; border-bottom: 1px solid #1f2933;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1f2933; padding-bottom: 1px;">
             <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="4">
-              <div
-                style="background: #0e131a; padding: 12px 10px 14px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="background: #0e131a; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="font-size: 8px; color: #8fa2b5;">{{ m.name }}</span>
-                  <div onClick="{{ m.toggle }}" title="Switch units" style="{{ m.toggleStyle }}">{{ m.toggleLabel }}
-                  </div>
+                  <span style="font-size: 9px; color: #5f7183;">{{ m.name }}</span>
+                  <div onClick="{{ m.toggle }}" title="Switch units" style="{{ m.toggleStyle }}" style-hover="border-color: #35d0a5; color: #eaf2fa;">{{ m.toggleLabel }}</div>
                 </div>
-                <div style="font-size: 22px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ m.value }}<span
-                    style="font-size: 10px; color: #5f7183; font-weight: 500;"> {{ m.unit }}</span></div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; font-weight: 700; line-height: 26px; white-space: nowrap;"><span style="{{ m.valueStyle }}">{{ m.value }}</span><span style="font-size: 12pt; color: #5f7183; font-weight: 500;"> {{ m.unit }}</span></div>
               </div>
             </sc-for>
           </div>
+          <div style="height: 1px; background: #1f2933; flex: none;"></div>
 
-          <div
-            style="padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #1f2933;">
-            <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">IMU ATTITUDE</span>
+          <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-size: 12px; font-weight: 700; color: #8fa2b5;">IMU ATTITUDE</span>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 14px;">
+                <span style="color: #9fb0c2;">HEADING</span>
+                <span style="display: flex; align-items: baseline; gap: 20px;">
+                  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; font-weight: 700; color: #eaf2fa;">{{ heading }}°</span>
+                  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; font-weight: 700; color: #eaf2fa;">{{ headingCardinal }}</span>
+                </span>
+              </div>
+              <div style="height: 1px; background: #1f2933;"></div>
+            </div>
             <sc-for list="{{ imu }}" as="a" hint-placeholder-count="3">
-              <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div style="display: flex; justify-content: space-between; font-size: 11px;">
-                  <span style="color: #c9d3de;">{{ a.name }}</span>
-                  <span style="color: #eaf2fa; font-weight: 700;">{{ a.label }}</span>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 14px;">
+                  <span style="color: #9fb0c2;">{{ a.name }}</span>
+                  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; color: #eaf2fa; font-weight: 700;">{{ a.label }}</span>
                 </div>
-                <div
-                  style="position: relative; height: 4px; border-radius: 2px; background: #070a0e; border: 1px solid #1a2430;">
-                  <div style="position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px; background: #2c3a48;">
-                  </div>
+                <div style="position: relative; height: 6px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
                   <div style="{{ a.fillStyle }}"></div>
+                  <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2c3a48;"></div>
                 </div>
               </div>
             </sc-for>
           </div>
+          <div style="height: 1px; background: #1f2933; flex: none;"></div>
 
-          <div
-            style="padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #1f2933;">
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">POWER</span>
-              <span style="font-size: 8px; color: #8fa2b5;">BATTERY</span>
-            </div>
-            <div style="font-size: 30px; font-weight: 700; color: #eaf2fa; line-height: 1;">{{ voltage }}<span
-                style="font-size: 11px; color: #5f7183; font-weight: 500;"> V</span></div>
-            <div
-              style="height: 6px; border-radius: 3px; background: #070a0e; border: 1px solid #1a2430; overflow: hidden;">
-              <div style="height: 100%; width: 72%; background: #35a585; border-radius: 3px;"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 9px; color: #5f7183;">
-              <span>SOC est. 72%</span><span>{{ current }} A</span>
+          <div style="padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+            
+            <span style="font-size: 11px; color: #5f7183;">BATTERY</span>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; font-weight: 700; color: #eaf2fa; line-height: 26px;">{{ voltage }}<span style="font-size: 12pt; color: #5f7183; font-weight: 500;"> V</span></div>
+            <div style="height: 8px; border-radius: 4px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden; padding: 1px;">
+              <div style="{{ socFill }}"></div>
             </div>
           </div>
+          <div style="height: 1px; background: #1f2933; flex: none;"></div>
 
-          <div style="padding: 12px 10px; display: flex; flex-direction: column; gap: 6px;">
-            <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #c9d3de;">SYSTEM
-              STATUS</span>
+          <div style="padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-size: 12px; font-weight: 700; color: #8fa2b5;">SYSTEM STATUS</span>
             <sc-for list="{{ statuses }}" as="s" hint-placeholder-count="4">
-              <div
-                style="display: flex; align-items: center; gap: 8px; padding: 6px 9px; border: 1px solid #1f2933; border-radius: 2px; background: #10161d;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 5px 9px; border: 1px solid #1f2933; border-radius: 3px; background: #10161d;">
                 <div style="{{ s.dotStyle }}"></div>
-                <span style="font-size: 11px; color: #c9d3de; flex: 1;">{{ s.name }}</span>
+                <span style="font-size: 14px; color: #9fb0c2; flex: 1;">{{ s.name }}</span>
                 <span style="{{ s.valueStyle }}">{{ s.value }}</span>
               </div>
             </sc-for>
           </div>
+          <div style="flex: 1;"></div>
         </div>
-      </div>
-
-      <div
-        style="display: flex; align-items: center; gap: 10px; padding: 0 8px; background: #10151c; border-top: 1px solid #1f2933; font-size: 10px; color: #5f7183;">
-        <span style="color: #c9d3de;">{{ statusMessage }}</span>
+      </div><div style="display: flex; align-items: center; gap: 10px; padding: 0 20px 0 10px; background: #10151c; border-top: 1px solid #1f2933; font-size: 12px; color: #5f7183; box-sizing: border-box; white-space: pre;">
+        <span style="color: #9fb0c2;">{{ statusMessage }}</span>
         <div style="flex: 1;"></div>
-        <span>TX {{ txCount }} pkt</span>
-        <span style="color: #2c3a48;">|</span>
-        <span>RX {{ rxCount }} pkt</span>
-        <span style="color: #2c3a48;">|</span>
+        <span>TX {{ txCount }} pkt   │</span>
+        <span>RX {{ rxCount }} pkt   │</span>
+        <span>LOST {{ lostCount }} pkt   │</span>
         <span>v0.5.0</span>
       </div>
 
-      <sc-if value="{{ helpMenuOpen }}" hint-placeholder-val="{{ false }}">
-        <div onClick="{{ closeHelpMenu }}" style="position: absolute; inset: 26px 0 0 0; z-index: 15;"></div>
+      <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeMenus }}" style="position: absolute; inset: 25px 0 0 0; z-index: 15;"></div>
       </sc-if>
 
+      <!-- ============ CONTROLLER MAP (Help ▸ … Map) - ControllerMapDialog at scale 1.25 ============ -->
       <sc-if value="{{ mapOpen }}" hint-placeholder-val="{{ false }}">
-        <div onClick="{{ closeMap }}"
-          style="position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35);">
-          <div onClick="{{ stop }}"
-            style="width: 440px; background: #0e131a; border: 1px solid #23303c; border-radius: 4px; box-shadow: 0 18px 50px rgba(0,0,0,0.7); color: #d7e0ea; overflow: hidden;">
-            <div
-              style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 10px;">
-              <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #c9d3de;">{{ map.title
-                }}</span>
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div onClick="{{ closeMap }}"
-                  style="width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 12px; color: #8fa2b5; cursor: pointer;"
-                  style-hover="background: #1f2933; color: #eaf2fa;">✕</div>
-              </div>
+        <div onClick="{{ closeMap }}" style="position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;">
+          <div onClick="{{ stop }}" style="width: 550px; background: #0e131a; border: 1px solid #23303c; box-shadow: 0 18px 50px rgba(0,0,0,0.7); color: #d7e0ea; overflow: hidden;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 14px; background: #131a22; border-bottom: 1px solid #1f2933;">
+              <span style="font-size: 16px; font-weight: 700; color: #c9d3de;">{{ map.title }}</span>
+              <div onClick="{{ closeMap }}" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 15px; color: #8fa2b5; cursor: pointer;" style-hover="background: #1f2933; color: #eaf2fa;">✕</div>
             </div>
             <div style="padding: 6px 14px 4px; display: flex; flex-direction: column;">
-              <span style="font-size: 9px; letter-spacing: 0.1em; color: #5f7183; padding: 10px 0 6px;">DRIVE</span>
-              <div
-                style="display: grid; grid-template-columns: 120px 1fr; row-gap: 7px; align-items: center; font-size: 11px;">
-                <div style="display: flex;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">L
-                    STICK</span></div><span style="color: #c9d3de;">Forward / back + side to side</span>
-                <div style="display: flex;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">R
-                    STICK ←→</span></div><span style="color: #c9d3de;">Rotate (yaw)</span>
-                <div style="display: flex; gap: 4px;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
-                    map.l2 }}</span><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
-                    map.r2 }}</span></div><span style="color: #c9d3de;">Descend / ascend <span style="color: #5f7183;">·
-                    analog</span></span>
-                <div style="display: flex; gap: 4px;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
-                    map.l1 }}</span><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
-                    map.r1 }}</span></div><span style="color: #c9d3de;">Thrust gain down / up</span>
-                <div style="display: flex;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">D-PAD
-                    ↑↓</span></div><span style="color: #c9d3de;">Camera tilt</span>
-              </div>
-              <span style="font-size: 9px; letter-spacing: 0.1em; color: #5f7183; padding: 16px 0 6px;">VEHICLE</span>
-              <div
-                style="display: grid; grid-template-columns: 120px 1fr; row-gap: 7px; align-items: center; font-size: 11px;">
-                <div style="display: flex;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
-                    map.start }}</span></div><span style="color: #c9d3de;">Hold 1 s to arm · tap to disarm</span>
-                <div style="display: flex; gap: 4px;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
-                    map.sel }}</span></div><span style="color: #ff6b6e;">E-STOP</span>
-              </div>
-              <span style="font-size: 9px; letter-spacing: 0.1em; color: #5f7183; padding: 16px 0 6px;">CONSOLE</span>
-              <div
-                style="display: grid; grid-template-columns: 120px 1fr; row-gap: 7px; align-items: center; font-size: 11px;">
-                <div style="display: flex;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
-                    map.tri }}</span></div><span style="color: #c9d3de;">Toggle SI / imperial units</span>
-                <div style="display: flex;"><span
-                    style="padding: 3px 7px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
-                    map.sq }}</span></div><span style="color: #c9d3de;">Operator mark in log</span>
-              </div>
+              <sc-for list="{{ map.sections }}" as="g" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column;">
+                  <span style="{{ g.headStyle }}">{{ g.name }}</span>
+                  <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+                    <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 7px; font-size: 14px;">
+                      <div style="width: 155px; flex: none; display: flex; gap: 4px;">
+                        <sc-for list="{{ r.keys }}" as="k" hint-placeholder-count="1">
+                          <span style="padding: 2px 6px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ k }}</span>
+                        </sc-for>
+                      </div>
+                      <span style="{{ r.style }}">{{ r.desc }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
             </div>
-            <div
-              style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 10px 14px; border-top: 1px solid #1f2933; background: #0a0e13;">
-              <span style="font-size: 10px; color: #8fa2b5;">Keyboard <span
-                  style="padding: 2px 6px; border: 1px solid #7f2b2e; border-radius: 2px; color: #ff6b6e;">SPACE</span>
-                — E-STOP</span>
-              <div onClick="{{ closeMap }}"
-                style="width: 72px; padding: 6px 0; text-align: center; font-size: 11px; font-weight: 600; border: 1px solid #2c3a48; border-radius: 3px; background: #1a2029; color: #eaf2fa; cursor: pointer;"
-                style-hover="border-color: #35d0a5; color: #35d0a5;">OK</div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 14px; padding: 10px 14px; border-top: 1px solid #1f2933; background: #0a0e13; font-size: 12px; color: #8fa2b5;">
+              <span>Keyboard</span>
+              <span style="padding: 2px 6px; border: 1px solid #7f2b2e; border-radius: 2px; background: #131a22; color: #ff6b6e;">SPACE</span>
+              <span>— E-STOP</span>
+              <div style="flex: 1;"></div>
+              <div onClick="{{ closeMap }}" style="width: 90px; padding: 6px 0; text-align: center; font-size: 14px; font-weight: 600; border: 1px solid #2c3a48; border-radius: 3px; background: #1a2029; color: #eaf2fa; cursor: pointer;" style-hover="border-color: #35d0a5; color: #35d0a5;">OK</div>
             </div>
           </div>
         </div>
@@ -465,178 +339,333 @@
     </div>
   </x-dc>
   <script type="text/x-dc" data-dc-script
-    data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;controller&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;ds3&quot;,&quot;xbox&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+    data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;simulateInput&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;controller&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ds3&quot;,&quot;xbox&quot;],&quot;default&quot;:&quot;ds3&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+// Mirrors command_center_py (v0.5.0): config.py, mixer.py, link.py DemoLink, ui/main_window.py, ui/widgets.py.
+const C = {
+  ACCENT: '#35d0a5', WARN: '#ffd479', DANGER: '#ff6b6e', BLUE: '#7fb2ff', OFF: '#4d5d6d',
+  BRIGHT: '#eaf2fa', TEXT: '#d7e0ea', DIM: '#9fb0c2', MUTED: '#5f7183', HEAD: '#131a22', BORDER2: '#23303c',
+};
+const RATE_HZ = 50, GAIN_STEPS = [25, 50, 75, 100], DEADZONE = 0.20, EXPO = 0.30, TRIG_DZ = 0.06;
+const TILT_MIN = -45, TILT_MAX = 45, TILT_STEP = 5, ARM_HOLD_MS = 1000;
+const THRUSTERS = [
+  ['T1', 'BOW-PORT', 'H', [1, 1, 0, 1]],
+  ['T2', 'BOW-STBD', 'H', [1, -1, 0, -1]],
+  ['T3', 'STERN-PORT', 'H', [1, -1, 0, 1]],
+  ['T4', 'STERN-STBD', 'H', [1, 1, 0, -1]],
+  ['T5', 'BOW-VERT', 'V', [0, 0, 1, 0]],
+  ['T6', 'STERN-VERT', 'V', [0, 0, 1, 0]],
+];
+const MAPS = {
+  ds3: { title: 'Controller Map - Dualshock 3', short: 'DUALSHOCK 3', cross: '✕', circle: '○', l2: 'L2', r2: 'R2', l1: 'L1', r1: 'R1', start: 'START', sel: 'SEL', ps: 'PS', tri: '△', sq: '□' },
+  xbox: { title: 'Controller Map - Xbox', short: 'XBOX', cross: 'A', circle: 'B', l2: 'LT', r2: 'RT', l1: 'LB', r1: 'RB', start: 'MENU', sel: 'VIEW', ps: 'XBOX', tri: 'Y', sq: 'X' },
+};
+const shape = v => { let a = Math.abs(v); if (a < DEADZONE) return 0; a = (a - DEADZONE) / (1 - DEADZONE); a = (1 - EXPO) * a + EXPO * a * a * a; return Math.sign(v) * a; };
+const trig = v => (v < TRIG_DZ ? 0 : (v - TRIG_DZ) / (1 - TRIG_DZ));
+
 class Component extends DCLogic {
-  state = { armed: false, t: 0, gain: 50, tilt: 0, tx: 0, rx: 0, imp: false, pad: null, log: [], helpMenuOpen: false, mapOpen: false };
+  state = {
+    kind: null, armed: false, gainIdx: 1, tilt: 0, tx: 0, rx: 0, pad: null, log: [],
+    imp: [false, false, false, false], menu: null, mapOpen: false, mapKind: 'ds3', holdStart: null, now: 0,
+    depth: 12.4, heading: 214.0, temp: 39.5, thr: [0, 0, 0, 0, 0, 0],
+  };
 
   componentDidMount() {
     this.prev = {};
-    this.startHeld = 0;
-    this.dpadHeld = 0;
-    this.addLog('SYS', 'Console v0.5.0 started in DEMO mode');
-    this.addLog('LINK', 'Telemetry received — link up');
+    this.repeatAt = {};
+    this.t0 = performance.now();
+    this.wasPad = false;
+    this.log('SYS', 'Console v0.5.0 started in DEMO mode', C.BLUE);
+    this.log('LINK', 'Telemetry received — link up', C.ACCENT);
     this.onKey = e => {
       if (e.code === 'Space') { e.preventDefault(); this.estop('keyboard SPACE'); }
-      if (e.key === 'Escape') this.setState({ mapOpen: false, helpMenuOpen: false });
+      if (e.key === 'Escape') this.setState({ mapOpen: false, menu: null });
     };
     window.addEventListener('keydown', this.onKey);
-    this.timer = setInterval(() => this.tick(), 20);
+    this.timer = setInterval(() => this.tick(), 1000 / RATE_HZ);
   }
   componentWillUnmount() { clearInterval(this.timer); window.removeEventListener('keydown', this.onKey); }
 
-  hms(d) { return [d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()].map(n => String(n).padStart(2, '0')).join(':'); }
-  addLog(tag, msg) { this.setState(s => ({ log: [{ t: this.hms(new Date()), tag, msg }].concat(s.log).slice(0, 6) })); }
-  estop(src) {
-    this.setState({ armed: false });
-    this.addLog('STOP', 'E-STOP — ' + src);
+  kindNow() { return this.state.kind || (this.props.controller === 'xbox' ? 'xbox' : 'ds3'); }
+  k() { return MAPS[this.kindNow()]; }
+  hms(d) { return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':'); }
+  log(tag, msg, color) { this.setState(s => ({ log: s.log.concat([{ t: this.hms(new Date()), tag, msg, color: color || C.ACCENT }]).slice(-30) })); }
+
+  tryArm(source) {
+    const p = this.state.pad;
+    if (p && Math.max(Math.abs(p.lx), Math.abs(p.ly), Math.abs(p.rx)) > 0.15) { this.log('DENY', 'Arm refused — centre both sticks first', C.WARN); return; }
+    if (p && Math.max(p.l2, p.r2) > 0.15) { this.log('DENY', 'Arm refused — release ' + this.k().l2 + ' and ' + this.k().r2 + ' first', C.WARN); return; }
+    this.setState({ armed: true });
+    this.log('ARM', 'Thrusters ARMED (' + source + ')', C.ACCENT);
   }
-  setArmed(v) {
-    if (this.state.armed === v) return;
-    this.setState({ armed: v });
-    this.addLog('ARM', v ? 'Thrusters armed' : 'Thrusters disarmed');
+  disarm(reason, tag, color) {
+    if (!this.state.armed) return;
+    this.setState({ armed: false });
+    this.log(tag || 'ARM', 'Thrusters disarmed — ' + reason, color || C.MUTED);
+  }
+  estop(source) {
+    const was = this.state.armed;
+    this.setState({ armed: false, holdStart: null, thr: [0, 0, 0, 0, 0, 0] });
+    this.log('ESTOP', 'E-STOP from ' + source + (was ? '' : ' (already disarmed)'), C.DANGER);
+  }
+  stepTilt(d) {
+    const nv = Math.max(TILT_MIN, Math.min(TILT_MAX, this.state.tilt + d * TILT_STEP));
+    if (nv !== this.state.tilt) { this.setState({ tilt: nv }); this.log('CAM', 'Camera tilt ' + (nv >= 0 ? '+' : '') + nv + '°', C.BLUE); }
+  }
+  setKind(kind) {
+    if (kind === this.kindNow()) return;
+    this.setState({ kind });
+    this.log('PAD', 'Button labels set to ' + MAPS[kind].short, C.ACCENT);
+  }
+  mix(p) {
+    const heave = trig(p.r2) - trig(p.l2);
+    const axes = [shape(p.ly), shape(p.lx), heave, shape(p.rx)];
+    const raw = THRUSTERS.map(t => t[3].reduce((a, c, i) => a + c * axes[i], 0));
+    const out = raw.slice();
+    ['H', 'V'].forEach(g => {
+      const idx = THRUSTERS.map((t, i) => (t[2] === g ? i : -1)).filter(i => i >= 0);
+      const peak = Math.max(1, ...idx.map(i => Math.abs(raw[i])));
+      idx.forEach(i => { out[i] = raw[i] / peak; });
+    });
+    return out.map(x => Math.round(x * GAIN_STEPS[this.state.gainIdx]));
+  }
+
+  // Simulated controller (used when no real gamepad is connected and simulateInput is on).
+  // Same shape as a browser Gamepad, so it goes through the normal input path:
+  // holds START to arm, then drives a 40 s loop of sticks, triggers and button taps.
+  simPad(now) {
+    const t = (now - this.t0) / 1000;
+    const axes = [0, 0, 0, 0];
+    const btn = Array.from({ length: 17 }, () => ({ pressed: false, value: 0 }));
+    const press = (i, v) => { btn[i] = { pressed: true, value: v === undefined ? 1 : v }; };
+    const tap = (p, at) => p >= at && p < at + 0.15;
+    if (t < 3) {
+      if (t >= 1.2 && t < 2.6) press(9);                     // hold START ~1.4 s -> ARM
+    } else if (!this.state.armed) {
+      // disarmed (E-STOP, START tap, menu): sticks centred, wait 2 s, hold START to re-arm
+      if (this.simDisarmedAt === undefined) this.simDisarmedAt = t;
+      const d = t - this.simDisarmedAt;
+      if (d >= 2 && d < 3.4) press(9);
+      if (d >= 4) this.simDisarmedAt = t;                    // retry if the arm was refused
+    } else {
+      this.simDisarmedAt = undefined;
+      const p = (t - 3) % 40, w = t - 3;
+      const ease = Math.min(1, w / 2);                       // sticks ease in after arming
+      axes[0] = ease * 0.65 * Math.sin(w * 0.55);            // sway
+      axes[1] = -ease * 0.85 * Math.sin(w * 0.33 + 1.0);     // surge (browser Y is inverted)
+      axes[2] = ease * 0.6 * Math.sin(w * 0.21 + 2.0);       // yaw
+      const h = Math.sin(w * 0.42);                          // heave: R2 up / L2 down
+      if (h > 0.15) press(7, ease * h); else if (h < -0.15) press(6, ease * -h);
+      if (tap(p, 8)) press(5);                               // R1 gain up
+      if (tap(p, 22)) press(4);                              // L1 gain down
+      [12, 12.6, 13.2].forEach(a => { if (tap(p, a)) press(12); });   // D-pad up x3
+      [27, 27.6, 28.2].forEach(a => { if (tap(p, a)) press(13); });   // D-pad down x3
+      if (tap(p, 17)) press(2);                              // square: operator mark
+      if (tap(p, 31) || tap(p, 35)) press(3);                // triangle: units on / off
+      if (p >= 5 && p < 6.5) press(0);                       // cross held (chip highlight)
+    }
+    return { id: 'Simulated ' + this.k().short + ' (design preview)', axes, buttons: btn };
   }
 
   tick() {
+    const now = performance.now();
     const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : [];
-    const gp = pads[0];
+    const gp = pads[0] || (this.props.simulateInput === false ? null : this.simPad(now));
     let pad = null;
     if (gp) {
-      const ax = i => { const v = gp.axes[i] || 0; return Math.abs(v) < 0.08 ? 0 : v; };
+      const ax = i => gp.axes[i] || 0;
       const bt = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
       const bv = i => (gp.buttons[i] ? gp.buttons[i].value : 0);
-      this.padId = gp.id;
       pad = { lx: ax(0), ly: -ax(1), rx: ax(2), l2: bv(6), r2: bv(7), b: gp.buttons.map((_, i) => bt(i)) };
       const edge = i => bt(i) && !this.prev[i];
-      const rel = i => !bt(i) && this.prev[i];
-      if (!this.state.pad) this.addLog('PAD', 'Controller connected — ' + gp.id.slice(0, 40));
-      if (edge(8)) this.estop('SELECT');
-      if (bt(9)) {
-        this.startHeld += 20;
-        if (this.startHeld >= 1000 && !this.state.armed && !this.armedThisPress) { this.setArmed(true); this.armedThisPress = true; }
+      if (!this.wasPad) this.log('PAD', 'Controller connected — ' + gp.id.slice(0, 40) + ' [SDL]', C.ACCENT);
+      if (edge(8) || edge(16)) this.estop('controller ' + (bt(8) ? this.k().sel : this.k().ps));
+      if (edge(9)) { if (this.state.armed) this.disarm(this.k().start); else this.setState({ holdStart: now }); }
+      if (!bt(9)) { if (this.state.holdStart !== null) this.setState({ holdStart: null }); }
+      else if (this.state.holdStart !== null && !this.state.armed && now - this.state.holdStart >= ARM_HOLD_MS) {
+        this.setState({ holdStart: null }); this.tryArm(this.k().start + ' held');
       }
-      if (rel(9)) {
-        if (this.state.armed && !this.armedThisPress && this.startHeld < 1000) this.setArmed(false);
-        this.startHeld = 0; this.armedThisPress = false;
-      }
-      if (edge(4)) this.setState(s => ({ gain: Math.max(10, s.gain - 10) }));
-      if (edge(5)) this.setState(s => ({ gain: Math.min(100, s.gain + 10) }));
-      if (edge(3)) this.setState(s => ({ imp: !s.imp }));
-      if (edge(2)) this.addLog('MARK', 'Operator mark');
-      const dir = bt(12) ? 1 : bt(13) ? -1 : 0;
-      if (dir) {
-        if (this.dpadHeld === 0 || (this.dpadHeld >= 400 && this.dpadHeld % 120 === 0)) this.setState(s => ({ tilt: Math.max(-45, Math.min(45, s.tilt + dir * 5)) }));
-        this.dpadHeld += 20;
-      } else this.dpadHeld = 0;
+      [[12, 1], [13, -1]].forEach(([b, d]) => {
+        if (edge(b)) { this.stepTilt(d); this.repeatAt[b] = now + 400; }
+        else if (bt(b) && now >= (this.repeatAt[b] || Infinity)) { this.stepTilt(d); this.repeatAt[b] = now + 120; }
+      });
+      if (edge(4) && this.state.gainIdx > 0) { const g = this.state.gainIdx - 1; this.setState({ gainIdx: g }); this.log('CMD', 'Thrust gain ' + GAIN_STEPS[g] + '%', C.ACCENT); }
+      if (edge(5) && this.state.gainIdx < GAIN_STEPS.length - 1) { const g = this.state.gainIdx + 1; this.setState({ gainIdx: g }); this.log('CMD', 'Thrust gain ' + GAIN_STEPS[g] + '%', C.ACCENT); }
+      if (edge(3)) this.setState(s => { const v = !s.imp.every(Boolean); return { imp: [v, v, v, v] }; });
+      if (edge(2)) this.log('MARK', 'Operator mark @ ' + this.state.depth.toFixed(2) + ' m', C.BLUE);
       this.prev = {}; gp.buttons.forEach((_, i) => { this.prev[i] = bt(i); });
-    } else if (this.state.pad) {
-      this.addLog('PAD', 'Controller disconnected');
-      if (this.state.armed) this.estop('controller lost');
+    } else if (this.wasPad) {
+      this.log('PAD', 'Controller disconnected', C.WARN);
+      this.disarm('controller lost', 'FAIL', C.WARN);
+      this.prev = {};
+      if (this.state.holdStart !== null) this.setState({ holdStart: null });
     }
-    this.setState(s => ({ t: s.t + 1, pad, padId: gp ? gp.id : s.padId, tx: s.tx + 1, rx: s.rx + 1 }));
-  }
+    this.wasPad = !!gp;
 
-  wob(seed, amp) { const t = this.state.t / 50; return (Math.sin(t * 0.7 + seed) + Math.sin(t * 1.9 + seed * 2.3) * 0.4) * amp; }
+    // DemoLink: crude vehicle model answering each command frame
+    const thr = this.state.armed && pad ? this.mix(pad) : [0, 0, 0, 0, 0, 0];
+    const dt = 1 / RATE_HZ;
+    const heave = (thr[4] + thr[5]) / 200, yaw = (thr[0] - thr[1] + thr[2] - thr[3]) / 400;
+    const load = thr.reduce((a, x) => a + Math.abs(x), 0) / 600;
+    this.setState(s => ({
+      pad, thr, now, tx: s.tx + 1, rx: s.rx + 1,
+      depth: Math.max(0, s.depth - heave * 0.6 * dt),
+      heading: (((s.heading + yaw * 35 * dt) % 360) + 360) % 360,
+      temp: s.temp + ((38 + 10 * load) - s.temp) * 0.002,
+    }));
+  }
 
   renderVals() {
     const s = this.state;
-    const accent = '#35d0a5';
+    const kind = this.kindNow(), k = MAPS[kind];
+    const t = (performance.now() - (this.t0 || performance.now())) / 1000;
+    const wob = (sd, a) => (Math.sin(t * 0.7 + sd) + 0.4 * Math.sin(t * 1.9 + sd * 2.3)) * a;
+    const thr = s.thr;
+    const load = thr.reduce((a, x) => a + Math.abs(x), 0) / 600;
+    const tel = {
+      depth: s.depth + wob(0.9, 0.02), pressure: 101.325 + s.depth * 10.05,
+      water: 8.7 + wob(2.2, 0.15), internal: s.temp,
+      roll: wob(1.1, 14.0) + (thr[0] - thr[1]) / 40, pitch: wob(2.7, 9.0) - (thr[0] + thr[1] - thr[2] - thr[3]) / 80,
+      yaw: s.heading + wob(0.4, 15.0), voltage: 15.8 - load * 0.9,
+    };
     const p = s.pad || { lx: 0, ly: 0, rx: 0, l2: 0, r2: 0, b: [] };
-    const g = s.gain / 100;
-    const heave = p.r2 - p.l2;
-    const mix = [p.ly + p.lx + p.rx, p.ly - p.lx - p.rx, p.ly - p.lx + p.rx, p.ly + p.lx - p.rx, heave, heave];
-    const names = [['T1', 'FWD-PORT'], ['T2', 'FWD-STBD'], ['T3', 'AFT-PORT'], ['T4', 'AFT-STBD'], ['T5', 'VERT-PORT'], ['T6', 'VERT-STBD']];
-    const thrusters = mix.map((raw, i) => {
-      const pct = s.armed ? Math.round(Math.max(-1, Math.min(1, raw)) * g * 100) : 0;
-      const mag = Math.abs(pct) / 2;
+    const hasPad = !!s.pad;
+
+    // BipolarBar: fill from centre, inset 2 px (1 px for bars <= 8 px), optional white knob
+    const bipolar = (value, maxabs, color, inset) => {
+      const f = Math.max(-1, Math.min(1, value / maxabs));
+      const w = 'calc((50% - 2px) * ' + Math.abs(f).toFixed(4) + ')';
       return {
-        name: names[i][0], role: names[i][1], label: (pct > 0 ? '+' : '') + pct + '%',
-        valueStyle: { color: pct === 0 ? '#4d5d6d' : accent, textAlign: 'right', fontWeight: pct === 0 ? 400 : 700 },
-        fillStyle: { position: 'absolute', top: '2px', bottom: '2px', left: pct >= 0 ? '50%' : (50 - mag) + '%', width: mag + '%', background: accent, opacity: 0.8, borderRadius: '1px' },
-        knobStyle: { position: 'absolute', top: '-1px', bottom: '-1px', left: 'calc(' + (50 + pct / 2) + '% - 2px)', width: '4px', background: '#eaf2fa', borderRadius: '1px' },
+        fill: { position: 'absolute', top: inset + 'px', bottom: inset + 'px', left: f >= 0 ? '50%' : 'calc(50% - (50% - 2px) * ' + Math.abs(f).toFixed(4) + ')', width: w, background: color, opacity: 0.85, borderRadius: '2px' },
+        knob: { position: 'absolute', top: '-1px', bottom: '-1px', left: 'calc(50% + (50% - 2px) * ' + f.toFixed(4) + ' - 2px)', width: '4px', background: C.BRIGHT, borderRadius: '2px' },
+      };
+    };
+
+    const thrusters = THRUSTERS.map(([name, role], i) => {
+      const pct = thr[i];
+      const col = pct === 0 ? C.OFF : (Math.abs(pct) > 80 ? C.WARN : C.ACCENT);
+      const b = bipolar(pct, 100, col, 2);
+      return { name, role, label: pct ? (pct > 0 ? '+' : '') + pct + '%' : '0%', valueStyle: { color: col, textAlign: 'right', fontSize: '14px', fontWeight: 700 }, fillStyle: b.fill, knobStyle: b.knob };
+    });
+    const tiltBar = bipolar(s.tilt, 45, C.WARN, 2);
+
+    const stick = (x, y, pressed) => {
+      const span = 83 * 0.42;
+      const cx = 41.5 + x * span, cy = 41.5 - y * span;
+      return {
+        glow: { position: 'absolute', left: (cx - 9) + 'px', top: (cy - 9) + 'px', width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(53,208,165,0.235)' },
+        dot: { position: 'absolute', left: (cx - 5) + 'px', top: (cy - 5) + 'px', width: '10px', height: '10px', borderRadius: '50%', background: pressed ? C.BRIGHT : C.ACCENT },
+      };
+    };
+    const sl = stick(p.lx, p.ly, p.b[10]), sr = stick(p.rx, 0, p.b[11]);
+
+    const chipDefs = [[k.cross, 0], [k.circle, 1], [k.sq, 2], [k.tri, 3], [k.l1, 4], [k.r1, 5], [k.l2, 'l2'], [k.r2, 'r2'], [k.sel, 8], [k.start, 9], [k.ps, 16], ['↑↓', 'dpad']];
+    const chips = chipDefs.map(([label, i]) => {
+      const on = i === 'l2' ? p.l2 > 0.5 : i === 'r2' ? p.r2 > 0.5 : i === 'dpad' ? (p.b[12] || p.b[13] || p.b[14] || p.b[15]) : !!p.b[i];
+      return { label, style: { height: '25px', lineHeight: '23px', boxSizing: 'border-box', textAlign: 'center', fontSize: '12px', fontWeight: 600, borderRadius: '3px', border: '1px solid ' + (on ? C.ACCENT : C.BORDER2), background: on ? C.ACCENT : C.HEAD, color: on ? '#04120d' : C.MUTED } };
+    });
+
+    const toggleBtn = (on, side) => Object.assign({
+      height: '28px', lineHeight: '26px', boxSizing: 'border-box', padding: '0 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', userSelect: 'none',
+      border: '1px solid ' + (on ? '#2a6f5c' : C.BORDER2), background: on ? '#123a30' : C.HEAD, color: on ? C.ACCENT : '#7c8b9c',
+    }, side === 'left' ? { borderRadius: '3px 0 0 3px' } : { borderRadius: '0 3px 3px 0', borderLeft: 'none' });
+
+    // metric cards (each has its own SI / IMP toggle; triangle toggles all)
+    const c2f = c => c * 9 / 5 + 32;
+    const metricDefs = [
+      ['DEPTH', tel.depth.toFixed(2), 'm', (tel.depth * 3.28084).toFixed(1), 'ft', C.BRIGHT],
+      ['PRESSURE', tel.pressure.toFixed(1), 'kPa', (tel.pressure * 0.145038).toFixed(1), 'psi', C.BRIGHT],
+      ['WATER TEMP', tel.water.toFixed(1), '°C', c2f(tel.water).toFixed(1), '°F', C.BRIGHT],
+      ['INTERNAL TEMP', tel.internal.toFixed(1), '°C', c2f(tel.internal).toFixed(1), '°F', tel.internal > 45 ? C.WARN : C.BRIGHT],
+    ];
+    const metrics = metricDefs.map(([name, si, su, im, iu, color], i) => {
+      const imp = s.imp[i];
+      return {
+        name, value: imp ? im : si, unit: imp ? iu : su, valueStyle: { color },
+        toggleLabel: imp ? 'IMP' : 'SI',
+        toggleStyle: { height: '18px', lineHeight: '16px', boxSizing: 'border-box', padding: '0 6px', border: '1px solid ' + (imp ? '#4a5a2e' : C.BORDER2), borderRadius: '3px', background: C.HEAD, fontSize: '9px', fontWeight: 600, color: imp ? '#c9d67a' : '#7c8b9c', cursor: 'pointer', userSelect: 'none' },
+        toggle: () => this.setState(st => { const a = st.imp.slice(); a[i] = !a[i]; return { imp: a }; }),
       };
     });
-    const dot = (x, y) => ({ position: 'absolute', left: 'calc(' + (50 + x * 42) + '% - 6px)', top: 'calc(' + (50 - y * 42) + '% - 6px)', width: '12px', height: '12px', borderRadius: '50%', background: '#4fd6a8', boxShadow: '0 0 8px rgba(53,208,165,0.6)' });
-    const force = this.props.controller ?? 'auto';
-    const xbox = force === 'xbox' || (force === 'auto' && /xbox|xinput|microsoft|045e/i.test(s.padId || ''));
-    const ctl = xbox
-      ? { name: 'XBOX', l1: 'LB', r1: 'RB', l2: 'LT', r2: 'RT', sel: 'VIEW', start: 'MENU', ps: 'XBOX', b: ['A', 'B', 'X', 'Y'] }
-      : { name: 'DUALSHOCK 3', l1: 'L1', r1: 'R1', l2: 'L2', r2: 'R2', sel: 'SEL', start: 'START', ps: 'PS', b: ['✕', '○', '□', '△'] };
-    const btnLabels = [[ctl.b[0], 0], [ctl.b[1], 1], [ctl.b[2], 2], [ctl.b[3], 3], [ctl.l1, 4], [ctl.r1, 5], [ctl.l2, 6], [ctl.r2, 7], [ctl.sel, 8], [ctl.start, 9], [ctl.ps, 16], ['↑↓', 12]];
-    const buttons = btnLabels.map(([label, i]) => {
-      const on = i === 12 ? (p.b[12] || p.b[13]) : p.b[i];
-      return { label, style: { padding: '4px 0', textAlign: 'center', fontSize: '9px', borderRadius: '2px', border: '1px solid ' + (on ? '#2a6f5c' : '#1f2933'), background: on ? '#123a30' : '#131a22', color: on ? accent : '#8fa2b5' } };
-    });
-    const tiltPos = (45 - s.tilt) / 90 * 160;
-    const ticks = [0, 1, 2, 3, 4, 5, 6].map(i => ({ position: 'absolute', left: '8px', top: (i * 160 / 6) + 'px', width: i % 3 === 0 ? '8px' : '5px', height: '1px', background: 'rgba(53,208,165,0.45)' }));
-    const roll = this.wob(1.1, 4), pitch = this.wob(2.7, 3);
-    const yaw = 214 + this.wob(0.4, 1.5);
-    const cards = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-    const axis = (name, val, max) => ({
-      name, label: (val >= 0 ? '+' : '') + val.toFixed(1) + '°',
-      fillStyle: { position: 'absolute', top: 0, bottom: 0, left: val >= 0 ? '50%' : (50 - Math.abs(val) / max * 50) + '%', width: (Math.abs(val) / max * 50) + '%', background: '#2f9e7c', borderRadius: '2px' },
-    });
-    const depth = 12.4 + this.wob(0.9, 0.05);
-    const pres = 2259 + Math.round(this.wob(0.9, 2));
-    const wT = 8.6 + this.wob(2.2, 0.1), iT = 39.1 + this.wob(3.3, 0.15);
-    const tStyle = { padding: '2px 5px', border: '1px solid #2c3a48', borderRadius: '2px', background: '#131a22', fontSize: '8px', color: s.imp ? '#c9d67a' : '#8fa2b5', cursor: 'pointer', userSelect: 'none' };
-    const toggle = () => this.setState(st => ({ imp: !st.imp }));
-    const m = (name, si, su, im, iu) => ({ name, value: s.imp ? im : si, unit: s.imp ? iu : su, toggleLabel: s.imp ? 'IMP' : 'SI', toggleStyle: tStyle, toggle });
-    const metrics = [
-      m('DEPTH', depth.toFixed(2), 'm', (depth * 3.28084).toFixed(1), 'ft'),
-      m('PRESSURE', String(pres), 'mbar', (pres * 0.0145038).toFixed(1), 'psi'),
-      m('WATER TEMP', wT.toFixed(1), '°C', (wT * 9 / 5 + 32).toFixed(1), '°F'),
-      m('INTERNAL TEMP', iT.toFixed(1), '°C', (iT * 9 / 5 + 32).toFixed(1), '°F'),
-    ];
-    const mono = { fontSize: '11px', fontWeight: 700 };
-    const dotS = c => ({ width: '7px', height: '7px', borderRadius: '50%', background: c });
-    const hasPad = !!s.pad;
+
+    const yawW = ((tel.yaw + 180) % 360) - 180;
+    const imu = [['ROLL', tel.roll, 45], ['PITCH', tel.pitch, 45], ['YAW', yawW, 180]].map(([name, v, mx]) => ({
+      name, label: (v >= 0 ? '+' : '') + v.toFixed(1) + '°', fillStyle: bipolar(v, mx, C.ACCENT, 1).fill,
+    }));
+
+    const soc = Math.max(0, Math.min(100, Math.round((tel.voltage - 13.2) / (16.8 - 13.2) * 100)));
+    const statusVal = (value, color) => ({ value, dotStyle: { width: '7px', height: '7px', borderRadius: '50%', background: color }, valueStyle: { color, fontSize: '12pt', lineHeight: '20px', fontWeight: 700 } });
     const statuses = [
-      { name: 'Telemetry link', value: 'UP', dotStyle: dotS(accent), valueStyle: Object.assign({ color: accent }, mono) },
-      { name: 'Leak sensor', value: 'DRY', dotStyle: dotS(accent), valueStyle: Object.assign({ color: accent }, mono) },
-      { name: 'Controller', value: hasPad ? 'OK' : 'MISSING', dotStyle: dotS(hasPad ? accent : '#ff5c5c'), valueStyle: Object.assign({ color: hasPad ? accent : '#ff5c5c' }, mono) },
-      { name: 'Command stream', value: '50 Hz', dotStyle: dotS('#eaf2fa'), valueStyle: Object.assign({ color: '#eaf2fa' }, mono) },
+      Object.assign({ name: 'Leak sensor' }, statusVal('DRY', C.ACCENT)),
+      Object.assign({ name: 'Telemetry link' }, statusVal('UP', C.ACCENT)),
+      Object.assign({ name: 'Controller' }, hasPad ? statusVal('OK', C.ACCENT) : statusVal('MISSING', C.DANGER)),
+      Object.assign({ name: 'Command stream' }, statusVal('50 Hz', C.TEXT)),
     ];
-    const tagCol = { SYS: '#ffd479', LINK: '#7fd9ff', ARM: accent, STOP: '#ff6b6e', PAD: '#c9a8ff', MARK: '#ffd479' };
-    const btnBase = { width: '150px', textAlign: 'center', padding: '7px 0', borderRadius: '3px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', cursor: 'pointer' };
-    const tiltLabel = (s.tilt >= 0 ? '+' : '') + s.tilt + '°';
+
+    const hold = s.holdStart !== null && !s.armed ? Math.min(1, (s.now - s.holdStart) / ARM_HOLD_MS) : 0;
+    const armLabel = s.armed ? 'ARMED' : (hold > 0 ? 'ARMING ' + Math.round(hold * 100) + '%' : 'DISARMED');
+    const armBase = { minWidth: '188px', boxSizing: 'border-box', textAlign: 'center', padding: '7px 18px', borderRadius: '4px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', userSelect: 'none' };
+    const armButtonStyle = Object.assign(armBase, s.armed
+      ? { border: '1px solid #2a6f5c', background: 'linear-gradient(180deg, #123a30, #0e2c25)', color: C.ACCENT }
+      : { border: '1px solid #3a4653', background: 'linear-gradient(180deg, #1b222b, #151b23)', color: '#7c8b9c' });
+
+    const cards = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const hdg = ((tel.yaw % 360) + 360) % 360;
+
+    const closeMenus = () => this.setState({ menu: null });
+    const menuDefs = [
+      ['File', [['Back to Main Menu', '', () => { closeMenus(); if (this.state.armed) this.log('DENY', 'Disarm the ROV before leaving the console (tap ' + k.start + ' or click ARMED)', C.WARN); }]]],
+      ['Vehicle', [['Arm / Disarm', '', () => { closeMenus(); if (this.state.armed) this.disarm('console button'); else this.tryArm('console button'); }], ['E-STOP', 'Space', () => { closeMenus(); this.estop('menu'); }]]],
+      ['Help', [['Dualshock3 Map', '', () => this.setState({ menu: null, mapOpen: true, mapKind: 'ds3' })], ['Xbox Map', '', () => this.setState({ menu: null, mapOpen: true, mapKind: 'xbox' })]]],
+    ];
+    const menus = menuDefs.map(([name, items]) => ({
+      name, open: s.menu === name,
+      btnStyle: { padding: '3px 9px', borderRadius: '3px', cursor: 'default', color: s.menu === name ? C.BRIGHT : C.DIM, background: s.menu === name ? '#1f2933' : 'transparent' },
+      toggle: () => this.setState(st => ({ menu: st.menu === name ? null : name })),
+      items: items.map(([label, key, run]) => ({ label, key, run })),
+    }));
+
+    const mk = MAPS[s.mapKind];
+    const row = (keys, desc, red) => ({ keys, desc, style: { color: red ? C.DANGER : '#c9d3de' } });
+    const head = first => ({ fontSize: '11px', color: C.MUTED, padding: (first ? 10 : 16) + 'px 0 6px' });
+    const map = {
+      title: mk.title,
+      sections: [
+        { name: 'DRIVE', headStyle: head(true), rows: [row(['L STICK'], 'Forward / back + side to side'), row(['R STICK ←→'], 'Rotate (yaw)'), row([mk.l2, mk.r2], 'Descend / ascend · analog'), row([mk.l1, mk.r1], 'Thrust gain down / up'), row(['D-PAD ↑↓'], 'Camera tilt')] },
+        { name: 'VEHICLE', headStyle: head(false), rows: [row([mk.start], 'Hold 1 s to arm · tap to disarm'), row([mk.sel, mk.ps], 'E-STOP', true)] },
+        { name: 'CONSOLE', headStyle: head(false), rows: [row([mk.tri], 'Toggle SI / imperial units'), row([mk.sq], 'Operator mark in log')] },
+      ],
+    };
+
+    const shortName = k.short === 'DUALSHOCK 3' ? 'DualShock 3' : 'Xbox';
     return {
-      thrusters, buttons, ticks, metrics, statuses,
-      gainLabel: s.gain + '%',
-      leftDot: dot(p.lx, p.ly), rightDot: dot(p.rx, 0),
-      l2Fill: { height: '100%', width: (p.l2 * 100) + '%', background: accent },
-      r2Fill: { height: '100%', width: (p.r2 * 100) + '%', background: accent },
-      tiltLabel,
-      tiltKnob: { position: 'absolute', top: '-1px', bottom: '-1px', left: 'calc(' + ((s.tilt + 45) / 90 * 100) + '% - 2px)', width: '4px', background: '#eaf2fa', borderRadius: '1px' },
-      tiltPointer: { position: 'absolute', left: '-6px', top: (tiltPos - 5) + 'px', display: 'flex', alignItems: 'center' },
-      padLabel: hasPad ? ctl.name : 'NOT FOUND',
-      padName: ctl.name, ctl,
-      padStyle: { color: hasPad ? accent : '#ff5c5c', fontWeight: 600 },
-      armLabel: s.armed ? 'ARMED' : 'DISARMED',
-      toggleArm: () => this.setArmed(!s.armed),
+      menus, menuOpen: s.menu !== null, closeMenus,
+      thrusters, chips, metrics, imu, statuses, ctl: k,
+      gainLabel: GAIN_STEPS[s.gainIdx] + '%',
+      tiltLabel: (s.tilt >= 0 ? '+' : '') + s.tilt + '°', tiltFill: tiltBar.fill, tiltKnob: tiltBar.knob,
+      setDs3: () => this.setKind('ds3'), setXbox: () => this.setKind('xbox'),
+      ds3BtnStyle: toggleBtn(kind === 'ds3', 'left'), xboxBtnStyle: toggleBtn(kind === 'xbox', 'right'),
+      leftGlow: sl.glow, leftDot: sl.dot, rightGlow: sr.glow, rightDot: sr.dot,
+      l2Fill: { height: '100%', width: (trig(p.l2) * 100) + '%', background: C.BLUE, borderRadius: '2px' },
+      r2Fill: { height: '100%', width: (trig(p.r2) * 100) + '%', background: C.ACCENT, borderRadius: '2px' },
+      padLabel: hasPad ? k.short + ' OK' : 'NOT FOUND',
+      padStyle: { color: hasPad ? C.ACCENT : C.DANGER },
+      armLabel, armButtonStyle,
+      toggleArm: () => (this.state.armed ? this.disarm('console button') : this.tryArm('console button')),
       estop: () => this.estop('console button'),
-      armButtonStyle: Object.assign({}, btnBase, { border: '1px solid ' + (s.armed ? '#2a6f5c' : '#2c3a48'), background: s.armed ? '#123a30' : '#1a2029', color: s.armed ? accent : '#8fa2b5' }),
-      armPill: { position: 'absolute', left: '22px', top: '16px', width: '108px', textAlign: 'center', padding: '5px 0', borderRadius: '2px', border: '1px solid ' + (s.armed ? '#2a6f5c' : '#3a4653'), background: s.armed ? 'rgba(18,58,48,0.8)' : 'rgba(16,21,28,0.8)', fontSize: '10px', color: s.armed ? accent : '#c9d3de' },
+      arming: hold > 0,
+      armProgressFill: { height: '100%', width: (hold * 100) + '%', background: C.ACCENT, borderRadius: '3px' },
       clock: this.hms(new Date()),
-      horizonStyle: { position: 'absolute', left: '-50%', top: '-50%', width: '200%', height: '200%', background: 'linear-gradient(180deg, #2a4a63 0%, #2a4a63 50%, #3b2c17 50%, #3b2c17 100%)', transform: 'rotate(' + (-roll).toFixed(2) + 'deg) translateY(' + (pitch * 1.2).toFixed(2) + 'px)' },
-      heading: Math.round(yaw).toString(),
-      headingCardinal: cards[Math.round((yaw % 360) / 22.5) % 16],
-      depthLabel: s.imp ? (depth * 3.28084).toFixed(1) + ' ft' : depth.toFixed(2) + ' m',
-      imu: [axis('ROLL', roll, 45), axis('PITCH', pitch, 45), axis('YAW', -146 + this.wob(0.4, 1.5), 180)],
-      voltage: (15.8 - (s.armed ? thrusters.reduce((a, t) => a + Math.abs(parseInt(t.label, 10)), 0) / 1500 : 0)).toFixed(2),
-      current: (1.2 + (s.armed ? thrusters.reduce((a, t) => a + Math.abs(parseInt(t.label, 10)), 0) / 40 : 0)).toFixed(1),
-      logLines: s.log.map(l => ({ t: l.t, tag: l.tag, msg: l.msg, tagStyle: { color: tagCol[l.tag] || accent, width: '36px' } })),
-      statusMessage: hasPad ? (s.armed ? 'Armed — streaming control frames at 50 Hz' : 'Controller ready — hold ' + ctl.start + ' 1 s to arm') : 'Connect a DualShock 3 or Xbox controller to drive — see Help',
-      txCount: s.tx, rxCount: s.rx,
-      helpMenuOpen: s.helpMenuOpen, mapOpen: s.mapOpen,
-      helpMenuBtnStyle: { padding: '3px 7px', borderRadius: '3px', color: '#c9d3de', background: s.helpMenuOpen ? '#1f2933' : 'transparent', cursor: 'default' },
-      toggleHelpMenu: () => this.setState(st => ({ helpMenuOpen: !st.helpMenuOpen })),
-      closeHelpMenu: () => this.setState({ helpMenuOpen: false }),
-      openMap: () => this.setState({ helpMenuOpen: false, mapOpen: true, mapKind: 'ds3' }),
-      isXbox: s.mapKind === 'xbox',
-      openXbox: () => this.setState({ helpMenuOpen: false, mapOpen: true, mapKind: 'xbox' }),
-      map: s.mapKind === 'xbox'
-        ? { title: 'Controller Map - Xbox', l2: 'LT', r2: 'RT', l1: 'LB', r1: 'RB', start: 'MENU', sel: 'VIEW', ps: 'XBOX', tri: 'Y', sq: 'X' }
-        : { title: 'Controller Map - Dualshock 3', l2: 'L2', r2: 'R2', l1: 'L1', r1: 'R1', start: 'START', sel: 'SEL', ps: 'PS', tri: '△', sq: '□' },
+      horizonStyle: { position: 'absolute', left: '-50%', top: '-50%', width: '200%', height: '200%', background: 'linear-gradient(180deg, #1d4a63 0%, #1d4a63 50%, #3a2a16 50%, #3a2a16 100%)', transform: 'rotate(' + (-tel.roll).toFixed(2) + 'deg) translateY(' + Math.max(-40, Math.min(40, tel.pitch * 1.4)).toFixed(2) + 'px)' },
+      heading: String(Math.round(hdg) % 360).padStart(3, '0'),
+      headingCardinal: cards[Math.round(hdg / 22.5) % 16],
+      voltage: tel.voltage.toFixed(2),
+      socFill: { height: '100%', width: soc + '%', borderRadius: '3px', background: 'linear-gradient(90deg, #2a6f5c, ' + (soc > 25 ? C.ACCENT : C.DANGER) + ')' },
+      logLines: s.log.slice(-6).map(l => ({ t: l.t, tag: l.tag.padEnd(5) + ' ', msg: l.msg, tagStyle: { color: l.color, fontWeight: 600 } })),
+      statusMessage: s.armed ? 'Armed — streaming control frames at 50 Hz'
+        : (!hasPad ? 'Connect a ' + shortName + ' to drive — see Help' : 'Controller ready — hold ' + k.start + ' 1 s to arm'),
+      txCount: s.tx.toLocaleString('en-US'), rxCount: s.rx.toLocaleString('en-US'),
+      lostCount: Math.max(0, s.tx - s.rx).toLocaleString('en-US'),
+      mapOpen: s.mapOpen, map,
       closeMap: () => this.setState({ mapOpen: false }),
       stop: e => e.stopPropagation(),
     };

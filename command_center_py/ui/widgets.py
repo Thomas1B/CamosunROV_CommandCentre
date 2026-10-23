@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPushButton
 
 from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, TILT_MIN, TILT_MAX
 from command_center_py.ui.theme import (PANEL, HEAD, WELL, BORDER, BORDER2, GRID, TEXT, BRIGHT,
-                          MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, fs, mono, lab)
+                          MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, VALUE_PX, UNIT_PX, fs, mono, lab)
 
 
 # ============================================================================
@@ -222,10 +222,7 @@ class VideoPane(QWidget):
         # p.setPen(QColor(ACCENT if armed else "#7c8b9c"))
         # p.drawText(pill, Qt.AlignmentFlag.AlignCenter, "ARMED" if armed else "DISARMED")
 
-        # clock
-        p.setFont(mono(11))
-        p.setPen(QColor("#7fd9c0"))
-        p.drawText(QRectF(w - 222, 18, 200, 18), Qt.AlignmentFlag.AlignRight, f"{s['clock']} LOCAL")
+        # (the clock now lives in the toolbar, after LOSS; the heading in the IMU ATTITUDE panel)
 
         # attitude ball
         ar = QRectF(cx - 44, 14, 88, 88)
@@ -253,25 +250,9 @@ class VideoPane(QWidget):
         p.setPen(QColor(127, 217, 192, 190))
         p.drawText(QRectF(cx - 60, ar.bottom() + 3, 120, fs(14)), Qt.AlignmentFlag.AlignHCenter, "ATTITUDE")
 
-        # heading
-        hdg = s["heading"] % 360
-        cards = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                 "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
-        right = QRectF(w - 222, cy - 40, 200, 80)
-        p.setFont(mono(10))
-        p.setPen(QColor(127, 217, 192, 180))
-        p.drawText(QRectF(right.left(), right.top(), 200, 14), Qt.AlignmentFlag.AlignRight, "HEADING")
-        p.setFont(mono(40, QFont.Weight.Bold))
-        p.setPen(QColor(BRIGHT))
-        p.drawText(QRectF(right.left(), right.top() + 14, 200, 46), Qt.AlignmentFlag.AlignRight, f"{hdg:03.0f}")
-        p.setFont(mono(11))
-        p.setPen(QColor(234, 242, 250, 150))
-        p.drawText(QRectF(right.left(), right.top() + 62, 200, 16), Qt.AlignmentFlag.AlignRight,
-                   f"{cards[int(round(hdg / 22.5)) % 16]} · mag")
-
         # hold-to-arm progress
         prog = s["arm_progress"]
-        if prog > 0 and not armed:
+        if prog > 0 and not s["armed"]:
             bar = QRectF(cx - 90, cy + 32, 180, 8)
             p.setPen(QPen(QColor(BORDER2), 1))
             p.setBrush(QColor(WELL))
@@ -398,7 +379,7 @@ class MetricCard(QFrame):
         top.addWidget(self.btn)
         v.addLayout(top)
         self.val = QLabel("--")
-        self.val.setFont(mono(24, QFont.Weight.Bold))
+        self.val.setFont(mono(VALUE_PX, QFont.Weight.Bold))
         v.addWidget(self.val)
         self.set_imperial(False)
 
@@ -415,7 +396,7 @@ class MetricCard(QFrame):
     def set(self, si, si_unit, imp, imp_unit, color=BRIGHT):
         v, u = (imp, imp_unit) if self.imperial else (si, si_unit)
         self.val.setText(f'<span style="color:{color}">{v}</span>'
-                         f'<span style="font-size:11px; color:{MUTED}; font-weight:500"> {u}</span>')
+                         f'<span style="font-size:{UNIT_PX}px; color:{MUTED}; font-weight:500"> {u}</span>')
 
 
 class StatusRow(QFrame):
@@ -430,7 +411,7 @@ class StatusRow(QFrame):
         self.dot.setFixedSize(7, 7)
         h.addWidget(self.dot)
         h.addWidget(lab(name, fs(11), DIM), 1)
-        self.val = lab("--", fs(11), TEXT, QFont.Weight.Bold)
+        self.val = lab("--", UNIT_PX, TEXT, QFont.Weight.Bold)
         h.addWidget(self.val)
         self._last = None
 

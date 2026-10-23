@@ -35,7 +35,7 @@ import socket
 import struct
 import time
 
-from command_center_py.config import LINK_TIMEOUT_S, RATE_HZ, TILT_MAX, TILT_MIN
+from command_center_py.config import LINK_TIMEOUT_S, RATE_HZ, TILT_MAX, TILT_MIN, VIDEO_PORT
 
 
 CMD_STRUCT = struct.Struct("<2sBBH6bbx")   # 14 bytes, + 2-byte CRC = 16
@@ -70,9 +70,10 @@ def pack_command(seq, armed, throttles, tilt):
 
 
 class Link:
-    def __init__(self, host, cmd_port, telem_port):
+    def __init__(self, host, cmd_port, telem_port, video_port=VIDEO_PORT):
         self.label = f"{host} : {cmd_port}"
         self.addr = (host, cmd_port)
+        self.video_port = video_port   # UDP port the console listens on for the camera stream
         self.seq = 0
         self.tx_count = 0
         self.rx_count = 0
@@ -233,9 +234,9 @@ class DemoLink(Link):
             "pressure_kpa": 101.325 + self.depth * 10.05,
             "water_c": 8.7 + wob(2.2, 0.15),
             "internal_c": self.temp,
-            "roll": wob(1.1, 3.0) + (thr[0] - thr[1]) / 40.0,
-            "pitch": wob(2.7, 2.0) - (thr[0] + thr[1] - thr[2] - thr[3]) / 80.0,
-            "yaw": self.heading,
+            "roll": wob(1.1, 14.0) + (thr[0] - thr[1]) / 40.0,
+            "pitch": wob(2.7, 9.0) - (thr[0] + thr[1] - thr[2] - thr[3]) / 80.0,
+            "yaw": (self.heading + wob(0.4, 15.0)) % 360,
             "voltage": 15.8 - load * 0.9,
             "leak": False,
             "ack": seq,

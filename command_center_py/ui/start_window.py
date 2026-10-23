@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (QComboBox, QFrame, QGraphicsOpacityEffect, QGridL
 from command_center_py import profiles
 from command_center_py.config import (APP_BUILD, APP_VERSION, ARM_HOLD_S, CMD_PORT,
                                       CONNECT_TIMEOUT_S, DEFAULT_VEHICLE_NAME, PI_HOST, RATE_HZ,
-                                      TELEM_PORT)
+                                      TELEM_PORT, VIDEO_PORT)
 from command_center_py.link import Link, check_ipv4, check_port
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD,
                                         LABEL, MUTED, OFF, PANEL, SANS, WELL, lab, mono)
@@ -264,7 +264,7 @@ class ConnectCard(Card):
         "idle":       ("Vehicle must be powered and the tether connected.", LABEL, None),
         "badip":      ("Enter a valid IPv4 address, e.g. 192.168.2.2", DANGER, RED_DOT),
         "badport":    ("Ports must be 1–65535", DANGER, RED_DOT),
-        "sameport":   ("Command and telemetry ports must differ", DANGER, RED_DOT),
+        "sameport":   ("Command, telemetry and video ports must all differ", DANGER, RED_DOT),
         "noname":     ("Enter a vehicle name to save a profile", DANGER, RED_DOT),
         "saved":      ('Profile "{name}" saved', ACCENT, ACCENT),
         "loaded":     ('Profile "{name}" loaded', ACCENT, ACCENT),
@@ -342,10 +342,17 @@ class ConnectCard(Card):
         ports.addWidget(field_label("TELEMETRY PORT · CONSOLE LISTENS"), 0, 1)
         self.cmd_edit = line_edit(str(CMD_PORT), str(CMD_PORT))
         self.tel_edit = line_edit(str(TELEM_PORT), str(TELEM_PORT))
+        self.vid_edit = line_edit(str(VIDEO_PORT), str(VIDEO_PORT))
         for i, e in enumerate((self.cmd_edit, self.tel_edit)):
             e.setMaxLength(5)
             e.textEdited.connect(self._fields_edited)
             ports.addWidget(e, 1, i)
+        # second row: VIDEO PORT under COMMAND PORT
+        ports.addWidget(field_label("VIDEO PORT · CONSOLE LISTENS"), 2, 0)
+        self.vid_edit.setMaxLength(5)
+        self.vid_edit.textEdited.connect(self._fields_edited)
+        ports.addWidget(self.vid_edit, 3, 0)
+        ports.setRowMinimumHeight(2, s(9) + s(10))     # gap above the second row of ports
         ports.setColumnStretch(0, 1)
         ports.setColumnStretch(1, 1)
         v.addLayout(ports)
@@ -411,7 +418,7 @@ class ConnectCard(Card):
         self._refresh()
 
     def _fields_edited(self, *_):
-        for e in (self.cmd_edit, self.tel_edit):        # digits only, like the design
+        for e in (self.cmd_edit, self.tel_edit, self.vid_edit):   # digits only, like the design
             t = re.sub(r"\D", "", e.text())
             if t != e.text():
                 e.setText(t)
@@ -430,27 +437,28 @@ class ConnectCard(Card):
 
     def _values(self):
         return (self.name_edit.text().strip(), self.ip_edit.text().strip(),
-                self.cmd_edit.text().strip(), self.tel_edit.text().strip())
+                self.cmd_edit.text().strip(), self.tel_edit.text().strip(),
+                self.vid_edit.text().strip())
 
     def _validate(self):
-        """Return (ip, cmd_port, telem_port) or None after showing what's wrong."""
-        _, ip_text, cmd_text, tel_text = self._values()
+        """Return (ip, cmd_port, telem_port, video_port) or None after showing what's wrong."""
+        _, ip_text, cmd_text, tel_text, vid_text = self._values()
         ip, _err = check_ipv4(ip_text)
         if ip is None:
             self._set("badip")
             return None
-        cmd, tel = check_port(cmd_text), check_port(tel_text)
-        if cmd is None or tel is None:
+        cmd, tel, vid = check_port(cmd_text), check_port(tel_text), check_port(vid_text)
+        if cmd is None or tel is None or vid is None:
             self._set("badport")
             return None
-        if cmd == tel:
+        if len({cmd, tel, vid}) < 3:
             self._set("sameport")
             return None
-        return ip, cmd, tel
+        return ip, cmd, tel, vid
 
     def _refresh(self, *_):
         s = self._s
-        name, ip, cmd, _ = self._values()
+        name, ip, cmd, _, _ = self._values()
         busy = self.state == "connecting"
         text, color, dot = self.MSG[self.state]
         left = max(0.0, self.deadline - time.monotonic())
@@ -463,7 +471,7 @@ class ConnectCard(Card):
         bad_ip = self.state == "badip"
         bad_port = self.state in ("badport", "sameport")
         for e, bad in ((self.name_edit, self.state == "noname"), (self.ip_edit, bad_ip),
-                       (self.cmd_edit, bad_port), (self.tel_edit, bad_port)):
+                       (self.cmd_edit, bad_port), (self.tel_edit, bad_port), (self.vid_edit, bad_port)):
             e.setStyleSheet(
                 f"QLineEdit {{ padding: {s(9)}px {s(10)}px; border: 1px solid {RED_BORDER if bad else GRID};"
                 f" border-radius: 3px; background: {WELL}; color: {BRIGHT}; selection-background-color: {OK_BORDER}; }}"
@@ -500,6 +508,7 @@ class ConnectCard(Card):
             self.ip_edit.setText(p["ip"])
             self.cmd_edit.setText(str(p["cmd_port"]))
             self.tel_edit.setText(str(p["telem_port"]))
+            self.vid_edit.setText(str(p["video_port"]))
             self._set("loaded")
 
     def save_profile(self):
@@ -530,8 +539,8 @@ class ConnectCard(Card):
         vals = self._validate()
         if vals is None:
             return
-        ip, cmd, tel = vals
-        link = Link(ip, cmd, tel)
+        ip, cmd, tel, vid = vals
+        link = Link(ip, cmd, tel, vid)
         if link.error:                       # e.g. telemetry port already in use
             link.close()
             self._set("error", link.error)
