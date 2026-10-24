@@ -246,9 +246,6 @@ class VideoPane(QWidget):
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor(WARN))
         p.drawEllipse(ar.center(), 3, 3)
-        p.setFont(mono(fs(9)))
-        p.setPen(QColor(127, 217, 192, 190))
-        p.drawText(QRectF(cx - 60, ar.bottom() + 3, 120, fs(14)), Qt.AlignmentFlag.AlignHCenter, "ATTITUDE")
 
         # hold-to-arm progress
         prog = s["arm_progress"]

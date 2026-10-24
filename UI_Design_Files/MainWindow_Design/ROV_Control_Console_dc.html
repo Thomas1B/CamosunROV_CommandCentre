@@ -37,17 +37,23 @@
       </style>
     </helmet>
 
-    <div style="position: relative; width: 100%; height: 100vh; min-width: 1200px; min-height: 760px; display: grid; grid-template-rows: 25px 44px minmax(0,1fr) 30px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 14px; overflow: hidden; box-sizing: border-box;">
+    <div
+      style="position: relative; width: 100%; height: 100vh; min-width: 1200px; min-height: 760px; display: grid; grid-template-rows: 25px 44px minmax(0,1fr) 30px; background: #0b0f14; color: #d7e0ea; font-family: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 14px; overflow: hidden; box-sizing: border-box;">
 
       <!-- ============ MENU BAR ============ -->
-      <div style="position: relative; z-index: 20; display: flex; align-items: center; gap: 0; padding: 2px 4px; background: #141a22; border-bottom: 1px solid #1f2933; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 13px; user-select: none; box-sizing: border-box;">
+      <div
+        style="position: relative; z-index: 20; display: flex; align-items: center; gap: 0; padding: 2px 4px; background: #141a22; border-bottom: 1px solid #1f2933; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 13px; user-select: none; box-sizing: border-box;">
         <sc-for list="{{ menus }}" as="m" hint-placeholder-count="3">
           <div style="position: relative;">
-            <div onClick="{{ m.toggle }}" style="{{ m.btnStyle }}" style-hover="background: #1f2933; color: #eaf2fa;">{{ m.name }}</div>
+            <div onClick="{{ m.toggle }}" style="{{ m.btnStyle }}" style-hover="background: #1f2933; color: #eaf2fa;">{{
+              m.name }}</div>
             <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
-              <div style="position: absolute; left: 0; top: 23px; min-width: 190px; padding: 2px 0; background: #131a22; border: 1px solid #23303c; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
+              <div
+                style="position: absolute; left: 0; top: 23px; min-width: 190px; padding: 2px 0; background: #131a22; border: 1px solid #23303c; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
                 <sc-for list="{{ m.items }}" as="it" hint-placeholder-count="2">
-                  <div onClick="{{ it.run }}" style="display: flex; justify-content: space-between; gap: 24px; padding: 5px 18px; color: #d7e0ea; cursor: default; white-space: nowrap;" style-hover="background: #1f2933;">
+                  <div onClick="{{ it.run }}"
+                    style="display: flex; justify-content: space-between; gap: 24px; padding: 5px 18px; color: #d7e0ea; cursor: default; white-space: nowrap;"
+                    style-hover="background: #1f2933;">
                     <span>{{ it.label }}</span><span style="color: #5f7183;">{{ it.key }}</span>
                   </div>
                 </sc-for>
@@ -58,42 +64,60 @@
       </div>
 
       <!-- ============ TOOLBAR ============ -->
-      <div style="display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #10151c; border-bottom: 1px solid #1f2933; box-sizing: border-box;">
-        <div style="display: flex; align-items: center; gap: 8px; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-size: 14px;">
+      <div
+        style="display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #10151c; border-bottom: 1px solid #1f2933; box-sizing: border-box;">
+        <div
+          style="display: flex; align-items: center; gap: 8px; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-size: 14px;">
           <div style="width: 8px; height: 8px; border-radius: 50%; background: #35d0a5;"></div>
           <span style="font-weight: 600; color: #d7e0ea;">LINK UP</span>
           <span style="color: #5f7183;">DEMO · simulated vehicle</span>
         </div>
-        <div style="display: flex; align-items: baseline; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-size: 14px; white-space: pre;">
-          <span style="color: #5f7183;">RATE </span><b style="color: #35d0a5;">50</b><span style="color: #5f7183;"> Hz</span><span style="color: #23303c;"> │ </span><span style="color: #5f7183;">RTT </span><b style="color: #d7e0ea;">0.0</b><span style="color: #5f7183;"> ms</span><span style="color: #23303c;"> │ </span><span style="color: #5f7183;">LOSS </span><b style="color: #d7e0ea;">0.0</b><span style="color: #5f7183;"> %</span><span style="color: #23303c;"> │ </span><b style="color: #7fd9c0;">{{ clock }}</b><span style="color: #5f7183;"> LOCAL</span>
+        <div
+          style="display: flex; align-items: baseline; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-size: 14px; white-space: pre;">
+          <span style="color: #5f7183;">RATE </span><b style="color: #d7e0ea;">50</b><span style="color: #5f7183;">
+            Hz</span><span style="color: #23303c;"> │ </span><span style="color: #5f7183;">RTT </span><b
+            style="color: #d7e0ea;">0.0</b><span style="color: #5f7183;"> ms</span><span style="color: #23303c;"> │
+          </span><span style="color: #5f7183;">LOSS </span><b style="color: #d7e0ea;">0.0</b><span
+            style="color: #5f7183;"> %</span>
+        </div>
+        <div
+          style="display: flex; align-items: baseline; padding: 5px 11px; border: 1px solid #23303c; border-radius: 4px; background: #131a22; font-size: 14px; white-space: pre;">
+          <b style="color: #7fd9c0;">{{ clock }}</b><span style="color: #5f7183;"> LOCAL</span>
         </div>
         <div style="flex: 1;"></div>
-        <div style="font-size: 14px; white-space: pre;"><span style="color: #7c8b9c;">GAMEPAD </span><b style="{{ padStyle }}">{{ padLabel }}</b></div>
+        <div style="font-size: 14px; white-space: pre;"><span style="color: #7c8b9c;">GAMEPAD </span><b
+            style="{{ padStyle }}">{{ padLabel }}</b></div>
         <div onClick="{{ toggleArm }}" style="{{ armButtonStyle }}">{{ armLabel }}</div>
-        <div onClick="{{ estop }}" style="padding: 7px 18px; border-radius: 4px; border: 1px solid #7f2b2e; background: linear-gradient(180deg, #3a1416, #2a0f11); color: #ff6b6e; font-size: 15px; font-weight: 700; cursor: pointer; user-select: none;" style-hover="background: #57191c; color: #fff;">E-STOP</div>
+        <div onClick="{{ estop }}"
+          style="padding: 7px 18px; border-radius: 4px; border: 1px solid #7f2b2e; background: linear-gradient(180deg, #3a1416, #2a0f11); color: #ff6b6e; font-size: 15px; font-weight: 700; cursor: pointer; user-select: none;"
+          style-hover="background: #57191c; color: #fff;">E-STOP</div>
       </div>
 
       <!-- ============ BODY ============ -->
-      
+
 
       <!-- ============ STATUS BAR ============ -->
       <div style="display: grid; grid-template-columns: 340px minmax(0,1fr) 335px; min-height: 0;">
 
         <!-- ---------- LEFT PANEL ---------- -->
-        <div style="display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overflow-x: hidden; border-right: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
-          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 12px;">
+        <div
+          style="display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overflow-x: hidden; border-right: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
+          <div
+            style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 12px;">
             <span style="font-weight: 700; color: #8fa2b5;">THRUSTER OUTPUT</span>
             <span style="color: #5f7183;">TX → PI</span>
           </div>
           <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 8px;">
             <sc-for list="{{ thrusters }}" as="t" hint-placeholder-count="6">
               <div style="display: flex; flex-direction: column; gap: 5px;">
-                <div style="display: grid; grid-template-columns: 58px 1fr 58px; align-items: baseline; line-height: 19px;">
+                <div
+                  style="display: grid; grid-template-columns: 58px 1fr 58px; align-items: baseline; line-height: 19px;">
                   <span style="color: #9fb0c2; font-size: 14px; font-weight: 600;">{{ t.name }}</span>
                   <span style="color: #5f7183; font-size: 12px; text-align: center;">{{ t.role }}</span>
                   <span style="{{ t.valueStyle }}">{{ t.label }}</span>
                 </div>
-                <div style="position: relative; height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
+                <div
+                  style="position: relative; height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
                   <div style="{{ t.fillStyle }}"></div>
                   <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2c3a48;"></div>
                   <div style="{{ t.knobStyle }}"></div>
@@ -104,7 +128,7 @@
               <span style="color: #9fb0c2;">GAIN</span>
               <span style="color: #9fb0c2; font-weight: 700;">{{ gainLabel }}</span>
               <div style="flex: 1;"></div>
-              <span style="color: #5f7183; font-size: 12px; white-space: pre;">{{ ctl.l1 }} ▼  {{ ctl.r1 }} ▲</span>
+              <span style="color: #5f7183; font-size: 12px; white-space: pre;">{{ ctl.l1 }} ▼ {{ ctl.r1 }} ▲</span>
             </div>
           </div>
           <div style="height: 1px; background: #1f2933; flex: none;"></div>
@@ -114,7 +138,8 @@
               <span style="font-size: 14px; color: #9fb0c2;">Camera Tilt</span>
               <span style="font-size: 20px; font-weight: 700; color: #ffd479; line-height: 1.2;">{{ tiltLabel }}</span>
             </div>
-            <div style="position: relative; height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
+            <div
+              style="position: relative; height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
               <div style="{{ tiltFill }}"></div>
               <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2c3a48;"></div>
               <div style="{{ tiltKnob }}"></div>
@@ -133,36 +158,49 @@
             <div onClick="{{ setXbox }}" style="{{ xboxBtnStyle }}" style-hover="color: #eaf2fa;">XBOX</div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-top: 1px solid #1f2933; border-bottom: 1px solid #1f2933; font-size: 12px;">
+          <div
+            style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-top: 1px solid #1f2933; border-bottom: 1px solid #1f2933; font-size: 12px;">
             <span style="font-weight: 700; color: #8fa2b5;">STICK INPUT</span>
             <span style="color: #5f7183;">{{ ctl.short }}</span>
           </div>
-          <div style="padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; row-gap: 4px;">
-            <div style="justify-self: center; position: relative; width: 84px; height: 84px; border: 1px solid #1f2933; border-radius: 4px; background: #070a0e; box-sizing: border-box;">
+          <div
+            style="padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; row-gap: 4px;">
+            <div
+              style="justify-self: center; position: relative; width: 84px; height: 84px; border: 1px solid #1f2933; border-radius: 4px; background: #070a0e; box-sizing: border-box;">
               <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
               <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #1a2430;"></div>
-              <div style="position: absolute; left: calc(50% - 7px); top: calc(50% - 7px); width: 14px; height: 14px; border: 1px dashed #2c3a48; border-radius: 50%; box-sizing: border-box;"></div>
+              <div
+                style="position: absolute; left: calc(50% - 7px); top: calc(50% - 7px); width: 14px; height: 14px; border: 1px dashed #2c3a48; border-radius: 50%; box-sizing: border-box;">
+              </div>
               <div style="{{ leftGlow }}"></div>
               <div style="{{ leftDot }}"></div>
             </div>
-            <div style="justify-self: center; position: relative; width: 84px; height: 84px; border: 1px solid #1f2933; border-radius: 4px; background: #070a0e; box-sizing: border-box;">
+            <div
+              style="justify-self: center; position: relative; width: 84px; height: 84px; border: 1px solid #1f2933; border-radius: 4px; background: #070a0e; box-sizing: border-box;">
               <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #1a2430;"></div>
               <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #1a2430;"></div>
-              <div style="position: absolute; left: calc(50% - 7px); top: calc(50% - 7px); width: 14px; height: 14px; border: 1px dashed #2c3a48; border-radius: 50%; box-sizing: border-box;"></div>
-              <div style="position: absolute; left: calc(50% - 38px); top: calc(50% - 3px); width: 76px; height: 6px; border-radius: 3px; background: rgba(53,208,165,0.18);"></div>
+              <div
+                style="position: absolute; left: calc(50% - 7px); top: calc(50% - 7px); width: 14px; height: 14px; border: 1px dashed #2c3a48; border-radius: 50%; box-sizing: border-box;">
+              </div>
+              <div
+                style="position: absolute; left: calc(50% - 38px); top: calc(50% - 3px); width: 76px; height: 6px; border-radius: 3px; background: rgba(53,208,165,0.18);">
+              </div>
               <div style="{{ rightGlow }}"></div>
               <div style="{{ rightDot }}"></div>
             </div>
             <span style="font-size: 11px; color: #5f7183; text-align: center;">L · FWD/BACK + SIDE</span>
             <span style="font-size: 11px; color: #5f7183; text-align: center;">R · ROTATE (YAW)</span>
           </div>
-          <div style="padding: 5px 12px 10px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; row-gap: 4px; font-size: 11px; color: #5f7183;">
+          <div
+            style="padding: 5px 12px 10px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; row-gap: 4px; font-size: 11px; color: #5f7183;">
             <span>{{ ctl.l2 }} · DESCEND</span>
             <span>{{ ctl.r2 }} · ASCEND</span>
-            <div style="height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden;">
+            <div
+              style="height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden;">
               <div style="{{ l2Fill }}"></div>
             </div>
-            <div style="height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden;">
+            <div
+              style="height: 10px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden;">
               <div style="{{ r2Fill }}"></div>
             </div>
           </div>
@@ -176,64 +214,98 @@
 
         <!-- ---------- CENTRE: VIDEO + EVENT LOG ---------- -->
         <div style="min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #05070a;">
-          <div style="position: relative; flex: 1; min-height: 0; overflow: hidden; background: repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px), radial-gradient(circle 535px at 50% 40%, #123040 0%, #0a1a24 45%, #05090d 100%);">
+          <div
+            style="position: relative; flex: 1; min-height: 0; overflow: hidden; background: repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px), radial-gradient(circle 535px at 50% 40%, #123040 0%, #0a1a24 45%, #05090d 100%);">
 
 
-            <div style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px;">
-              <div style="position: relative; width: 88px; height: 88px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(53,208,165,0.35); box-sizing: border-box;">
+            <div
+              style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px;">
+              <div
+                style="position: relative; width: 88px; height: 88px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(53,208,165,0.35); box-sizing: border-box;">
                 <div style="{{ horizonStyle }}"></div>
-                <div style="position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 54px; height: 2px; background: #ffd479;"></div>
-                <div style="position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 6px; height: 6px; border-radius: 50%; background: #ffd479;"></div>
+                <div
+                  style="position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 54px; height: 2px; background: #ffd479;">
+                </div>
+                <div
+                  style="position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 6px; height: 6px; border-radius: 50%; background: #ffd479;">
+                </div>
               </div>
-              <span style="font-size: 11px; color: rgba(127,217,192,0.75);">ATTITUDE</span>
             </div>
 
-            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 120px; height: 120px;">
-              <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.35);"></div>
-              <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(53,208,165,0.35);"></div>
-              <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 34px; height: 34px; border: 1px solid rgba(53,208,165,0.51); border-radius: 50%;"></div>
+            <div
+              style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 120px; height: 120px;">
+              <div
+                style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(53,208,165,0.35);">
+              </div>
+              <div
+                style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(53,208,165,0.35);">
+              </div>
+              <div
+                style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 34px; height: 34px; border: 1px solid rgba(53,208,165,0.51); border-radius: 50%;">
+              </div>
             </div>
 
             <sc-if value="{{ arming }}" hint-placeholder-val="{{ false }}">
-              <div style="position: absolute; left: calc(50% - 90px); top: calc(50% + 32px); width: 180px; height: 8px; border-radius: 3px; border: 1px solid #23303c; background: #070a0e; box-sizing: border-box; overflow: hidden;">
+              <div
+                style="position: absolute; left: calc(50% - 90px); top: calc(50% + 32px); width: 180px; height: 8px; border-radius: 3px; border: 1px solid #23303c; background: #070a0e; box-sizing: border-box; overflow: hidden;">
                 <div style="{{ armProgressFill }}"></div>
               </div>
-              <div style="position: absolute; left: 0; right: 0; top: calc(50% + 44px); text-align: center; font-size: 14px; font-weight: 700; color: #35d0a5;">HOLD {{ ctl.start }} TO ARM</div>
+              <div
+                style="position: absolute; left: 0; right: 0; top: calc(50% + 44px); text-align: center; font-size: 14px; font-weight: 700; color: #35d0a5;">
+                HOLD {{ ctl.start }} TO ARM</div>
             </sc-if>
 
-            <div style="position: absolute; left: calc(50% - 37px); top: calc(50% + 70px); width: 74px; height: 54px; border: 2px solid #2c4653; border-radius: 8px; box-sizing: border-box;"></div>
-            <div style="position: absolute; left: calc(50% - 11px); top: calc(50% + 86px); width: 22px; height: 22px; border: 2px solid #2c4653; border-radius: 50%; box-sizing: border-box;"></div>
-            <div style="position: absolute; left: 0; right: 0; top: calc(50% + 132px); text-align: center; font-size: 14px; line-height: 18px; color: #2c4653;">NO VIDEO SOURCE</div>
-            <div style="position: absolute; left: 0; right: 0; top: calc(50% + 150px); text-align: center; font-size: 12px; line-height: 16px; color: #2c4653; white-space: nowrap;">demo mode - no camera</div>
+            <div
+              style="position: absolute; left: calc(50% - 37px); top: calc(50% + 70px); width: 74px; height: 54px; border: 2px solid #2c4653; border-radius: 8px; box-sizing: border-box;">
+            </div>
+            <div
+              style="position: absolute; left: calc(50% - 11px); top: calc(50% + 86px); width: 22px; height: 22px; border: 2px solid #2c4653; border-radius: 50%; box-sizing: border-box;">
+            </div>
+            <div
+              style="position: absolute; left: 0; right: 0; top: calc(50% + 132px); text-align: center; font-size: 14px; line-height: 18px; color: #2c4653;">
+              NO VIDEO SOURCE</div>
+            <div
+              style="position: absolute; left: 0; right: 0; top: calc(50% + 150px); text-align: center; font-size: 12px; line-height: 16px; color: #2c4653; white-space: nowrap;">
+              demo mode - no camera</div>
           </div>
 
-          <div style="height: 150px; flex: none; display: flex; flex-direction: column; border-top: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
+          <div
+            style="height: 150px; flex: none; display: flex; flex-direction: column; border-top: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
             <div style="display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid #1f2933; font-size: 12px;">
               <span style="font-weight: 700; color: #8fa2b5;">EVENT LOG</span>
               <span style="color: #5f7183;">· command stream 50 Hz</span>
             </div>
-            <div style="flex: 1; min-height: 0; overflow: hidden; padding: 8px 12px; font-size: 14px; line-height: 19px; display: flex; flex-direction: column; justify-content: flex-start;">
+            <div
+              style="flex: 1; min-height: 0; overflow: hidden; padding: 8px 12px; font-size: 14px; line-height: 19px; display: flex; flex-direction: column; justify-content: flex-start;">
               <sc-for list="{{ logLines }}" as="l" hint-placeholder-count="2">
-                <div style="white-space: pre;"><span style="color: #4d5d6d;">{{ l.t }}  </span><span style="{{ l.tagStyle }}">{{ l.tag }}</span><span style="color: #9fb0c2;">{{ l.msg }}</span></div>
+                <div style="white-space: pre;"><span style="color: #4d5d6d;">{{ l.t }} </span><span
+                    style="{{ l.tagStyle }}">{{ l.tag }}</span><span style="color: #9fb0c2;">{{ l.msg }}</span></div>
               </sc-for>
             </div>
           </div>
         </div>
 
         <!-- ---------- RIGHT PANEL ---------- -->
-        <div style="display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overflow-x: hidden; border-left: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
-          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 12px;">
+        <div
+          style="display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overflow-x: hidden; border-left: 1px solid #1f2933; background: #0e131a; box-sizing: border-box;">
+          <div
+            style="display: flex; justify-content: space-between; padding: 8px 12px; background: #131a22; border-bottom: 1px solid #1f2933; font-size: 12px;">
             <span style="font-weight: 700; color: #8fa2b5;">TELEMETRY</span>
             <span style="color: #5f7183;">RX ← PI</span>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1f2933; padding-bottom: 1px;">
+          <div
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1f2933; padding-bottom: 1px;">
             <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="4">
               <div style="background: #0e131a; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <span style="font-size: 9px; color: #5f7183;">{{ m.name }}</span>
-                  <div onClick="{{ m.toggle }}" title="Switch units" style="{{ m.toggleStyle }}" style-hover="border-color: #35d0a5; color: #eaf2fa;">{{ m.toggleLabel }}</div>
+                  <div onClick="{{ m.toggle }}" title="Switch units" style="{{ m.toggleStyle }}"
+                    style-hover="border-color: #35d0a5; color: #eaf2fa;">{{ m.toggleLabel }}</div>
                 </div>
-                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; font-weight: 700; line-height: 26px; white-space: nowrap;"><span style="{{ m.valueStyle }}">{{ m.value }}</span><span style="font-size: 12pt; color: #5f7183; font-weight: 500;"> {{ m.unit }}</span></div>
+                <div
+                  style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; font-weight: 700; line-height: 26px; white-space: nowrap;">
+                  <span style="{{ m.valueStyle }}">{{ m.value }}</span><span
+                    style="font-size: 12pt; color: #5f7183; font-weight: 500;"> {{ m.unit }}</span></div>
               </div>
             </sc-for>
           </div>
@@ -245,8 +317,12 @@
               <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 14px;">
                 <span style="color: #9fb0c2;">HEADING</span>
                 <span style="display: flex; align-items: baseline; gap: 20px;">
-                  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; font-weight: 700; color: #eaf2fa;">{{ heading }}°</span>
-                  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; font-weight: 700; color: #eaf2fa;">{{ headingCardinal }}</span>
+                  <span
+                    style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; font-weight: 700; color: #eaf2fa;">{{
+                    heading }}°</span>
+                  <span
+                    style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; font-weight: 700; color: #eaf2fa;">{{
+                    headingCardinal }}</span>
                 </span>
               </div>
               <div style="height: 1px; background: #1f2933;"></div>
@@ -255,9 +331,12 @@
               <div style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 14px;">
                   <span style="color: #9fb0c2;">{{ a.name }}</span>
-                  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; color: #eaf2fa; font-weight: 700;">{{ a.label }}</span>
+                  <span
+                    style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; line-height: 26px; color: #eaf2fa; font-weight: 700;">{{
+                    a.label }}</span>
                 </div>
-                <div style="position: relative; height: 6px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
+                <div
+                  style="position: relative; height: 6px; border-radius: 3px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box;">
                   <div style="{{ a.fillStyle }}"></div>
                   <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2c3a48;"></div>
                 </div>
@@ -267,10 +346,13 @@
           <div style="height: 1px; background: #1f2933; flex: none;"></div>
 
           <div style="padding: 12px; display: flex; flex-direction: column; gap: 6px;">
-            
+
             <span style="font-size: 11px; color: #5f7183;">BATTERY</span>
-            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; font-weight: 700; color: #eaf2fa; line-height: 26px;">{{ voltage }}<span style="font-size: 12pt; color: #5f7183; font-weight: 500;"> V</span></div>
-            <div style="height: 8px; border-radius: 4px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden; padding: 1px;">
+            <div
+              style="font-family: 'IBM Plex Mono', monospace; font-size: 16pt; font-weight: 700; color: #eaf2fa; line-height: 26px;">
+              {{ voltage }}<span style="font-size: 12pt; color: #5f7183; font-weight: 500;"> V</span></div>
+            <div
+              style="height: 8px; border-radius: 4px; background: #070a0e; border: 1px solid #1f2933; box-sizing: border-box; overflow: hidden; padding: 1px;">
               <div style="{{ socFill }}"></div>
             </div>
           </div>
@@ -279,7 +361,8 @@
           <div style="padding: 12px; display: flex; flex-direction: column; gap: 6px;">
             <span style="font-size: 12px; font-weight: 700; color: #8fa2b5;">SYSTEM STATUS</span>
             <sc-for list="{{ statuses }}" as="s" hint-placeholder-count="4">
-              <div style="display: flex; align-items: center; gap: 8px; padding: 5px 9px; border: 1px solid #1f2933; border-radius: 3px; background: #10161d;">
+              <div
+                style="display: flex; align-items: center; gap: 8px; padding: 5px 9px; border: 1px solid #1f2933; border-radius: 3px; background: #10161d;">
                 <div style="{{ s.dotStyle }}"></div>
                 <span style="font-size: 14px; color: #9fb0c2; flex: 1;">{{ s.name }}</span>
                 <span style="{{ s.valueStyle }}">{{ s.value }}</span>
@@ -288,12 +371,14 @@
           </div>
           <div style="flex: 1;"></div>
         </div>
-      </div><div style="display: flex; align-items: center; gap: 10px; padding: 0 20px 0 10px; background: #10151c; border-top: 1px solid #1f2933; font-size: 12px; color: #5f7183; box-sizing: border-box; white-space: pre;">
+      </div>
+      <div
+        style="display: flex; align-items: center; gap: 10px; padding: 0 20px 0 10px; background: #10151c; border-top: 1px solid #1f2933; font-size: 12px; color: #5f7183; box-sizing: border-box; white-space: pre;">
         <span style="color: #9fb0c2;">{{ statusMessage }}</span>
         <div style="flex: 1;"></div>
-        <span>TX {{ txCount }} pkt   │</span>
-        <span>RX {{ rxCount }} pkt   │</span>
-        <span>LOST {{ lostCount }} pkt   │</span>
+        <span>TX {{ txCount }} pkt │</span>
+        <span>RX {{ rxCount }} pkt │</span>
+        <span>LOST {{ lostCount }} pkt │</span>
         <span>v0.5.0</span>
       </div>
 
@@ -303,11 +388,16 @@
 
       <!-- ============ CONTROLLER MAP (Help ▸ … Map) - ControllerMapDialog at scale 1.25 ============ -->
       <sc-if value="{{ mapOpen }}" hint-placeholder-val="{{ false }}">
-        <div onClick="{{ closeMap }}" style="position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;">
-          <div onClick="{{ stop }}" style="width: 550px; background: #0e131a; border: 1px solid #23303c; box-shadow: 0 18px 50px rgba(0,0,0,0.7); color: #d7e0ea; overflow: hidden;">
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 14px; background: #131a22; border-bottom: 1px solid #1f2933;">
+        <div onClick="{{ closeMap }}"
+          style="position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;">
+          <div onClick="{{ stop }}"
+            style="width: 550px; background: #0e131a; border: 1px solid #23303c; box-shadow: 0 18px 50px rgba(0,0,0,0.7); color: #d7e0ea; overflow: hidden;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 14px; background: #131a22; border-bottom: 1px solid #1f2933;">
               <span style="font-size: 16px; font-weight: 700; color: #c9d3de;">{{ map.title }}</span>
-              <div onClick="{{ closeMap }}" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 15px; color: #8fa2b5; cursor: pointer;" style-hover="background: #1f2933; color: #eaf2fa;">✕</div>
+              <div onClick="{{ closeMap }}"
+                style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 15px; color: #8fa2b5; cursor: pointer;"
+                style-hover="background: #1f2933; color: #eaf2fa;">✕</div>
             </div>
             <div style="padding: 6px 14px 4px; display: flex; flex-direction: column;">
               <sc-for list="{{ map.sections }}" as="g" hint-placeholder-count="3">
@@ -317,7 +407,9 @@
                     <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 7px; font-size: 14px;">
                       <div style="width: 155px; flex: none; display: flex; gap: 4px;">
                         <sc-for list="{{ r.keys }}" as="k" hint-placeholder-count="1">
-                          <span style="padding: 2px 6px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{ k }}</span>
+                          <span
+                            style="padding: 2px 6px; border: 1px solid #2c3a48; border-radius: 2px; background: #131a22; color: #eaf2fa;">{{
+                            k }}</span>
                         </sc-for>
                       </div>
                       <span style="{{ r.style }}">{{ r.desc }}</span>
@@ -326,12 +418,16 @@
                 </div>
               </sc-for>
             </div>
-            <div style="display: flex; align-items: center; gap: 6px; margin-top: 14px; padding: 10px 14px; border-top: 1px solid #1f2933; background: #0a0e13; font-size: 12px; color: #8fa2b5;">
+            <div
+              style="display: flex; align-items: center; gap: 6px; margin-top: 14px; padding: 10px 14px; border-top: 1px solid #1f2933; background: #0a0e13; font-size: 12px; color: #8fa2b5;">
               <span>Keyboard</span>
-              <span style="padding: 2px 6px; border: 1px solid #7f2b2e; border-radius: 2px; background: #131a22; color: #ff6b6e;">SPACE</span>
+              <span
+                style="padding: 2px 6px; border: 1px solid #7f2b2e; border-radius: 2px; background: #131a22; color: #ff6b6e;">SPACE</span>
               <span>— E-STOP</span>
               <div style="flex: 1;"></div>
-              <div onClick="{{ closeMap }}" style="width: 90px; padding: 6px 0; text-align: center; font-size: 14px; font-weight: 600; border: 1px solid #2c3a48; border-radius: 3px; background: #1a2029; color: #eaf2fa; cursor: pointer;" style-hover="border-color: #35d0a5; color: #35d0a5;">OK</div>
+              <div onClick="{{ closeMap }}"
+                style="width: 90px; padding: 6px 0; text-align: center; font-size: 14px; font-weight: 600; border: 1px solid #2c3a48; border-radius: 3px; background: #1a2029; color: #eaf2fa; cursor: pointer;"
+                style-hover="border-color: #35d0a5; color: #35d0a5;">OK</div>
             </div>
           </div>
         </div>
@@ -392,6 +488,7 @@ class Component extends DCLogic {
 
   tryArm(source) {
     const p = this.state.pad;
+    if (!p) { this.log('DENY', 'Arm refused — no controller connected', C.WARN); return; }   // disarming never needs one
     if (p && Math.max(Math.abs(p.lx), Math.abs(p.ly), Math.abs(p.rx)) > 0.15) { this.log('DENY', 'Arm refused — centre both sticks first', C.WARN); return; }
     if (p && Math.max(p.l2, p.r2) > 0.15) { this.log('DENY', 'Arm refused — release ' + this.k().l2 + ' and ' + this.k().r2 + ' first', C.WARN); return; }
     this.setState({ armed: true });
