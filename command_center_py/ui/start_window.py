@@ -262,7 +262,7 @@ class ConnectCard(Card):
     SCALE = 1.25      # the design draws this dialog at zoom 1.25
 
     MSG = {
-        "idle":       ("Vehicle must be powered and the tether connected.", LABEL, None),
+        "idle":       ("", LABEL, None),
         "badip":      ("Enter a valid IPv4 address, e.g. 192.168.2.2", DANGER, RED_DOT),
         "badport":    ("Ports must be 1–65535", DANGER, RED_DOT),
         "sameport":   ("Command, telemetry and video ports must all differ", DANGER, RED_DOT),
@@ -296,7 +296,7 @@ class ConnectCard(Card):
         v.setSpacing(s(14))
 
         def field_label(text):
-            return slab(text, s(9), LABEL, spacing=s(9) * 0.1)
+            return slab(text, s(9), BRIGHT, spacing=s(9) * 0.1)
 
         def line_edit(text, placeholder):
             e = QLineEdit(text)
@@ -361,11 +361,12 @@ class ConnectCard(Card):
         v.addLayout(ports)
 
         # Bar30 reference values: surface pressure, water density, second-order cal
-        self.ref_fields = RefFields(self.SCALE)
+        self.ref_fields = RefFields(self.SCALE, label_color=BRIGHT)
         self.ref_fields.edited.connect(lambda: self._set("idle"))
         v.addWidget(self.ref_fields)
 
-        msg = QHBoxLayout()
+        self.msg_row = QWidget()                 # hidden while there is no message (idle)
+        msg = QHBoxLayout(self.msg_row)
         msg.setContentsMargins(0, s(10), 0, 0)
         msg.setSpacing(s(8))
         self.msg_dot = QLabel()
@@ -375,7 +376,7 @@ class ConnectCard(Card):
         self.msg_lbl.setWordWrap(True)
         self.msg_lbl.setMinimumHeight(s(18))
         msg.addWidget(self.msg_lbl, 1)
-        v.addLayout(msg)
+        v.addWidget(self.msg_row)
         rate = lab(f"{RATE_HZ} Hz command rate ({1000 // RATE_HZ} ms) — fixed", s(11), LABEL)
         v.addWidget(rate)
         v.addSpacing(-s(6))
@@ -476,6 +477,7 @@ class ConnectCard(Card):
         left = max(0.0, self.deadline - time.monotonic())
         self.msg_lbl.setText(text.format(name=name, ip=ip, cmd=cmd, left=left + 0.5, error=self.error))
         self.msg_lbl.setStyleSheet(f"color: {color}; background: transparent;")
+        self.msg_row.setVisible(bool(text))
         self.msg_dot.setVisible(dot is not None)
         if dot:
             self.msg_dot.setStyleSheet(f"background: {dot}; border-radius: {s(7) // 2}px;")

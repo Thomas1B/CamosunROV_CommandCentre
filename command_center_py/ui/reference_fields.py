@@ -21,8 +21,8 @@ OK_GREEN, OK_BORDER = "#123a30", "#2a6f5c"
 RED_BORDER = "#7f2b2e"
 
 
-def _label(text, px):
-    w = lab(text, px, LABEL)
+def _label(text, px, color=LABEL):
+    w = lab(text, px, color)
     f = w.font()
     f.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, px * 0.1)
     w.setFont(f)
@@ -35,7 +35,7 @@ class RefFields(QWidget):
 
     edited = Signal()
 
-    def __init__(self, scale=1.0, refs=None):
+    def __init__(self, scale=1.0, refs=None, label_color=LABEL):
         super().__init__()
         s = self._s = lambda v: round(v * scale)
         self._bad_surface = self._bad_density = False
@@ -49,8 +49,8 @@ class RefFields(QWidget):
         grid = QGridLayout()
         grid.setHorizontalSpacing(s(10))
         grid.setVerticalSpacing(s(6))
-        grid.addWidget(_label("SURFACE PRESSURE", s(9)), 0, 0)
-        grid.addWidget(_label("WATER DENSITY · KG/M³", s(9)), 0, 1)
+        grid.addWidget(_label("SURFACE PRESSURE", s(9), label_color), 0, 0)
+        grid.addWidget(_label("WATER DENSITY · KG/M³", s(9), label_color), 0, 1)
         row = QHBoxLayout()
         row.setSpacing(s(6))
         self.surface_edit = self._line_edit(str(reference.SURFACE_RANGE_HPA[0]))
@@ -82,7 +82,7 @@ class RefFields(QWidget):
         tog.setSpacing(s(10))
         txt = QVBoxLayout()
         txt.setSpacing(s(3))
-        txt.addWidget(_label("SECOND-ORDER PRESSURE CAL", s(9)))
+        txt.addWidget(_label("SECOND-ORDER PRESSURE CAL", s(9), label_color))
         txt.addWidget(lab("Bar30 correction for water below 20 °C", s(10), MUTED))
         tog.addLayout(txt, 1)
         self.on_btn, self.off_btn = QPushButton("ON"), QPushButton("OFF")
