@@ -195,6 +195,16 @@ class ConsoleWindow(QMainWindow):
         sh.addWidget(self.stats_lbl)
         h.addWidget(stats)
 
+        clock = QFrame()                     # local time, in its own pill
+        clock.setObjectName("pill")
+        clock.setStyleSheet(pill_css)
+        ch = QHBoxLayout(clock)
+        ch.setContentsMargins(11, 5, 11, 5)
+        self.clock_lbl = QLabel()
+        self.clock_lbl.setFont(mono(fs(11)))
+        ch.addWidget(self.clock_lbl)
+        h.addWidget(clock)
+
         h.addStretch(1)
         self.pad_lbl = QLabel()
         self.pad_lbl.setFont(mono(fs(11)))
@@ -226,7 +236,9 @@ class ConsoleWindow(QMainWindow):
         f.setObjectName("panel")
         f.setStyleSheet(f"QFrame#panel {{ background: {PANEL}; border-{side}: 1px solid {BORDER}; }}")
         v = QVBoxLayout(f)
-        v.setContentsMargins(0, 0, 0, 0)
+        # leave 1 px free on the bordered side, or section headers / the telemetry grid
+        # (which paint their own backgrounds) cover the panel's vertical border
+        v.setContentsMargins(1 if side == "left" else 0, 0, 1 if side == "right" else 0, 0)
         v.setSpacing(0)
         return f, v
 
@@ -498,10 +510,13 @@ class ConsoleWindow(QMainWindow):
     def try_arm(self, source):
         now = time.monotonic()
         pad = self.pad.snapshot()
-        if pad.connected and max(abs(pad.lx), abs(pad.ly), abs(pad.rx), abs(pad.ry)) > 0.15:
+        if not pad.connected:                # arming needs a controller; disarming / E-STOP never do
+            self.log("DENY", "Arm refused — no controller connected", WARN)
+            return
+        if max(abs(pad.lx), abs(pad.ly), abs(pad.rx), abs(pad.ry)) > 0.15:
             self.log("DENY", "Arm refused — centre both sticks first", WARN)
             return
-        if pad.connected and max(pad.l2, pad.r2) > 0.15:
+        if max(pad.l2, pad.r2) > 0.15:
             self.log("DENY", f"Arm refused — release {self.k['l2']} and {self.k['r2']} first", WARN)
             return
         if REQUIRE_LINK_TO_ARM and not self.link.up(now):
@@ -705,10 +720,11 @@ class ConsoleWindow(QMainWindow):
         loss = "--" if self.link.loss_pct is None or not linked else f"{self.link.loss_pct:.1f}"
         sep = f'<span style="color:{BORDER2}">&nbsp;│&nbsp;</span>'
         self.stats_lbl.setText(
-            f'<span style="color:{MUTED}">RATE </span><b style="color:{ACCENT}">{RATE_HZ}</b><span style="color:{MUTED}"> Hz</span>{sep}'
+            f'<span style="color:{MUTED}">RATE </span><b style="color:{TEXT}">{RATE_HZ}</b><span style="color:{MUTED}"> Hz</span>{sep}'
             f'<span style="color:{MUTED}">RTT </span><b style="color:{TEXT}">{rtt}</b><span style="color:{MUTED}"> ms</span>{sep}'
-            f'<span style="color:{MUTED}">LOSS </span><b style="color:{TEXT}">{loss}</b><span style="color:{MUTED}"> %</span>{sep}'
-            f'<b style="color:#7fd9c0">{datetime.now().strftime("%H:%M:%S")}</b><span style="color:{MUTED}"> LOCAL</span>')
+            f'<span style="color:{MUTED}">LOSS </span><b style="color:{TEXT}">{loss}</b><span style="color:{MUTED}"> %</span>')
+        self.clock_lbl.setText(f'<b style="color:#7fd9c0">{datetime.now().strftime("%H:%M:%S")}</b>'
+                               f'<span style="color:{MUTED}"> LOCAL</span>')
         if pad.connected:
             # Show the configured layout, not the driver's device name (DsHidMini can make
             # a DualShock 3 report itself as an Xbox pad). The real name is in the event log.
