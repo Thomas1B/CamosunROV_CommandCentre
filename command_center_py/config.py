@@ -35,6 +35,7 @@ TRIGGER_DEADZONE = 0.06  # L2/R2 rest noise
 TILT_MIN, TILT_MAX = -45, 45   # camera servo limits in degrees - match the Pi/servo
 TILT_STEP = 5
 ARM_HOLD_S = 1.0
+ZERO_HOLD_S = 1.0        # hold CROSS / A this long to zero (tare) depth - display only, see main_window.py
 LINK_TIMEOUT_S = 1.0
 # Bar30 reference values - defaults for the CONNECT dialog (same as the STM32 firmware #defines).
 # The console sends them to the Pi, which passes them to the STM32. See reference.py.

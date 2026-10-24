@@ -12,7 +12,7 @@ Script (matches the UI design's simulated input):
                        D-pad up x3 at 12 s, down x3 at 27 s (camera tilt)
                        SQUARE at 17 s (operator mark)
                        TRIANGLE at 31 s and 35 s (units on / off)
-                       CROSS held 5-6.5 s (chip highlight)
+                       CROSS held 5-6.5 s (zero / clear depth)
     when disarmed .... (E-STOP, START tap, menu) centre the sticks, wait 2 s,
                        hold START to re-arm
 """

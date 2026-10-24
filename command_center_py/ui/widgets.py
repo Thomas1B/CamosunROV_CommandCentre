@@ -6,7 +6,7 @@ from PySide6.QtGui import (QColor, QFont, QLinearGradient, QPainter, QPainterPat
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QVBoxLayout, QWidget)
 
-from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, TILT_MIN, TILT_MAX
+from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, TILT_MIN, TILT_MAX, ZERO_HOLD_S
 from command_center_py.ui.theme import (PANEL, HEAD, WELL, BORDER, BORDER2, GRID, TEXT, BRIGHT,
                           MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, VALUE_PX, UNIT_PX, fs, mono, lab)
 
@@ -356,7 +356,11 @@ class Chip(QLabel):
 
 
 class MetricCard(QFrame):
-    def __init__(self, name, on_toggle):
+    """Telemetry value card with an SI / IMP toggle.
+
+    on_zero: if given, the card also gets a ZERO chip (used by DEPTH) - see set_zero().
+    """
+    def __init__(self, name, on_toggle, on_zero=None):
         super().__init__()
         self.imperial = False
         self.setObjectName("metric")
@@ -367,6 +371,16 @@ class MetricCard(QFrame):
         top = QHBoxLayout()
         top.addWidget(lab(name, 9, MUTED))
         top.addStretch(1)
+        self.zero_btn = None
+        if on_zero is not None:
+            self.zero_btn = QPushButton("ZERO")
+            self.zero_btn.setFont(mono(9, QFont.Weight.DemiBold))
+            self.zero_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.zero_btn.setFixedHeight(18)
+            self.zero_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self.zero_btn.clicked.connect(on_zero)
+            top.addWidget(self.zero_btn)
+            top.addSpacing(4)
         self.btn = QPushButton("SI")
         self.btn.setFont(mono(9, QFont.Weight.DemiBold))
         self.btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -378,7 +392,31 @@ class MetricCard(QFrame):
         self.val = QLabel("--")
         self.val.setFont(mono(VALUE_PX, QFont.Weight.Bold))
         v.addWidget(self.val)
+        self._zero_state = None
         self.set_imperial(False)
+        self.set_zero(False, 0.0)
+
+    def set_zero(self, active, progress, hold_btn="✕"):
+        """ZERO chip: grey 'ZERO' normally, amber 'REL' while zeroed; fills while the button is held."""
+        if self.zero_btn is None or (active, round(progress, 2), hold_btn) == self._zero_state:
+            return
+        self._zero_state = (active, round(progress, 2), hold_btn)
+        self.zero_btn.setText("REL" if active else "ZERO")
+        self.zero_btn.setToolTip(
+            f"Depth is relative to the zero point — click (or hold {hold_btn} {ZERO_HOLD_S:.0f} s) to clear"
+            if active else f"Zero depth here — click, or hold {hold_btn} {ZERO_HOLD_S:.0f} s")
+        border = "#7a6331" if (active or progress > 0) else BORDER2
+        if progress > 0:
+            p = max(0.001, min(0.999, progress))
+            bg = (f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4a3d1f, stop:{p:.3f} #4a3d1f, "
+                  f"stop:{p + 0.001:.3f} {HEAD}, stop:1 {HEAD})")
+        else:
+            bg = "#2a2414" if active else HEAD
+        self.zero_btn.setStyleSheet(
+            f"QPushButton {{ padding: 0 6px; border: 1px solid {border}; border-radius: 3px; background: {bg}; "
+            f"color: {WARN if active else '#7c8b9c'}; }}"
+            f"QPushButton:hover {{ border-color: {WARN}; color: {BRIGHT}; }}")
+
 
     def set_imperial(self, imp):
         self.imperial = imp
@@ -478,6 +516,7 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
         ("CONSOLE", [
             ([m["tri"]], "Toggle SI / imperial units", None),
             ([m["sq"]], "Operator mark in log", None),
+            ([m["cross"]], f"Hold {ZERO_HOLD_S:.0f} s to zero depth · hold again to clear", None),
         ]),
     ]
     for i, (name, rows) in enumerate(sections):
