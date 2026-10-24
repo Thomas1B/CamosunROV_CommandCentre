@@ -3,5 +3,9 @@
   "ip": "192.168.2.2",
   "cmd_port": 5600,
   "telem_port": 5601,
-  "video_port": 5602
+  "video_port": 5602,
+  "surface_pressure_hpa": 1013.25,
+  "surface_unit": "hPa",
+  "water_density": 1000.0,
+  "second_order": true
 }

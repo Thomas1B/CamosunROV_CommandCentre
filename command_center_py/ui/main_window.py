@@ -23,6 +23,7 @@ from command_center_py.mixer import mix
 from command_center_py.video import VideoReceiver
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
                           LABEL, ACCENT, WARN, DANGER, BLUE, SANS, VALUE_PX, UNIT_PX, fs, mono, lab)
+from command_center_py.ui.reference_fields import ReferenceDialog
 from command_center_py.ui.widgets import (BipolarBar, TriggerBar, StickView, VideoPane, LevelBarSOC,
                             SectionHeader, ThrusterRow, Chip, MetricCard, StatusRow,
                             ControllerMapDialog, CONTROLLER_MAPS, LAYOUT)
@@ -85,6 +86,8 @@ class ConsoleWindow(QMainWindow):
             self.video_rx = VideoReceiver(getattr(link, "video_port", VIDEO_PORT))
         self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo
                                                              else f" — {self.vehicle} @ {self.link.label}"), BLUE)
+        self.log("CFG", f"Reference values — {self.link.refs.summary()}", ACCENT)
+        self._refs_ack_logged = False
         if self.pad.error:
             self.log("WARN", self.pad.error, WARN)
         if self.link.error:
@@ -149,6 +152,7 @@ class ConsoleWindow(QMainWindow):
         title.setContentsMargins(8, 0, 12, 0)
         mb.setCornerWidget(title, Qt.Corner.TopLeftCorner)
         m = mb.addMenu("File")
+        m.addAction("Reference Values…", self.show_reference_values)
         m.addAction("Back to Main Menu", self.close)
         m = mb.addMenu("Vehicle")
         a = QAction("Arm / Disarm", self)
@@ -582,6 +586,16 @@ class ConsoleWindow(QMainWindow):
         for key, chip in self.chips.items():
             chip.setText(chip_text[key])
 
+    def show_reference_values(self):
+        """File > Reference Values...: edit the Bar30 reference values and send them to the Pi."""
+        dlg = ReferenceDialog(self, self.link.refs, scale=fs(100) / 100)
+        if dlg.exec() and dlg.result_refs is not None:
+            if dlg.result_refs == self.link.refs:
+                return
+            self.link.set_refs(dlg.result_refs)
+            self._refs_ack_logged = False
+            self.log("CFG", f"Reference values — {dlg.result_refs.summary()} (sending to Pi)", ACCENT)
+
     def show_controller_map(self, kind="ds3"):
         ControllerMapDialog(self, kind, ARM_HOLD_S, scale=fs(100) / 100).exec()
 
@@ -592,6 +606,7 @@ class ConsoleWindow(QMainWindow):
         self._handle_pad(pad, now)
         self.throttles = self._mix(pad) if (self.armed and pad.connected) else [0] * 6
         self.link.send(self.armed, self.throttles, self.tilt)
+        self.link.service_refs(now)          # reference values -> Pi, resent until acknowledged
         tel = self.link.poll()
         if tel:
             self.tel.update(tel)
@@ -674,6 +689,11 @@ class ConsoleWindow(QMainWindow):
         return mix(pad, GAIN_STEPS[self.gain_idx])
 
     def _failsafes(self, now):
+        if self.link.refs_acked() and not self._refs_ack_logged:
+            self._refs_ack_logged = True
+            self.log("CFG", "Reference values applied by the Pi", ACCENT)
+        elif not self.link.refs_acked() and self._refs_ack_logged:
+            self._refs_ack_logged = False    # Pi restarted / lost them - they are being resent
         linked = self.link.up(now)
         if linked and not self.was_linked:
             self.log("LINK", "Telemetry received — link up", ACCENT)

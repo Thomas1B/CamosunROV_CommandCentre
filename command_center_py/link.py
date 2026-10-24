@@ -16,6 +16,20 @@ Command packet  laptop -> Pi, UDP, CMD_PORT, 50 Hz, 16 bytes, little-endian
                        (Python: binascii.crc_hqx(pkt[:14], 0xFFFF))
     The Pi should zero all thrusters if no valid packet arrives for ~250 ms.
 
+Reference packet  laptop -> Pi, UDP, CMD_PORT (same port as commands), 16 bytes, little-endian
+    struct format "<2sBBHffH"   - Bar30 reference values for the STM32
+    0  2s   magic      b"RF"     (commands are b"RV" - the Pi tells them apart by this)
+    2  B    version    1
+    3  B    flags      bit0 = second-order pressure calibration on (water below 20 C)
+    4  H    ref_seq    increments each time the values change
+    6  f    surface    surface barometric pressure reference, hPa (= mbar), float32
+    10 f    density    water density, kg/m^3, float32
+    14 H    crc16      CRC-16/CCITT-FALSE over bytes 0..13
+    Sent when the console connects and whenever File > Reference Values... changes them,
+    then repeated every REF_RESEND_S until telemetry carries "ref_ack": <ref_seq>.
+    The Pi passes the values on to the STM32 and replies with ref_ack. If the Pi restarts
+    (its ref_ack no longer matches) the console sends them again automatically.
+
     flags bit1 = recover (clear an STM32 leak shutdown) is understood by the Pi
     (rov_bridge.py) but not sent by this console yet.
 
@@ -24,7 +38,8 @@ SI units. A value is null while its sensor is faulted or the STM32 is not answer
     {"depth_m": 12.4, "pressure_kpa": 224.0, "water_c": 8.7, "internal_c": 41.6,
      "roll": 1.2, "pitch": -0.4, "yaw": 214.0, "voltage": 15.8,
      "leak": false, "faults": ["TEMP"], "fault_flags": 8, "stm32": true,
-     "uart_errors": 0, "ack": <last cmd seq received>, "rx_cmds": <total cmds received>}
+     "uart_errors": 0, "ack": <last cmd seq received>, "rx_cmds": <total cmds received>,
+     "ref_ack": <last reference packet ref_seq applied>}
 """
 
 import binascii
@@ -36,11 +51,13 @@ import socket
 import struct
 import time
 
-from command_center_py.config import (DEMO_PACKET_LOSS, LINK_TIMEOUT_S, RATE_HZ, TILT_MAX, TILT_MIN,
-                                      VIDEO_PORT)
+from command_center_py.config import (DEMO_PACKET_LOSS, LINK_TIMEOUT_S, RATE_HZ, REF_RESEND_S, TILT_MAX,
+                                      TILT_MIN, VIDEO_PORT)
+from command_center_py.reference import RefValues
 
 
 CMD_STRUCT = struct.Struct("<2sBBH6bbx")   # 14 bytes, + 2-byte CRC = 16
+REF_STRUCT = struct.Struct("<2sBBHff")     # 14 bytes, + 2-byte CRC = 16
 
 
 def check_ipv4(text):
@@ -71,11 +88,21 @@ def pack_command(seq, armed, throttles, tilt):
     return body + struct.pack("<H", binascii.crc_hqx(body, 0xFFFF))
 
 
+def pack_reference(ref_seq, refs):
+    body = REF_STRUCT.pack(b"RF", 1, 1 if refs.second_order else 0, ref_seq & 0xFFFF,
+                           float(refs.surface_hpa), float(refs.density))
+    return body + struct.pack("<H", binascii.crc_hqx(body, 0xFFFF))
+
+
 class Link:
-    def __init__(self, host, cmd_port, telem_port, video_port=VIDEO_PORT):
+    def __init__(self, host, cmd_port, telem_port, video_port=VIDEO_PORT, refs=None):
         self.label = f"{host} : {cmd_port}"
         self.addr = (host, cmd_port)
         self.video_port = video_port   # UDP port the console listens on for the camera stream
+        self.refs = refs or RefValues()  # Bar30 reference values, sent to the Pi (see reference packet)
+        self.ref_seq = 1
+        self.ref_acked = None          # ref_seq the Pi last reported applying (telemetry "ref_ack")
+        self._ref_next = 0.0           # when to (re)send the reference packet
         self.seq = 0
         self.tx_count = 0
         self.rx_count = 0
@@ -124,6 +151,29 @@ class Link:
         except OSError as exc:
             self.error = f"Send failed: {exc}"
 
+    # ---------------- reference values ----------------
+    def set_refs(self, refs):
+        """New reference values: bump ref_seq and send them on the next service_refs()."""
+        self.refs = refs
+        self.ref_seq = (self.ref_seq % 0xFFFF) + 1          # 1..65535, never 0
+        self._ref_next = 0.0
+
+    def refs_acked(self):
+        return self.ref_acked == self.ref_seq
+
+    def service_refs(self, now):
+        """Call every tick: (re)send the reference packet until the Pi acknowledges it."""
+        if self.refs_acked() or now < self._ref_next:
+            return
+        self._ref_next = now + REF_RESEND_S
+        self._send_ref(pack_reference(self.ref_seq, self.refs))
+
+    def _send_ref(self, pkt):
+        try:
+            self.tx.sendto(pkt, self.addr)      # not counted in tx_count: that is command packets only
+        except OSError as exc:
+            self.error = f"Send failed: {exc}"
+
     def poll(self):
         latest = None
         while True:
@@ -161,6 +211,8 @@ class Link:
                 self._loss_ref = (now, self.tx_count, rx_cmds)
         if isinstance(ack, int) and isinstance(rx_cmds, int):
             self._count_lost(now, ack, rx_cmds)
+        if "ref_ack" in msg:                       # Pi's last applied reference values (None after a restart)
+            self.ref_acked = msg["ref_ack"] if isinstance(msg["ref_ack"], int) else None
 
     def _count_lost(self, now, ack, rx_cmds):
         """Running count of command packets that never reached the Pi.
@@ -213,6 +265,13 @@ class DemoLink(Link):
         self._rng = random.Random()
         self._drop_left = 0
         self._next_drop = time.monotonic() + self._rng.uniform(6.0, 15.0)
+        self._pi_refs = RefValues()   # what the simulated Pi / STM32 is using
+        self._pi_ref_ack = None
+
+    def _send_ref(self, pkt):
+        magic, _, flags, ref_seq, surface, density = REF_STRUCT.unpack(pkt[:14])
+        self._pi_refs = RefValues(surface, "hPa", density, bool(flags & 1))
+        self._pi_ref_ack = ref_seq
 
     def _transmit(self, pkt):
         self.tx_count += 1
@@ -243,7 +302,7 @@ class DemoLink(Link):
         wob = lambda s, a: (math.sin(t * 0.7 + s) + 0.4 * math.sin(t * 1.9 + s * 2.3)) * a
         msg = {
             "depth_m": self.depth + wob(0.9, 0.02),
-            "pressure_kpa": 101.325 + self.depth * 10.05,
+            "pressure_kpa": self._pi_refs.surface_hpa / 10.0 + self._pi_refs.density * 9.80665 * self.depth / 1000.0,
             "water_c": 8.7 + wob(2.2, 0.15),
             "internal_c": self.temp,
             "roll": wob(1.1, 14.0) + (thr[0] - thr[1]) / 40.0,
@@ -253,6 +312,7 @@ class DemoLink(Link):
             "leak": False,
             "ack": seq,                 # last command received, as the real Pi reports it
             "rx_cmds": self.rx_cmds,
+            "ref_ack": self._pi_ref_ack,
         }
         self._account(msg)
         return msg

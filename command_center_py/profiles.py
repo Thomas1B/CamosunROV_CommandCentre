@@ -3,11 +3,14 @@
 File contents, e.g. vehicle_profiles/ROV-01.json:
     {"name": "ROV-01", "ip": "192.168.2.2", "cmd_port": 5600, "telem_port": 5601, "video_port": 5602}
 (video_port is optional; older profiles without it use VIDEO_PORT from config.py)
+Bar30 reference values are saved too (optional, defaults from config.py):
+    "surface_pressure_hpa": 1013.25, "surface_unit": "hPa", "water_density": 1000.0, "second_order": true
 """
 
 import json
 import re
 
+from command_center_py import reference
 from command_center_py.config import CMD_PORT, PROFILES_DIR, TELEM_PORT, VIDEO_PORT
 
 
@@ -29,6 +32,7 @@ def _read(path):
         "cmd_port": int(data.get("cmd_port", CMD_PORT)),
         "telem_port": int(data.get("telem_port", TELEM_PORT)),
         "video_port": int(data.get("video_port", VIDEO_PORT)),
+        "refs": reference.from_profile(data),
         "_path": path,
     }
 
@@ -45,12 +49,13 @@ def load_profiles():
     return sorted(found.values(), key=lambda p: p["name"].lower())
 
 
-def save_profile(name, ip, cmd_port, telem_port, video_port=VIDEO_PORT):
+def save_profile(name, ip, cmd_port, telem_port, video_port=VIDEO_PORT, refs=None):
     """Create or overwrite the profile called name. Raises OSError if it can't be written."""
     delete_profile(name)                       # drop any older file holding this name
     PROFILES_DIR.mkdir(parents=True, exist_ok=True)
     data = {"name": name, "ip": ip, "cmd_port": int(cmd_port), "telem_port": int(telem_port),
             "video_port": int(video_port)}
+    data.update((refs or reference.RefValues()).to_profile())
     _file_for(name).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 

@@ -29,6 +29,7 @@ from command_center_py.config import (APP_BUILD, APP_VERSION, ARM_HOLD_S, CMD_PO
 from command_center_py.link import Link, check_ipv4, check_port
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD,
                                         LABEL, MUTED, OFF, PANEL, SANS, WELL, lab, mono)
+from command_center_py.ui.reference_fields import RefFields
 from command_center_py.ui.widgets import CONTROLLER_MAPS, LAYOUT, controller_map_body, key_chip
 
 try:
@@ -265,6 +266,8 @@ class ConnectCard(Card):
         "badip":      ("Enter a valid IPv4 address, e.g. 192.168.2.2", DANGER, RED_DOT),
         "badport":    ("Ports must be 1–65535", DANGER, RED_DOT),
         "sameport":   ("Command, telemetry and video ports must all differ", DANGER, RED_DOT),
+        "badref":     ("Surface pressure must be 800–1100 hPa (80–110 kPa) and water density 900–1100 kg/m³",
+                       DANGER, RED_DOT),
         "noname":     ("Enter a vehicle name to save a profile", DANGER, RED_DOT),
         "saved":      ('Profile "{name}" saved', ACCENT, ACCENT),
         "loaded":     ('Profile "{name}" loaded', ACCENT, ACCENT),
@@ -357,6 +360,11 @@ class ConnectCard(Card):
         ports.setColumnStretch(1, 1)
         v.addLayout(ports)
 
+        # Bar30 reference values: surface pressure, water density, second-order cal
+        self.ref_fields = RefFields(self.SCALE)
+        self.ref_fields.edited.connect(lambda: self._set("idle"))
+        v.addWidget(self.ref_fields)
+
         msg = QHBoxLayout()
         msg.setContentsMargins(0, s(10), 0, 0)
         msg.setSpacing(s(8))
@@ -441,7 +449,7 @@ class ConnectCard(Card):
                 self.vid_edit.text().strip())
 
     def _validate(self):
-        """Return (ip, cmd_port, telem_port, video_port) or None after showing what's wrong."""
+        """Return (ip, cmd_port, telem_port, video_port, refs) or None after showing what's wrong."""
         _, ip_text, cmd_text, tel_text, vid_text = self._values()
         ip, _err = check_ipv4(ip_text)
         if ip is None:
@@ -454,7 +462,11 @@ class ConnectCard(Card):
         if len({cmd, tel, vid}) < 3:
             self._set("sameport")
             return None
-        return ip, cmd, tel, vid
+        refs, err = self.ref_fields.values()
+        if err:
+            self._set("badref")
+            return None
+        return ip, cmd, tel, vid, refs
 
     def _refresh(self, *_):
         s = self._s
@@ -480,6 +492,7 @@ class ConnectCard(Card):
             e.setEnabled(not busy)
         self.profile_box.setEnabled(not busy and bool(self.profiles))
         self.save_btn.setEnabled(not busy)
+        self.ref_fields.setEnabled(not busy)
 
         self.conn_btn.setText("CONNECTING…" if busy else "RETRY" if self.state == "timeout" else "CONNECT")
         self.conn_fx.setOpacity(0.7 if busy else 1.0)
@@ -509,6 +522,7 @@ class ConnectCard(Card):
             self.cmd_edit.setText(str(p["cmd_port"]))
             self.tel_edit.setText(str(p["telem_port"]))
             self.vid_edit.setText(str(p["video_port"]))
+            self.ref_fields.set_values(p["refs"])
             self._set("loaded")
 
     def save_profile(self):
@@ -539,8 +553,8 @@ class ConnectCard(Card):
         vals = self._validate()
         if vals is None:
             return
-        ip, cmd, tel, vid = vals
-        link = Link(ip, cmd, tel, vid)
+        ip, cmd, tel, vid, refs = vals
+        link = Link(ip, cmd, tel, vid, refs)
         if link.error:                       # e.g. telemetry port already in use
             link.close()
             self._set("error", link.error)

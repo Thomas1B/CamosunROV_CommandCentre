@@ -36,6 +36,13 @@ TILT_MIN, TILT_MAX = -45, 45   # camera servo limits in degrees - match the Pi/s
 TILT_STEP = 5
 ARM_HOLD_S = 1.0
 LINK_TIMEOUT_S = 1.0
+# Bar30 reference values - defaults for the CONNECT dialog (same as the STM32 firmware #defines).
+# The console sends them to the Pi, which passes them to the STM32. See reference.py.
+SURFACE_PRESSURE_HPA = 1013.25   # surface barometric pressure reference, hPa (= mbar)
+WATER_DENSITY = 1000.0           # kg/m^3: 1000 fresh water, ~1025 sea water
+SECOND_ORDER_CAL = True          # Bar30 second-order pressure calibration for water below 20 C
+REF_RESEND_S = 1.0               # resend the reference values this often until the Pi acknowledges them
+
 # DEMO MODE extras
 DEMO_SIM_PAD = True          # no controller plugged in -> a simulated one drives the demo vehicle
 DEMO_PACKET_LOSS = True      # the demo link drops a short burst of command packets every 6-15 s
