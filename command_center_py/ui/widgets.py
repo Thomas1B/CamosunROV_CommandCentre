@@ -6,7 +6,7 @@ from PySide6.QtGui import (QColor, QFont, QLinearGradient, QPainter, QPainterPat
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QVBoxLayout, QWidget)
 
-from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, TILT_MIN, TILT_MAX, ZERO_HOLD_S
+from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, TILT_MIN, TILT_MAX, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S
 from command_center_py.ui.theme import (PANEL, HEAD, WELL, BORDER, BORDER2, GRID, TEXT, BRIGHT,
                           MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, VALUE_PX, UNIT_PX, fs, mono, lab)
 
@@ -358,7 +358,8 @@ class Chip(QLabel):
 class MetricCard(QFrame):
     """Telemetry value card with an SI / IMP toggle.
 
-    on_zero: if given, the card also gets a ZERO chip (used by DEPTH) - see set_zero().
+    on_zero: (on_press, on_release) - if given, the card also gets a ZERO chip (used by DEPTH),
+             wired to the button's pressed / released signals so it can be held. See set_zero().
     """
     def __init__(self, name, on_toggle, on_zero=None):
         super().__init__()
@@ -378,7 +379,8 @@ class MetricCard(QFrame):
             self.zero_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             self.zero_btn.setFixedHeight(18)
             self.zero_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            self.zero_btn.clicked.connect(on_zero)
+            self.zero_btn.pressed.connect(on_zero[0])
+            self.zero_btn.released.connect(on_zero[1])
             top.addWidget(self.zero_btn)
             top.addSpacing(4)
         self.btn = QPushButton("SI")
@@ -404,8 +406,8 @@ class MetricCard(QFrame):
         self._zero_state = (active, round(progress, 2), hold_btn)
         self.zero_btn.setText("REL" if active else "ZERO")
         self.zero_btn.setToolTip(
-            f"Depth is relative to the zero point — click (or hold {hold_btn} {ZERO_HOLD_S:.0f} s) to clear"
-            if active else f"Zero depth here — click, or hold {hold_btn} {ZERO_HOLD_S:.0f} s")
+            f"Depth is relative to the zero point — click (or hold {hold_btn} {ZERO_CLEAR_HOLD_S:.0f} s) to clear"
+            if active else f"Hold {ZERO_HOLD_S:.0f} s (here or {hold_btn}) to zero depth — the depth is averaged over the hold")
         if progress > 0:
             p = max(0.001, min(0.999, progress))
             bg = (f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2a6f5c, stop:{p:.3f} #2a6f5c, "
@@ -516,7 +518,7 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
         ("CONSOLE", [
             ([m["tri"]], "Toggle SI / imperial units", None),
             ([m["sq"]], "Operator mark in log", None),
-            ([m["cross"]], f"Hold {ZERO_HOLD_S:.0f} s to zero depth · hold again to clear", None),
+            ([m["cross"]], f"Hold {ZERO_HOLD_S:.0f} s to zero depth (averaged) · {ZERO_CLEAR_HOLD_S:.0f} s to clear", None),
         ]),
     ]
     for i, (name, rows) in enumerate(sections):

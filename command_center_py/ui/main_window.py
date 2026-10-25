@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
                                QVBoxLayout, QWidget)
 
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
-                        TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, REQUIRE_LINK_TO_ARM,
+                        TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, REQUIRE_LINK_TO_ARM,
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD)
 from command_center_py.demo_pad import DemoPad
 from command_center_py.mixer import mix
@@ -66,7 +66,10 @@ class ConsoleWindow(QMainWindow):
         self.arm_hold_start = None
         self.btn_hold_start = None           # on-screen ARM button held (hold ARM_HOLD_S to arm)
         self.tare = None                 # depth (m) taken as zero, or None = true depth (display only)
-        self.zero_hold_start = None
+        self.zero_hold_start = None          # zeroing hold in progress (monotonic start time)
+        self.zero_hold_src = None            # "pad" or "button" - which one has to stay held
+        self.zero_samples = []               # depth readings recorded during the hold
+        self.clear_hold_start = None         # CROSS / A hold to clear the zero
         self.repeat_at = {}
         self.was_connected = False
         self.was_linked = False
@@ -419,7 +422,7 @@ class ConsoleWindow(QMainWindow):
         for i, (key, name) in enumerate([("depth", "DEPTH"), ("pressure", "PRESSURE"),
                                          ("water", "WATER TEMP"), ("internal", "INTERNAL TEMP")]):
             card = MetricCard(name, self.refresh_units,
-                              on_zero=(lambda: self.toggle_zero("console button")) if key == "depth" else None)
+                              on_zero=(self._zero_btn_pressed, self._zero_btn_released) if key == "depth" else None)
             self.metrics[key] = card
             g.addWidget(card, i // 2, i % 2)
         v.addWidget(grid)
@@ -564,20 +567,59 @@ class ConsoleWindow(QMainWindow):
     def _arm_released(self):
         self.btn_hold_start = None
 
-    def toggle_zero(self, source):
-        """Depth zero (tare). Display only: the reference values, Pi and STM32 keep true depth,
-        so auto depth control and limits are unaffected. Cleared when this console window closes."""
-        if self.tare is None:
-            d = self._num("depth_m")
-            if d is None:
-                self.log("DENY", "Can't zero depth — no depth reading yet", WARN)
-                return
-            self.tare = d
-            self.log("DEPTH", f"Depth zeroed at {d:.2f} m ({source})", WARN)
-        else:
-            self.tare = None
-            self.log("DEPTH", f"Depth zero cleared — showing true depth ({source})", MUTED)
+    # ---- depth zero (tare) ----------------------------------------------------------------
+    # Display only: the reference values, Pi and STM32 keep true depth, so auto depth control
+    # and limits are unaffected. Cleared when this console window closes.
+    # Zeroing: hold CROSS / A or the ZERO chip for ZERO_HOLD_S; every depth reading during the
+    # hold is recorded and their average becomes the zero. Releasing early cancels.
+    # Clearing: click REL, or hold CROSS / A for ZERO_CLEAR_HOLD_S.
+
+    def start_zero(self, src, now):
+        if self.tare is not None or self.zero_hold_start is not None:
+            return
+        self.zero_hold_start, self.zero_hold_src, self.zero_samples = now, src, []
+
+    def cancel_zero(self, src):
+        if self.zero_hold_start is None or self.zero_hold_src != src:
+            return
+        self.zero_hold_start, self.zero_hold_src, self.zero_samples = None, None, []
+        self.log("DEPTH", f"Depth zero cancelled — released before {ZERO_HOLD_S:.0f} s", MUTED)
+
+    def _service_zero(self, now):
+        """Called every tick after telemetry: record depth while held, finish after ZERO_HOLD_S."""
+        if self.zero_hold_start is None:
+            return
+        d = self._num("depth_m")
+        if d is not None:
+            self.zero_samples.append(d)
+        if now - self.zero_hold_start < ZERO_HOLD_S:
+            return
+        samples, src = self.zero_samples, self.zero_hold_src
+        self.zero_hold_start, self.zero_hold_src, self.zero_samples = None, None, []
+        if not samples:
+            self.log("DENY", "Can't zero depth — no depth readings during the hold", WARN)
+            return
+        self.tare = sum(samples) / len(samples)
+        who = f"{self.k['cross']} held" if src == "pad" else "console button held"
+        self.log("DEPTH", f"Depth zeroed at {self.tare:.2f} m — average of {len(samples)} readings "
+                          f"over {ZERO_HOLD_S:.0f} s ({who})", WARN)
         self._update_metrics()
+
+    def clear_zero(self, source):
+        if self.tare is None:
+            return
+        self.tare = None
+        self.log("DEPTH", f"Depth zero cleared — showing true depth ({source})", MUTED)
+        self._update_metrics()
+
+    def _zero_btn_pressed(self):
+        if self.tare is not None:
+            self.clear_zero("console button")
+        else:
+            self.start_zero("button", time.monotonic())
+
+    def _zero_btn_released(self):
+        self.cancel_zero("button")
 
     def refresh_units(self):
         self._update_metrics()
@@ -645,6 +687,7 @@ class ConsoleWindow(QMainWindow):
         tel = self.link.poll()
         if tel:
             self.tel.update(tel)
+        self._service_zero(now)              # depth zero: record / average readings while held
         self._failsafes(now)
 
     def print_lost_packets(self):
@@ -667,7 +710,8 @@ class ConsoleWindow(QMainWindow):
             self.log("PAD", "Controller disconnected", WARN)
             self.disarm("controller lost", "FAIL", WARN)
             self.arm_hold_start = None
-            self.zero_hold_start = None
+            self.cancel_zero("pad")
+            self.clear_hold_start = None
         self.was_connected = pad.connected
         if not pad.connected:
             self.prev_buttons = {}
@@ -709,13 +753,18 @@ class ConsoleWindow(QMainWindow):
             for c in self.metrics.values():
                 c.set_imperial(imp)
             self._update_metrics()
-        if pressed("cross"):                 # hold CROSS / A to zero depth, hold again to clear
-            self.zero_hold_start = now
+        # CROSS / A: hold ZERO_HOLD_S to zero depth (averaged), or ZERO_CLEAR_HOLD_S to clear it
+        if pressed("cross"):
+            if self.tare is None:
+                self.start_zero("pad", now)
+            else:
+                self.clear_hold_start = now
         if not pad.down("cross"):
-            self.zero_hold_start = None
-        elif self.zero_hold_start is not None and now - self.zero_hold_start >= ZERO_HOLD_S:
-            self.zero_hold_start = None
-            self.toggle_zero(f"{self.k['cross']} held")
+            self.cancel_zero("pad")
+            self.clear_hold_start = None
+        elif self.clear_hold_start is not None and now - self.clear_hold_start >= ZERO_CLEAR_HOLD_S:
+            self.clear_hold_start = None
+            self.clear_zero(f"{self.k['cross']} held")
         if pressed("square"):
             d = self._num("depth_m")
             rel = f" (rel {d - self.tare:.2f} m)" if (d is not None and self.tare is not None) else ""
@@ -769,7 +818,7 @@ class ConsoleWindow(QMainWindow):
         c2f = lambda c: None if c is None else c * 9 / 5 + 32
         dc = self.metrics["depth"]
         rd = None if d is None else (d - self.tare if self.tare is not None else d)   # zeroed depth
-        dc.set(f(rd, ".2f"), "m", f(None if rd is None else rd * 3.28084, ".1f"), "ft")
+        dc.set(f(rd, ".1f"), "m", f(None if rd is None else rd * 3.28084, ".1f"), "ft")
         self.metrics["pressure"].set(f(p, ".1f"), "kPa", f(None if p is None else p * 0.145038, ".1f"), "psi")
         self.metrics["water"].set(f(wt, ".1f"), "°C", f(c2f(wt), ".1f"), "°F")
         self.metrics["internal"].set(f(it, ".1f"), "°C", f(c2f(it), ".1f"), "°F",
@@ -868,9 +917,11 @@ class ConsoleWindow(QMainWindow):
 
         # video frame + HUD
         self._update_video(now)
-        zh = 0.0
+        zh = 0.0                             # chip loading bar: zeroing (5 s) or clearing (1 s) hold
         if self.zero_hold_start is not None:
             zh = min(1.0, (now - self.zero_hold_start) / ZERO_HOLD_S)
+        elif self.clear_hold_start is not None:
+            zh = min(1.0, (now - self.clear_hold_start) / ZERO_CLEAR_HOLD_S)
         self.metrics["depth"].set_zero(self.tare is not None, zh, self.k["cross"])
         imp = self.metrics["depth"].imperial
         d = self._num("depth_m")

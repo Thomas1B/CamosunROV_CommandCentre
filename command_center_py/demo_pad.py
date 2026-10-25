@@ -12,7 +12,7 @@ Script (matches the UI design's simulated input):
                        D-pad up x3 at 12 s, down x3 at 27 s (camera tilt)
                        SQUARE at 17 s (operator mark)
                        TRIANGLE at 31 s and 35 s (units on / off)
-                       CROSS held 5-6.5 s (zero / clear depth)
+                       CROSS held 5-10.5 s (zero depth, 5 s averaged), again 36-37.5 s (clear)
     when disarmed .... (E-STOP, START tap, menu) centre the sticks, wait 2 s,
                        hold START to re-arm
 """
@@ -78,7 +78,7 @@ class DemoPad:
             b["down"] = any(tap(p, a) for a in (27.0, 27.6, 28.2))
             b["square"] = tap(p, 17.0)
             b["triangle"] = tap(p, 31.0) or tap(p, 35.0)
-            b["cross"] = 5.0 <= p < 6.5
+            b["cross"] = 5.0 <= p < 10.5 or 36.0 <= p < 37.5
 
         return PadState(connected=True, name=self.name, mode="SDL",
                         lx=lx, ly=ly, rx=rx, ry=0.0, l2=l2, r2=r2, buttons=b)
