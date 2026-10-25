@@ -209,11 +209,15 @@ class ReferenceDialog(QDialog):
         head.setObjectName("refHead")
         head.setStyleSheet(f"QFrame#refHead {{ background: {HEAD}; border-bottom: 1px solid {BORDER}; }}")
         hh = QHBoxLayout(head)
-        hh.setContentsMargins(s(14), s(8), s(8), s(8))
-        hh.addWidget(lab("Reference Values", s(13), SOFT, QFont.Weight.Bold), 1)
+        hh.setContentsMargins(s(16), s(12), s(12), s(12))      # same header as CONNECT VEHICLE
+        title = lab("REFERENCE VALUES", s(14), BRIGHT, QFont.Weight.Bold)
+        tf = title.font()
+        tf.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, s(14) * 0.06)
+        title.setFont(tf)
+        hh.addWidget(title, 1)
         x = QPushButton("✕")
-        x.setFixedSize(s(22), s(22))
-        x.setFont(mono(s(12)))
+        x.setFixedSize(s(24), s(24))
+        x.setFont(mono(round(s(24) * 0.54)))
         x.setCursor(Qt.CursorShape.PointingHandCursor)
         x.setStyleSheet(f"QPushButton {{ border: none; border-radius: 2px; color: {LABEL}; background: transparent; }}"
                         f"QPushButton:hover {{ background: {BORDER}; color: {BRIGHT}; }}")
@@ -223,16 +227,16 @@ class ReferenceDialog(QDialog):
 
         body = QWidget()
         bv = QVBoxLayout(body)
-        bv.setContentsMargins(s(14), s(14), s(14), s(6))
-        bv.setSpacing(s(12))
+        bv.setContentsMargins(s(16), s(16), s(16), s(6))
+        bv.setSpacing(s(14))
         note = lab("Used by the Bar30 depth / pressure calculation. Sent to the Pi, which passes them "
-                   "to the STM32.", s(10), LABEL)
+                   "to the STM32.", s(11), LABEL)
         note.setWordWrap(True)
         bv.addWidget(note)
-        self.fields = RefFields(scale, refs)
+        self.fields = RefFields(scale, refs, label_color=BRIGHT)
         self.fields.edited.connect(lambda: self.err.setText(""))
         bv.addWidget(self.fields)
-        self.err = lab("", s(10), DANGER)
+        self.err = lab("", s(11), DANGER)
         self.err.setWordWrap(True)
         self.err.setMinimumHeight(s(16))
         bv.addWidget(self.err)
@@ -242,7 +246,7 @@ class ReferenceDialog(QDialog):
         foot.setObjectName("refFoot")
         foot.setStyleSheet(f"QFrame#refFoot {{ background: #0a0e13; border-top: 1px solid {BORDER}; }}")
         fh = QHBoxLayout(foot)
-        fh.setContentsMargins(s(14), s(10), s(14), s(10))
+        fh.setContentsMargins(s(16), s(10), s(16), s(10))
         fh.setSpacing(s(8))
 
         def btn(text, width, css, hover):
@@ -254,17 +258,20 @@ class ReferenceDialog(QDialog):
             b.setStyleSheet(f"QPushButton {{ {css} }} QPushButton:hover {{ {hover} }}")
             return b
 
-        defaults = btn("DEFAULTS", None, f"padding: {s(6)}px {s(10)}px; border: none; background: transparent; color: {LABEL};",
+        defaults = btn("DEFAULTS", None, f"padding: {s(7)}px {s(10)}px; border: none; background: transparent; color: {LABEL};",
                        f"color: {BRIGHT};")
         defaults.clicked.connect(lambda: self.fields.set_values(RefValues()))
         fh.addWidget(defaults)
         fh.addStretch(1)
-        cancel = btn("CANCEL", 84, f"padding: {s(6)}px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {SOFT};",
+        cancel = btn("CANCEL", 84, f"padding: {s(7)}px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {SOFT};",
                      f"color: {BRIGHT};")
         cancel.clicked.connect(self.reject)
         fh.addWidget(cancel)
-        apply = btn("APPLY", 92, f"padding: {s(6)}px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
+        apply = btn("APPLY", 120, f"padding: {s(7)}px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
                     f"border-color: {ACCENT}; color: #5ee7c1;")
+        af = apply.font()
+        af.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, s(11) * 0.06)
+        apply.setFont(af)
         apply.setDefault(True)
         apply.clicked.connect(self._apply)
         fh.addWidget(apply)

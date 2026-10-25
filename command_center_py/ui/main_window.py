@@ -64,6 +64,7 @@ class ConsoleWindow(QMainWindow):
         self.tel = {}
         self.prev_buttons = {}
         self.arm_hold_start = None
+        self.btn_hold_start = None           # on-screen ARM button held (hold ARM_HOLD_S to arm)
         self.tare = None                 # depth (m) taken as zero, or None = true depth (display only)
         self.zero_hold_start = None
         self.repeat_at = {}
@@ -221,7 +222,8 @@ class ConsoleWindow(QMainWindow):
         self.arm_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.arm_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.arm_btn.setMinimumWidth(fs(150))
-        self.arm_btn.clicked.connect(self.toggle_arm_click)
+        self.arm_btn.pressed.connect(self._arm_pressed)     # hold to arm, tap to disarm
+        self.arm_btn.released.connect(self._arm_released)
         h.addWidget(self.arm_btn)
         self._arm_style = None
 
@@ -541,15 +543,26 @@ class ConsoleWindow(QMainWindow):
         was = self.armed
         self.armed = False
         self.arm_hold_start = None
+        self.btn_hold_start = None
         self.throttles = [0] * 6
         self.link.send(False, self.throttles, self.tilt)   # send zero frame immediately
         self.log("ESTOP", f"E-STOP from {source}" + ("" if was else " (already disarmed)"), DANGER)
 
     def toggle_arm_click(self):
+        """Vehicle ▸ Arm / Disarm: disarms; arming needs a 1 s hold (ARM button or START)."""
+        if self.armed:
+            self.disarm("menu")
+        else:
+            self.log("DENY", f"To arm, hold the ARM button or {self.k['start']} for {ARM_HOLD_S:.0f} s", WARN)
+
+    def _arm_pressed(self):
         if self.armed:
             self.disarm("console button")
         else:
-            self.try_arm("console button")
+            self.btn_hold_start = time.monotonic()
+
+    def _arm_released(self):
+        self.btn_hold_start = None
 
     def toggle_zero(self, source):
         """Depth zero (tare). Display only: the reference values, Pi and STM32 keep true depth,
@@ -622,6 +635,10 @@ class ConsoleWindow(QMainWindow):
         now = time.monotonic()
         pad = self.pad.snapshot()
         self._handle_pad(pad, now)
+        if (self.btn_hold_start is not None and not self.armed
+                and now - self.btn_hold_start >= ARM_HOLD_S):
+            self.btn_hold_start = None
+            self.try_arm("console button held")
         self.throttles = self._mix(pad) if (self.armed and pad.connected) else [0] * 6
         self.link.send(self.armed, self.throttles, self.tilt)
         self.link.service_refs(now)          # reference values -> Pi, resent until acknowledged
@@ -784,8 +801,9 @@ class ConsoleWindow(QMainWindow):
             self.pad_lbl.setText(f'<span style="color:#7c8b9c">GAMEPAD </span><b style="color:{DANGER}">NOT FOUND</b>')
 
         hold = 0.0
-        if self.arm_hold_start is not None and not self.armed:
-            hold = min(1.0, (now - self.arm_hold_start) / ARM_HOLD_S)
+        starts = [t for t in (self.arm_hold_start, self.btn_hold_start) if t is not None]
+        if starts and not self.armed:
+            hold = min(1.0, (now - min(starts)) / ARM_HOLD_S)
         style = ("armed" if self.armed else "disarmed")
         if style != self._arm_style:
             self._arm_style = style

@@ -397,7 +397,8 @@ class MetricCard(QFrame):
         self.set_zero(False, 0.0)
 
     def set_zero(self, active, progress, hold_btn="✕"):
-        """ZERO chip: grey 'ZERO' normally, amber 'REL' while zeroed; fills while the button is held."""
+        """ZERO chip: same look as the SI / IMP chip; only the label changes (ZERO / REL).
+        progress (0..1, the CROSS / A hold) fills the chip left to right like a loading bar."""
         if self.zero_btn is None or (active, round(progress, 2), hold_btn) == self._zero_state:
             return
         self._zero_state = (active, round(progress, 2), hold_btn)
@@ -405,17 +406,16 @@ class MetricCard(QFrame):
         self.zero_btn.setToolTip(
             f"Depth is relative to the zero point — click (or hold {hold_btn} {ZERO_HOLD_S:.0f} s) to clear"
             if active else f"Zero depth here — click, or hold {hold_btn} {ZERO_HOLD_S:.0f} s")
-        border = "#7a6331" if (active or progress > 0) else BORDER2
         if progress > 0:
             p = max(0.001, min(0.999, progress))
-            bg = (f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4a3d1f, stop:{p:.3f} #4a3d1f, "
+            bg = (f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2a6f5c, stop:{p:.3f} #2a6f5c, "
                   f"stop:{p + 0.001:.3f} {HEAD}, stop:1 {HEAD})")
         else:
-            bg = "#2a2414" if active else HEAD
+            bg = HEAD
         self.zero_btn.setStyleSheet(
-            f"QPushButton {{ padding: 0 6px; border: 1px solid {border}; border-radius: 3px; background: {bg}; "
-            f"color: {WARN if active else '#7c8b9c'}; }}"
-            f"QPushButton:hover {{ border-color: {WARN}; color: {BRIGHT}; }}")
+            f"QPushButton {{ padding: 0 6px; border: 1px solid {BORDER2}; border-radius: 3px; background: {bg};"
+            f" color: {TEXT if progress > 0 else '#7c8b9c'}; }}"
+            f"QPushButton:hover {{ border-color: {ACCENT}; color: {BRIGHT}; }}")
 
 
     def set_imperial(self, imp):
