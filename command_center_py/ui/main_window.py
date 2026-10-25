@@ -287,7 +287,7 @@ class ConsoleWindow(QMainWindow):
         top = QHBoxLayout()
         top.addWidget(lab("Camera Tilt", fs(11), DIM))
         top.addStretch(1)
-        self.tilt_lbl = lab("+0°", fs(16), WARN, QFont.Weight.Bold)
+        self.tilt_lbl = lab("+0°", fs(16), TEXT, QFont.Weight.Bold)
         top.addWidget(self.tilt_lbl)
         cv.addLayout(top)
         self.tilt_bar = BipolarBar(10)
@@ -752,7 +752,7 @@ class ConsoleWindow(QMainWindow):
         c2f = lambda c: None if c is None else c * 9 / 5 + 32
         dc = self.metrics["depth"]
         rd = None if d is None else (d - self.tare if self.tare is not None else d)   # zeroed depth
-        dc.set(f(rd, ".2f"), "m", f(None if rd is None else rd * 3.28084, ".1f"), "ft")
+        dc.set(f(rd, ".1f"), "m", f(None if rd is None else rd * 3.28084, ".1f"), "ft")
         self.metrics["pressure"].set(f(p, ".1f"), "kPa", f(None if p is None else p * 0.145038, ".1f"), "psi")
         self.metrics["water"].set(f(wt, ".1f"), "°C", f(c2f(wt), ".1f"), "°F")
         self.metrics["internal"].set(f(it, ".1f"), "°C", f(c2f(it), ".1f"), "°F",
