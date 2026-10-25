@@ -535,12 +535,13 @@ class ConsoleWindow(QMainWindow):
             self.log("DENY", "Arm refused — no telemetry link to the Pi", WARN)
             return
         self.armed = True
-        self.log("ARM", f"Thrusters ARMED ({source})", ACCENT)
+        self.log("ARM", "Thrusters ARMED", ACCENT)
 
     def disarm(self, reason, tag="ARM", color=MUTED):
         if self.armed:
             self.armed = False
-            self.log(tag, f"Thrusters disarmed — {reason}", color)
+            # the log says what happened, not where it came from; failsafe disarms keep their cause
+            self.log(tag, "Thrusters disarmed" + ("" if tag == "ARM" else f" — {reason}"), color)
 
     def estop(self, source):
         was = self.armed
@@ -549,7 +550,7 @@ class ConsoleWindow(QMainWindow):
         self.btn_hold_start = None
         self.throttles = [0] * 6
         self.link.send(False, self.throttles, self.tilt)   # send zero frame immediately
-        self.log("ESTOP", f"E-STOP from {source}" + ("" if was else " (already disarmed)"), DANGER)
+        self.log("ESTOP", "E-STOP" + ("" if was else " (already disarmed)"), DANGER)
 
     def toggle_arm_click(self):
         """Vehicle ▸ Arm / Disarm: disarms; arming needs a 1 s hold (ARM button or START)."""
@@ -600,16 +601,15 @@ class ConsoleWindow(QMainWindow):
             self.log("DENY", "Can't zero depth — no depth readings during the hold", WARN)
             return
         self.tare = sum(samples) / len(samples)
-        who = f"{self.k['cross']} held" if src == "pad" else "console button held"
         self.log("DEPTH", f"Depth zeroed at {self.tare:.2f} m — average of {len(samples)} readings "
-                          f"over {ZERO_HOLD_S:.0f} s ({who})", WARN)
+                          f"over {ZERO_HOLD_S:.0f} s", WARN)
         self._update_metrics()
 
     def clear_zero(self, source):
         if self.tare is None:
             return
         self.tare = None
-        self.log("DEPTH", f"Depth zero cleared — showing true depth ({source})", MUTED)
+        self.log("DEPTH", "Depth zero cleared — showing true depth", MUTED)
         self._update_metrics()
 
     def _zero_btn_pressed(self):
@@ -767,8 +767,9 @@ class ConsoleWindow(QMainWindow):
             self.clear_zero(f"{self.k['cross']} held")
         if pressed("square"):
             d = self._num("depth_m")
-            rel = f" (rel {d - self.tare:.2f} m)" if (d is not None and self.tare is not None) else ""
-            self.log("MARK", "Operator mark" + (f" @ {d:.2f} m{rel}" if d is not None else ""), BLUE)
+            r1 = lambda v: round(v, 1) + 0.0          # 1 decimal; + 0.0 turns -0.0 into 0.0
+            rel = f" (rel {r1(d - self.tare):.1f} m)" if (d is not None and self.tare is not None) else ""
+            self.log("MARK", "Operator mark" + (f" @ {r1(d):.1f} m{rel}" if d is not None else ""), BLUE)
 
         self.prev_buttons = dict(pad.buttons)
 
