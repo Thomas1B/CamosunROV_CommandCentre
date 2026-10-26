@@ -452,13 +452,17 @@ class StatusRow(QFrame):
         h.addWidget(self.val)
         self._last = None
 
-    def set(self, value, color):
-        if (value, color) == self._last:
+    def set(self, value, color, alpha=1.0):
+        """alpha (0..1) fades the value text only, e.g. to pulse LEAK; the dot stays solid."""
+        alpha = round(alpha, 2)
+        if (value, color, alpha) == self._last:
             return
-        self._last = (value, color)
+        self._last = (value, color, alpha)
         self.dot.setStyleSheet(f"background: {color}; border-radius: 3px;")
         self.val.setText(value)
-        self.val.setStyleSheet(f"color: {color}; background: transparent;")
+        c = QColor(color)
+        self.val.setStyleSheet(f"color: rgba({c.red()}, {c.green()}, {c.blue()}, {round(alpha * 255)});"
+                               " background: transparent;")
 
 
 # ============================================================================

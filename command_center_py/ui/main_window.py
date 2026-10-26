@@ -967,7 +967,11 @@ class ConsoleWindow(QMainWindow):
         if not linked or leak is None:
             self.st_leak.set("NO DATA", MUTED)
         else:
-            self.st_leak.set("LEAK" if leak else "DRY", DANGER if leak else ACCENT)
+            if leak:                         # LEAK fades in and out (T s cycle, 25-100 %)
+                pulse = 0.625 + 0.375 * math.cos(2 * math.pi * now / 2)
+                self.st_leak.set("LEAK", DANGER, pulse)
+            else:
+                self.st_leak.set("DRY", ACCENT)
         self.st_link.set("UP" if linked else "DOWN", ACCENT if linked else DANGER)
         self.st_pad.set(("OK" if pad.mode == "SDL" else "RAW") if pad.connected else "MISSING",
                         (ACCENT if pad.mode == "SDL" else WARN) if pad.connected else DANGER)
