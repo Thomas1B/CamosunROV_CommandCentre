@@ -272,10 +272,15 @@ class ReferenceDialog(QDialog):
         af = apply.font()
         af.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, s(11) * 0.06)
         apply.setFont(af)
-        apply.setDefault(True)
         apply.clicked.connect(self._apply)
         fh.addWidget(apply)
         root.addWidget(foot)
+        # No keyboard path to APPLY (it sends the values to the ROV): no default button, and
+        # no button takes focus, so Enter / Space can't click one. Esc still cancels.
+        for b in (defaults, cancel, apply):
+            b.setAutoDefault(False)
+            b.setDefault(False)
+            b.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
     def _apply(self):
         refs, err = self.fields.values()

@@ -605,11 +605,10 @@ class ConnectCard(Card):
         self._on_close()
 
     def key(self, e):
+        # Esc cancels. There is deliberately no Enter = CONNECT: connecting starts sending
+        # command packets to the ROV, so it is mouse (CONNECT button) or controller (CROSS) only.
         if e.key() == Qt.Key.Key_Escape:
             self.cancel()
-            return True
-        if e.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and not self.profile_box.view().isVisible():
-            self.connect_vehicle()
             return True
         return False
 

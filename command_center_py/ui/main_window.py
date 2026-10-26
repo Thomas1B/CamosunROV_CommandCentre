@@ -103,9 +103,9 @@ class ConsoleWindow(QMainWindow):
         if self.link.error:
             self.log("WARN", self.link.error, WARN)
 
+        # SPACE = E-STOP is the ONLY keyboard input that acts on the vehicle. Everything else that
+        # controls or sends anything to the ROV is controller or mouse only - don't add key shortcuts.
         QShortcut(QKeySequence(Qt.Key.Key_Space), self, activated=lambda: self.estop("keyboard SPACE"))
-        if hasattr(self.link, "toggle_leak"):  # demo only: L makes the simulated leak sensor wet / dry
-            QShortcut(QKeySequence(Qt.Key.Key_L), self, activated=self._demo_toggle_leak)
 
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
@@ -173,6 +173,9 @@ class ConsoleWindow(QMainWindow):
         a = QAction("E-STOP\tSpace", self)
         a.triggered.connect(lambda: self.estop("menu"))
         m.addAction(a)
+        if hasattr(self.link, "toggle_leak"):  # demo only: make the simulated leak sensor wet / dry
+            m = mb.addMenu("Demo")
+            m.addAction("Toggle Simulated Leak", self._demo_toggle_leak)
         m = mb.addMenu("Help")
         m.addAction("Dualshock3 Map", lambda: self.show_controller_map("ds3"))
         m.addAction("Xbox Map", lambda: self.show_controller_map("xbox"))
@@ -746,8 +749,14 @@ class ConsoleWindow(QMainWindow):
         if pad.connected and not self.was_connected:
             self.log("PAD", f"Controller connected — {pad.name} [{pad.mode}]", ACCENT)
         if not pad.connected and self.was_connected:
+            # Controller lost: disarm and, like E-STOP, send a zero-thrust frame straight away
+            # rather than waiting for the next tick. The camera tilt stays where it is - the
+            # D-pad is the only tilt input, so it can't change until the controller is back.
             self.log("PAD", "Controller disconnected", WARN)
             self.disarm("controller lost", "FAIL", WARN)
+            self.btn_hold_start = None
+            self.throttles = [0] * 6
+            self.link.send(False, self.throttles, self.tilt)
             self.arm_hold_start = None
             self.cancel_zero("pad")
             self.clear_hold_start = None
@@ -773,20 +782,26 @@ class ConsoleWindow(QMainWindow):
             self.arm_hold_start = None
             self.try_arm(f"{self.k['start']} held")
 
+        # Camera tilt and thrust gain only work while ARMED. After an E-STOP or any other disarm
+        # (START tap, controller lost, link lost, leak) they are locked until the pilot re-arms.
+        # (The sticks need no lock: thrust is always zero while disarmed, see tick().)
         for b, d in (("up", 1), ("down", -1)):
             if pressed(b):
-                self._step_tilt(d)
+                self._step_tilt(d, first=True)
                 self.repeat_at[b] = now + 0.40
             elif pad.down(b) and now >= self.repeat_at.get(b, math.inf):
                 self._step_tilt(d)
                 self.repeat_at[b] = now + 0.12
 
-        if pressed("l1") and self.gain_idx > 0:
-            self.gain_idx -= 1
-            self.log("CMD", f"Thrust gain {GAIN_STEPS[self.gain_idx]}%", ACCENT)
-        if pressed("r1") and self.gain_idx < len(GAIN_STEPS) - 1:
-            self.gain_idx += 1
-            self.log("CMD", f"Thrust gain {GAIN_STEPS[self.gain_idx]}%", ACCENT)
+        if pressed("l1") or pressed("r1"):
+            if not self.armed:
+                self.log("DENY", "Thrust gain locked — arm first", WARN)
+            elif pressed("l1") and self.gain_idx > 0:
+                self.gain_idx -= 1
+                self.log("CMD", f"Thrust gain {GAIN_STEPS[self.gain_idx]}%", ACCENT)
+            elif pressed("r1") and self.gain_idx < len(GAIN_STEPS) - 1:
+                self.gain_idx += 1
+                self.log("CMD", f"Thrust gain {GAIN_STEPS[self.gain_idx]}%", ACCENT)
         if pressed("triangle"):
             imp = not all(c.imperial for c in self.metrics.values())
             for c in self.metrics.values():
@@ -812,11 +827,16 @@ class ConsoleWindow(QMainWindow):
 
         self.prev_buttons = dict(pad.buttons)
 
-    def _step_tilt(self, d):
+    def _step_tilt(self, d, first=False):
+        """first: a fresh D-pad press (not a hold-repeat) - only those log a refusal."""
         if self.leak_alarmed:                # leak: camera tilt is locked at its current angle
             if not self._tilt_lock_logged:
                 self._tilt_lock_logged = True
                 self.log("DENY", "Camera tilt locked — leak detected", WARN)
+            return
+        if not self.armed:                   # disarmed / E-STOP: tilt is held until re-armed
+            if first:
+                self.log("DENY", "Camera tilt locked — arm first", WARN)
             return
         new = max(TILT_MIN, min(TILT_MAX, self.tilt + d * TILT_STEP))
         if new != self.tilt:
@@ -963,18 +983,20 @@ class ConsoleWindow(QMainWindow):
         soc = None if v is None else max(0, min(100, round((v - 13.2) / (16.8 - 13.2) * 100)))  # 4S Li-ion guess
         self.soc_bar.set(soc or 0)
 
+        pulse = 0.625 + 0.375 * math.cos(2 * math.pi * now / 2)   # alarm fade: 2 s cycle, 25-100 %
         leak = self.tel.get("leak")
         if not linked or leak is None:
             self.st_leak.set("NO DATA", MUTED)
         else:
-            if leak:                         # LEAK fades in and out (T s cycle, 25-100 %)
-                pulse = 0.625 + 0.375 * math.cos(2 * math.pi * now / 2)
+            if leak:                         # LEAK fades in and out
                 self.st_leak.set("LEAK", DANGER, pulse)
             else:
                 self.st_leak.set("DRY", ACCENT)
         self.st_link.set("UP" if linked else "DOWN", ACCENT if linked else DANGER)
-        self.st_pad.set(("OK" if pad.mode == "SDL" else "RAW") if pad.connected else "MISSING",
-                        (ACCENT if pad.mode == "SDL" else WARN) if pad.connected else DANGER)
+        if pad.connected:
+            self.st_pad.set("OK" if pad.mode == "SDL" else "RAW", ACCENT if pad.mode == "SDL" else WARN)
+        else:                                # MISSING fades in and out, like LEAK
+            self.st_pad.set("MISSING", DANGER, pulse)
         self.st_cmd.set(f"{RATE_HZ} Hz", TEXT)
 
         # video frame + HUD
