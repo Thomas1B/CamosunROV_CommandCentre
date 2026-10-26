@@ -6,7 +6,8 @@ Command packet  laptop -> Pi, UDP, CMD_PORT, 50 Hz, 16 bytes, little-endian
     struct format "<2sBBH6bbxH"
     0  2s   magic      b"RV"
     2  B    version    1
-    3  B    flags      bit0 = armed
+    3  B    flags      bit0 = armed, bit1 = recover (clear an STM32 leak shutdown; the STM32
+                       acts on its 0 -> 1 edge and refuses while the leak sensor is wet)
     4  H    seq        increments every packet, wraps at 65535
     6  6b   throttle   T1..T6, int8, -100..+100 percent
     12 b    cam_tilt   int8 degrees, TILT_MIN..TILT_MAX (0 = level, + = up)
@@ -30,8 +31,8 @@ Reference packet  laptop -> Pi, UDP, CMD_PORT (same port as commands), 16 bytes,
     The Pi passes the values on to the STM32 and replies with ref_ack. If the Pi restarts
     (its ref_ack no longer matches) the console sends them again automatically.
 
-    flags bit1 = recover (clear an STM32 leak shutdown) is understood by the Pi
-    (rov_bridge.py) but not sent by this console yet.
+    Leak recovery: after a leak the console sets command flags bit1 (recover) for
+    RECOVER_PULSE_S when the operator holds START / the ARM button (see main_window.py).
 
 Telemetry  Pi -> laptop, UDP, TELEM_PORT, JSON object per datagram, any keys optional,
 SI units. A value is null while its sensor is faulted or the STM32 is not answering:
@@ -81,8 +82,9 @@ def check_port(text):
     return port if 1 <= port <= 65535 else None
 
 
-def pack_command(seq, armed, throttles, tilt):
-    body = CMD_STRUCT.pack(b"RV", 1, 1 if armed else 0, seq & 0xFFFF,
+def pack_command(seq, armed, throttles, tilt, recover=False):
+    flags = (1 if armed else 0) | (2 if recover else 0)
+    body = CMD_STRUCT.pack(b"RV", 1, flags, seq & 0xFFFF,
                            *[max(-100, min(100, int(t))) for t in throttles],
                            max(TILT_MIN, min(TILT_MAX, int(tilt))))
     return body + struct.pack("<H", binascii.crc_hqx(body, 0xFFFF))
@@ -137,9 +139,9 @@ class Link:
             except OSError:
                 pass
 
-    def send(self, armed, throttles, tilt):
+    def send(self, armed, throttles, tilt, recover=False):
         self.seq = (self.seq + 1) & 0xFFFF
-        pkt = pack_command(self.seq, armed, throttles, tilt)
+        pkt = pack_command(self.seq, armed, throttles, tilt, recover)
         self._sent[self.seq] = time.monotonic()
         self._sent.pop((self.seq - 200) & 0xFFFF, None)
         self._transmit(pkt)
@@ -267,6 +269,16 @@ class DemoLink(Link):
         self._next_drop = time.monotonic() + self._rng.uniform(6.0, 15.0)
         self._pi_refs = RefValues()   # what the simulated Pi / STM32 is using
         self._pi_ref_ack = None
+        self.leak_wet = False         # simulated leak sensor (toggle with L in demo mode)
+        self.leak_latched = False     # simulated STM32 FAULT_LEAK, cleared only by a dry recover
+        self._last_recover = False
+
+    def toggle_leak(self):
+        """Demo only: make the simulated leak sensor wet / dry."""
+        self.leak_wet = not self.leak_wet
+        if self.leak_wet:
+            self.leak_latched = True
+        return self.leak_wet
 
     def _send_ref(self, pkt):
         magic, _, flags, ref_seq, surface, density = REF_STRUCT.unpack(pkt[:14])
@@ -291,6 +303,12 @@ class DemoLink(Link):
             return None
         _, _, flags, seq, *rest = CMD_STRUCT.unpack(self._last[:14])
         thr = rest[:6]
+        recover = bool(flags & 2)                    # simulated STM32: recover on the 0 -> 1 edge,
+        if recover and not self._last_recover and not self.leak_wet:   # refused while wet
+            self.leak_latched = False
+        self._last_recover = recover
+        if self.leak_latched:
+            thr = [0] * 6                            # leak shutdown: thrusters off
         dt = 1.0 / RATE_HZ
         t = time.monotonic() - self.t0
         heave = (thr[4] + thr[5]) / 200.0
@@ -309,7 +327,8 @@ class DemoLink(Link):
             "pitch": wob(2.7, 9.0) - (thr[0] + thr[1] - thr[2] - thr[3]) / 80.0,
             "yaw": (self.heading + wob(0.4, 15.0)) % 360,
             "voltage": 15.8 - load * 0.9,
-            "leak": False,
+            "leak": self.leak_latched,               # like the real STM32: leak = latched shutdown flag
+            "faults": ["LEAK"] if self.leak_latched else [],
             "ack": seq,                 # last command received, as the real Pi reports it
             "rx_cmds": self.rx_cmds,
             "ref_ack": self._pi_ref_ack,

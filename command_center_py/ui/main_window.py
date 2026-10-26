@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
 
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, REQUIRE_LINK_TO_ARM,
+                        RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD)
 from command_center_py.demo_pad import DemoPad
 from command_center_py.mixer import mix
@@ -77,6 +78,9 @@ class ConsoleWindow(QMainWindow):
         self.leak_alarmed = False
         self.temp_warned = False
         self.leak_alarmed = False
+        self._tilt_lock_logged = False       # "tilt locked" logged once per leak
+        self.recover_until = 0.0             # send the recover bit until this time
+        self.recover_deadline = None         # waiting for the leak shutdown to clear (or None)
 
         self._build_ui()
         self._apply_kind(LAYOUT["kind"])
@@ -100,6 +104,8 @@ class ConsoleWindow(QMainWindow):
             self.log("WARN", self.link.error, WARN)
 
         QShortcut(QKeySequence(Qt.Key.Key_Space), self, activated=lambda: self.estop("keyboard SPACE"))
+        if hasattr(self.link, "toggle_leak"):  # demo only: L makes the simulated leak sensor wet / dry
+            QShortcut(QKeySequence(Qt.Key.Key_L), self, activated=self._demo_toggle_leak)
 
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
@@ -519,8 +525,15 @@ class ConsoleWindow(QMainWindow):
                              f'<span style="color:{color}; font-weight:600">{tagp}</span>&nbsp;'
                              f'<span style="color:{DIM}">{html.escape(msg)}</span>')
 
+    def _demo_toggle_leak(self):
+        wet = self.link.toggle_leak()
+        self.log("DEMO", "Simulated leak sensor " + ("WET" if wet else "dry"), MUTED)
+
     def try_arm(self, source):
         now = time.monotonic()
+        if self.leak_alarmed:                # leak shutdown: the arm hold asks the ROV to recover
+            self.request_recover(now)
+            return
         pad = self.pad.snapshot()
         if not pad.connected:                # arming needs a controller; disarming / E-STOP never do
             self.log("DENY", "Arm refused — no controller connected", WARN)
@@ -536,6 +549,32 @@ class ConsoleWindow(QMainWindow):
             return
         self.armed = True
         self.log("ARM", "Thrusters ARMED", ACCENT)
+
+    # ---- leak recovery ---------------------------------------------------------------------
+    # After a leak the console disarms (see _failsafes). Holding START / the ARM button for
+    # ARM_HOLD_S then sends the recover bit for RECOVER_PULSE_S. The STM32 clears its leak
+    # shutdown only if the sensor is dry; when telemetry shows it cleared, the console arms.
+    # The STM32's telemetry "leak" is its latched shutdown flag, not the live sensor, so it
+    # stays 1 until the recover is processed: the only sign of a wet sensor is the shutdown
+    # still being set RECOVER_TIMEOUT_S after the request.
+
+    def request_recover(self, now):
+        if self.recover_deadline is not None:
+            return                           # already waiting for an answer
+        self.recover_until = now + RECOVER_PULSE_S
+        self.recover_deadline = now + RECOVER_TIMEOUT_S
+        self.log("RECOV", "Leak recovery requested — sending recover to the ROV", WARN)
+
+    def _service_recover(self, now, leak):
+        if self.recover_deadline is None:
+            return
+        if not leak:                         # STM32 cleared FAULT_LEAK -> arm as asked
+            self.recover_deadline, self.recover_until = None, 0.0
+            self.log("RECOV", "Leak shutdown cleared", ACCENT)
+            self.try_arm("recover")
+        elif now >= self.recover_deadline:
+            self.recover_deadline, self.recover_until = None, 0.0
+            self.log("DENY", "Recover refused — leak sensor still wet", DANGER)
 
     def disarm(self, reason, tag="ARM", color=MUTED):
         if self.armed:
@@ -682,7 +721,7 @@ class ConsoleWindow(QMainWindow):
             self.btn_hold_start = None
             self.try_arm("console button held")
         self.throttles = self._mix(pad) if (self.armed and pad.connected) else [0] * 6
-        self.link.send(self.armed, self.throttles, self.tilt)
+        self.link.send(self.armed, self.throttles, self.tilt, recover=now < self.recover_until)
         self.link.service_refs(now)          # reference values -> Pi, resent until acknowledged
         tel = self.link.poll()
         if tel:
@@ -774,6 +813,11 @@ class ConsoleWindow(QMainWindow):
         self.prev_buttons = dict(pad.buttons)
 
     def _step_tilt(self, d):
+        if self.leak_alarmed:                # leak: camera tilt is locked at its current angle
+            if not self._tilt_lock_logged:
+                self._tilt_lock_logged = True
+                self.log("DENY", "Camera tilt locked — leak detected", WARN)
+            return
         new = max(TILT_MIN, min(TILT_MAX, self.tilt + d * TILT_STEP))
         if new != self.tilt:
             self.tilt = new
@@ -803,10 +847,23 @@ class ConsoleWindow(QMainWindow):
                 self.log("WARN", f"Internal temp high — {it:.1f} °C", WARN)
             elif it < 43:
                 self.temp_warned = False
-        leak = bool(self.tel.get("leak"))
+        # Leak: the live sensor ("leak") or the STM32's latched leak shutdown (FAULT_LEAK in
+        # "faults", held until a recover command). On a new leak the console disarms the
+        # thrusters (zero thrust frames from the next tick) and locks the camera tilt.
+        faults = self.tel.get("faults") or []
+        leak = bool(self.tel.get("leak")) or "LEAK" in faults   # STM32: latched shutdown flag
+        if self.tel.get("stm32") is False:   # STM32 not answering: no leak data, keep the last state
+            leak = self.leak_alarmed
+        was_leak = self.leak_alarmed
         if leak and not self.leak_alarmed:
             self.log("ALARM", "LEAK DETECTED — surface the vehicle", DANGER)
+            self.disarm("leak detected", "FAIL", DANGER)
+        if not leak:
+            self._tilt_lock_logged = False
         self.leak_alarmed = leak
+        if not leak and was_leak and self.recover_deadline is None:   # cleared some other way
+            self.log("RECOV", "Leak shutdown cleared", ACCENT)
+        self._service_recover(now, leak)
 
     # ---------------- UI refresh ----------------
     def _num(self, key):
@@ -942,7 +999,9 @@ class ConsoleWindow(QMainWindow):
         elif not pad.connected:
             self.msg_lbl.setText(f"Connect a {self.k['short'].title().replace('Dualshock', 'DualShock')} to drive — see Help")
         else:
-            self.msg_lbl.setText(f"Controller ready — hold {self.k['start']} {ARM_HOLD_S:.0f} s to arm")
+            self.msg_lbl.setText(f"LEAK — hold {self.k['start']} {ARM_HOLD_S:.0f} s to recover and re-arm (sensor must be dry)"
+                                 if self.leak_alarmed else
+                                 f"Controller ready — hold {self.k['start']} {ARM_HOLD_S:.0f} s to arm")
         self.tx_lbl.setText(f"TX {self.link.tx_count:,} pkt   │")
         self.rx_lbl.setText(f"RX {self.link.rx_count:,} pkt   │")
         lost = self.link.lost_total          # None until the Pi has reported ack / rx_cmds
