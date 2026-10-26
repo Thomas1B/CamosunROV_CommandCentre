@@ -8,24 +8,35 @@ Pilot command centre for the Camosun capstone underwater ROV.
 > [Tether Network Setup](#tether-network-setup).
 
 The command centre is a Windows desktop application the pilot uses to operate the
-ROV. It reads a game controller (e.g. PlayStation DualShock 3), mixes the stick and trigger
+ROV. It reads a game controller (PlayStation DualShock 3 or Xbox), mixes the stick and trigger
 inputs into commands for the ROV's six thrusters and camera tilt servo, and
 sends them over the tether to the ROV's Raspberry Pi, which passes them on to
 the STM32 motor controller.
 
-In the other direction, it receives telemetry from the Pi and displays it:
-depth, pressure, water and internal temperature, orientation, battery voltage
-and current, and the leak sensor.
+In the other direction, it receives telemetry and the live camera stream from
+the Pi and displays them: depth, pressure, water and internal temperature,
+orientation (roll, pitch, heading), battery voltage with an estimated charge
+level, the leak sensor, and link quality (round-trip time and packet loss).
 
 Main features:
 
-- Arm/disarm and an emergency stop (controller or keyboard SPACE)
+- Arm/disarm and an emergency stop (controller, keyboard SPACE, or the Vehicle menu)
 - Adjustable thrust gain (25 / 50 / 75 / 100 %)
-- Failsafes: the ROV is automatically disarmed if the controller disconnects or the tether link is lost
-- Leak alarm and high internal temperature warning, plus an event log with operator marks
+- Live camera view (H.264 over UDP, decoded with PyAV) with a HUD; shows
+  *VIDEO LOST* over the last frame if the stream stops for 1.5 s
+- Failsafes: the ROV is automatically disarmed if the controller disconnects,
+  the tether link is lost, or a leak is detected
+- No keyboard control of the ROV except SPACE for E-STOP
+- Leak alarm with recovery: after a leak the thrusters are disarmed and the
+  camera tilt is locked until the STM32 confirms the leak sensor is dry
+- High internal temperature warning (above 45 °C)
+- Depth zero: take the current depth as 0 m (display only) and clear it again
+- Bar30 depth sensor reference values (surface pressure, water density,
+  second-order calibration), sent to the Pi/STM32 and confirmed by it
+- Event log with operator marks
 - Main menu: connect to a vehicle (with saved vehicle profiles), demo mode, controller maps
-- Demo mode with simulated telemetry, for testing without the ROV
-- Camera view with HUD (the live video stream is not wired in yet)
+- Demo mode with a simulated vehicle, a simulated controller and simulated
+  packet loss, for testing without the ROV
 
 ---
 
@@ -39,14 +50,17 @@ Main features:
 
 ### Controller
 
-- PlayStation DualShock 3 controller, connected by USB cable
-- **DsHidMini driver:** Windows has no built-in driver for the DualShock 3, so
-  download and install DsHidMini from
-  [docs.nefarius.at/Downloads](https://docs.nefarius.at/Downloads/) before
-  plugging in the controller.
+One of:
 
-> **Note:** Xbox controller support is planned. For now, only the DualShock 3
-> is supported.
+- PlayStation DualShock 3 controller, connected by USB cable
+  - **DsHidMini driver:** Windows has no built-in driver for the DualShock 3, so
+    download and install DsHidMini from
+    [docs.nefarius.at/Downloads](https://docs.nefarius.at/Downloads/) before
+    plugging in the controller.
+- Xbox controller. Windows has the driver built in.
+
+Switch the on-screen button names to match with the DUALSHOCK 3 / XBOX toggle
+above STICK INPUT in the console.
 
 ### Software
 
@@ -123,16 +137,26 @@ py rov_console.py
 
 No options - the program opens on the main menu:
 
-- **CONNECT VEHICLE** - enter the Pi's IP address and UDP ports (or load a saved
-  profile) and press CONNECT. The console opens once the Pi answers; if there is
-  no answer within 5 s the dialog stays open so you can check the tether and retry.
-  **SAVE PROFILE** stores the settings in `vehicle_profiles/` (one JSON file per vehicle).
+- **CONNECT VEHICLE** - enter the vehicle name, the Pi's IP address, the UDP
+  ports (command, telemetry and video) and the Bar30 reference values, or load
+  a saved profile, then press CONNECT. The console opens once the Pi answers; if
+  there is no answer within 5 s the dialog stays open so you can check the
+  tether and retry. **SAVE PROFILE** stores the settings in `vehicle_profiles/`
+  (one JSON file per vehicle); **DELETE** removes the selected profile.
 - **DEMO MODE** - simulated vehicle, nothing is transmitted.
 - **CONTROLLER MAP** - DualShock 3 and Xbox button maps.
 - **QUIT** - exit.
 
+Navigate the menu with the arrow keys and Enter, or with the controller (D-pad,
+CROSS to select, CIRCLE to go back).
+
 Closing the console window (or File > Back to Main Menu) returns to the main menu,
-but only while the ROV is **disarmed**. Ctrl+C in the terminal disarms and exits.
+but only while the ROV is **disarmed**. Ctrl+C in the terminal disarms, sends
+zero-thrust frames and exits; press it a second time to force-quit if the clean
+shutdown hangs.
+
+The program refuses to start outside the `.venv` or on a Python version other
+than 3.14, and tells you which setup step to repeat.
 
 #### Day-to-day
 
@@ -222,7 +246,8 @@ You can also log in to the Pi over the tether with `ssh pirov@192.168.2.2`.
 
 Then run the console (see [Run the console](#4-run-the-console)), choose
 **CONNECT VEHICLE**, and enter IP `192.168.2.2`, CMD port `5600`, telemetry
-port `5601` (or load the saved `DEMO` profile, which has these values).
+port `5601`, video port `5602` (or load the saved `DEMO` profile, which has
+these values and the default reference values).
 
 ### Troubleshooting the link
 
@@ -235,3 +260,197 @@ port `5601` (or load the saved `DEMO` profile, which has these values).
 | Ping works, Pi prints `Connected to command centre`, console still waits | Laptop firewall: most likely a `python.exe` block rule (step 3). |
 | Telemetry works, no video | Firewall rule is missing UDP 5602, or another program (e.g. `ffplay`) is already listening on 5602. |
 | Wi-Fi internet stops working while tethered | A default gateway was entered on the tether adapter. Clear it. |
+| Video area says *PyAV not installed* | The venv was built before `av` was added. Re-run `python -m pip install -r py_requirements.txt`. |
+| Video area says *UDP 5602 is in use by another program* | Close `ffplay`, VLC or anything else listening on the video port. |
+| Event log never shows *Reference values applied by the Pi* | The Pi program is not replying with `ref_ack` (it may be an older version without reference-packet support). The console keeps resending every 1 s. |
+
+---
+
+## Operating the Console
+
+### Controls (DualShock 3)
+
+| Input | Action |
+|---|---|
+| Left stick | Forward/back (surge) and side to side (sway) |
+| Right stick left/right | Rotate (yaw) |
+| L2 (analog) | Descend |
+| R2 (analog) | Ascend |
+| D-pad up / down | Camera tilt, 5° per step, −45° to +45° (hold to repeat; armed only) |
+| START, hold 1 s | ARM (or leak recovery, see below) |
+| START, tap | DISARM when armed |
+| SELECT or PS | E-STOP: disarm and zero all thrusters immediately |
+| L1 / R1 | Thrust gain down / up (25 - 50 - 75 - 100 %; armed only) |
+| CROSS, hold 5 s | Zero depth |
+| CROSS, hold 1 s (while zeroed) | Clear the depth zero |
+| TRIANGLE | Toggle all telemetry units SI ↔ imperial |
+| SQUARE | Drop an operator mark in the event log |
+| Keyboard SPACE | E-STOP (when the console window has focus) |
+
+On an Xbox controller the same controls are on LT/RT, LB/RB, MENU (arm),
+VIEW or XBOX (E-STOP), Y (units), X (mark) and A (zero depth).
+Help > Dualshock3 Map / Xbox Map in the console shows both layouts.
+
+> **Keyboard:** SPACE (E-STOP) is the only key that acts on the ROV. Anything
+> else that controls the vehicle or sends something to it (arming, CONNECT,
+> applying reference values, the demo leak toggle) is done with the controller
+> or the mouse. The keyboard is only for typing values into the dialogs and for
+> moving around the main menu.
+
+### Arming
+
+Hold START (or the on-screen ARM button) for 1 s. Arming is refused, with the
+reason in the event log, unless:
+
+- a controller is connected,
+- both sticks are centred and L2/R2 are released, and
+- telemetry is arriving from the Pi (`REQUIRE_LINK_TO_ARM` in `config.py`).
+
+Disarming and E-STOP always work, with or without a controller.
+
+While the ROV is **disarmed** (after E-STOP, a START tap, or any failsafe),
+the camera tilt and thrust gain are locked at their current settings and the
+sticks and triggers do nothing; pressing the D-pad or L1/R1 logs
+`… locked — arm first`. Everything unlocks once the ROV is armed again.
+
+### Failsafes
+
+The console disarms automatically and logs a `FAIL` entry when:
+
+- the controller disconnects,
+- no telemetry arrives for 1 s (link lost), or
+- a leak is reported.
+
+When the controller disconnects, the console also sends a zero-thrust frame
+straight away (like E-STOP), and the Controller status row shows a pulsing
+**MISSING**. The camera tilt stays at its current angle. Once the controller
+is plugged back in, arm as normal (hold START for 1 s); the ROV never re-arms
+on its own.
+
+On the ROV side, the Pi is expected to zero all thrusters if no valid command
+packet arrives for about 250 ms (see the wire contract in `link.py`).
+
+### Leak alarm and recovery
+
+When the STM32 reports a leak, the console disarms, shows a pulsing **LEAK**
+status, logs `LEAK DETECTED — surface the vehicle`, and locks the camera tilt
+at its current angle. Surface the vehicle.
+
+To recover, hold START (or the ARM button) for 1 s. The console sends a
+*recover* request for 0.5 s. If the STM32 finds the leak sensor dry it clears
+the leak shutdown and the console arms. If the shutdown is still set 1 s later,
+the event log shows `Recover refused — leak sensor still wet`.
+
+### Depth zero
+
+Hold CROSS (or the ZERO chip on the depth card) for 5 s. Every depth reading
+during the hold is averaged and that depth is shown as 0 m from then on;
+releasing early cancels. Clear it by clicking REL or holding CROSS for 1 s.
+This only changes the display; the Pi and STM32 still use true depth.
+
+### Bar30 reference values
+
+The depth calculation on the STM32 uses three reference values:
+
+| Value | Default | Allowed range |
+|---|---|---|
+| Surface pressure | 1013.25 hPa (shown in hPa, kPa or mbar) | 800 - 1100 hPa |
+| Water density | 1000 kg/m³ (fresh water; about 1025 kg/m³ for sea water) | 900 - 1100 kg/m³ |
+| Second-order pressure calibration | ON (for water below 20 °C) | ON / OFF |
+
+Set them in the CONNECT VEHICLE dialog (they are saved with the vehicle
+profile) or during a session with File > Reference Values…. The console sends
+them to the Pi and resends them every 1 s until the Pi confirms them; the event
+log then shows `Reference values applied by the Pi`. If the Pi restarts, they
+are sent again automatically.
+
+### Demo mode
+
+DEMO MODE runs the console against a simulated vehicle; nothing is sent over
+the network and there is no camera.
+
+- If no controller is plugged in, a simulated controller arms the vehicle and
+  runs through the controls on a 40 s loop. Plugging in a real controller
+  takes over immediately.
+- The simulated link drops a short burst of command packets every 6 - 15 s,
+  so the packet-loss display can be checked.
+- Use **Demo > Toggle Simulated Leak** to make the simulated leak sensor wet
+  or dry, to practise the leak alarm and recovery.
+
+Both extras can be turned off with `DEMO_SIM_PAD` and `DEMO_PACKET_LOSS` in
+`config.py`.
+
+---
+
+## Developer Reference
+
+### Project layout
+
+```
+rov_console.py                  entry point: venv/version check, Ctrl+C handling, starts the app
+command_center_py/
+  app.py                        switches between the main menu and the console
+  config.py                     tuning constants: network defaults, rates, deadzones, thruster mix
+  profiles.py                   saved vehicle profiles (vehicle_profiles/*.json)
+  reference.py                  Bar30 reference values: validation, units, profile storage
+  gamepad.py                    DualShock 3 / Xbox input via SDL2 (pygame-ce), polled in its own thread
+  demo_pad.py                   simulated controller for demo mode
+  mixer.py                      stick shaping and thruster mixing (pure maths, no UI)
+  link.py                       UDP command/reference packets out, JSON telemetry in, demo simulator
+  video.py                      camera stream receiver (PyAV), decoded in its own thread
+  ui/theme.py                   colours, fonts, label helper
+  ui/widgets.py                 custom-painted gauges and composite widgets
+  ui/reference_fields.py        reference-value inputs and the Reference Values dialog
+  ui/start_window.py            main menu, CONNECT VEHICLE and CONTROLLER MAP dialogs
+  ui/main_window.py             console window: layout, arming, failsafes, leak recovery, event log
+  ui/assets/                    logo and icon (SVG)
+vehicle_profiles/               one JSON file per saved vehicle (DEMO.json included)
+UI_Design_Files/                HTML design mock-ups for the main menu and console
+```
+
+### Network protocol (summary)
+
+The full wire contract, byte by byte, is in the docstring at the top of
+`command_center_py/link.py`. The Pi side must match it.
+
+| Message | Direction | Port | Format |
+|---|---|---|---|
+| Command | laptop → Pi | UDP 5600 | 16 bytes, magic `RV`, 50 Hz: armed/recover flags, sequence number, six thruster values (−100 to +100 %), camera tilt (°), CRC-16/CCITT-FALSE |
+| Reference values | laptop → Pi | UDP 5600 | 16 bytes, magic `RF`: second-order flag, `ref_seq`, surface pressure (hPa, float32), water density (kg/m³, float32), CRC-16 |
+| Telemetry | Pi → laptop | UDP 5601 | One JSON object per datagram, SI units, any key optional, `null` while a sensor is faulted |
+| Video | Pi → laptop | UDP 5602 | H.264 in MPEG-TS |
+
+Telemetry keys: `depth_m`, `pressure_kpa`, `water_c`, `internal_c`, `roll`,
+`pitch`, `yaw`, `voltage`, `leak`, `faults`, `fault_flags`, `stm32`,
+`uart_errors`, `ack` (last command sequence received), `rx_cmds` (total
+commands received) and `ref_ack` (last `ref_seq` applied). `ack` and `rx_cmds`
+are used for the round-trip time and packet-loss figures.
+
+### Vehicle profile format
+
+```json
+{
+  "name": "DEMO",
+  "ip": "192.168.2.2",
+  "cmd_port": 5600,
+  "telem_port": 5601,
+  "video_port": 5602,
+  "surface_pressure_hpa": 1013.25,
+  "surface_unit": "hPa",
+  "water_density": 1000.0,
+  "second_order": true
+}
+```
+
+`video_port` and the reference values are optional; older profiles without
+them use the defaults from `config.py`.
+
+### Tuning
+
+Bench settings live in `command_center_py/config.py`: stick deadzone and expo,
+trigger deadzone, gain steps, camera tilt limits, hold times, link timeout,
+reference-value defaults and the thruster mix table.
+
+> **Important:** verify the thruster mix signs on the bench **with the
+> propellers off**. Flip a coefficient's sign (or a whole row, for a reversed
+> propeller) until each stick moves the ROV the right way.
