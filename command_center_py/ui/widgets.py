@@ -557,7 +557,6 @@ class ControllerMapDialog(QDialog):
         self.setWindowTitle(m["title"])
         self.setModal(True)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
-        self.setFixedWidth(z(440))
         self.setStyleSheet(f"QDialog {{ background: {PANEL}; border: 1px solid {BORDER2}; }}")
 
         root = QVBoxLayout(self)
@@ -608,6 +607,8 @@ class ControllerMapDialog(QDialog):
         fh.addWidget(ok)
         root.addSpacing(14)
         root.addWidget(foot)
+        # Widen to fit the longest line in the installed font (no wrapping, nothing cut off).
+        self.setFixedWidth(max(z(440), self.sizeHint().width() + z(8)))
 
     def showEvent(self, e):
         super().showEvent(e)

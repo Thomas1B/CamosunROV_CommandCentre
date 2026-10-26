@@ -248,6 +248,8 @@ class ControllerMapCard(Card):
                     f"border-color: {ACCENT}; color: {ACCENT};")
         ok.clicked.connect(on_close)
         self.foot_lay.addWidget(ok)
+        # Widen to fit the longest line in the installed font (no wrapping, nothing cut off).
+        self.setFixedWidth(max(self.width(), self.sizeHint().width() + 8))
 
 
 class ConnectCard(Card):
