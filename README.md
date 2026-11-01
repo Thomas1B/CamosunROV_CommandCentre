@@ -381,7 +381,8 @@ number of events and marks. Pick one (mouse, arrow keys or D-pad) to see the sam
 *Operator marks* and *All events* tables as the exit pop-up, plus the session
 length and its UTC times. **EXPORT…** saves it as `.xlsx`, `.csv` or `.pdf`.
 **DELETE** removes the file (click twice). **OPEN FOLDER** opens `logs/` in File
-Explorer. Esc, ○ / B, ✕ or CLOSE close the card.
+Explorer. Drag the grip in the card's bottom-right corner to resize it (it keeps that
+size until the program closes). Esc, ○ / B, ✕ or CLOSE close the card.
 
 ### Depth zero
 

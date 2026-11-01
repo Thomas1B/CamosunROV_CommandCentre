@@ -619,6 +619,50 @@ class ConnectCard(Card):
         return False
 
 
+class ResizeGrip(QWidget):
+    """Corner handle that resizes its card by dragging. The card stays centred on the menu,
+    so it grows by twice the mouse movement (both edges move) to keep the corner under the
+    pointer. Size is limited to the card's minimum and the menu window minus a 24 px margin."""
+
+    SIZE = 14
+
+    def __init__(self, card, min_w, min_h):
+        super().__init__(card)
+        self.card, self.min_w, self.min_h = card, min_w, min_h
+        self.setFixedSize(self.SIZE, self.SIZE)
+        self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+        self.setToolTip("Drag to resize")
+        self._start = None
+
+    def paintEvent(self, e):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setPen(QPen(QColor(MUTED), 1.2))
+        s = self.SIZE - 3
+        p.drawLine(s, 3, 3, s)
+        p.drawLine(s, 7, 7, s)
+
+    def clamp(self, w, h):
+        ov = self.card.parentWidget()
+        max_w = max(self.min_w, ov.width() - 48) if ov is not None else w
+        max_h = max(self.min_h, ov.height() - 48) if ov is not None else h
+        return max(self.min_w, min(max_w, w)), max(self.min_h, min(max_h, h))
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton:
+            self._start = (e.globalPosition().toPoint(), self.card.width(), self.card.height())
+
+    def mouseMoveEvent(self, e):
+        if self._start is None:
+            return
+        pos, w, h = self._start
+        d = e.globalPosition().toPoint() - pos
+        self.card.setFixedSize(*self.clamp(w + 2 * d.x(), h + 2 * d.y()))
+
+    def mouseReleaseEvent(self, e):
+        self._start = None
+
+
 class LogsCard(Card):
     """SESSION LOGS: every console session saved in logs/, newest first.
 
@@ -626,7 +670,10 @@ class LogsCard(Card):
     selected session in the same OPERATOR MARKS / ALL EVENTS tables as the exit pop-up.
     Footer: OPEN FOLDER, DELETE (click twice), EXPORT... (.xlsx / .csv / .pdf), CLOSE.
     Esc / circle (B) / ✕ / CLOSE close it; D-pad or arrow keys pick a session.
+    Resizable: drag the grip in the bottom-right corner (kept while the program runs).
     """
+
+    MIN_W, MIN_H = 720, 380
 
     def __init__(self, on_close):
         super().__init__("SESSION LOGS", 1040)
@@ -676,7 +723,9 @@ class LogsCard(Card):
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right.addWidget(self.empty, 1)
         h.addLayout(right, 1)
-        self.body.setFixedHeight(470)
+        self.layout().setStretchFactor(self.body, 1)      # extra height goes to the tables
+        self.setFixedSize(1040, 600)
+        self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
 
         # footer: OPEN FOLDER  DELETE  status ........ EXPORT...  CLOSE
         folder = button("OPEN FOLDER", 11, None,
@@ -708,6 +757,7 @@ class LogsCard(Card):
     # ---------------- state ----------------
     def opened(self):
         """Called each time the card is shown: re-reads logs/ (new sessions, deleted files)."""
+        self.setFixedSize(*self.grip.clamp(self.width(), self.height()))   # menu may have shrunk
         self.logs = list_logs()
         self.list.blockSignals(True)
         self.list.clear()
@@ -722,6 +772,12 @@ class LogsCard(Card):
         self._say(LABEL, "")
         self.list.setCurrentRow(0 if self.logs else -1)
         self._show(self.list.currentRow())
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        g = self.grip
+        g.move(self.width() - g.width() - 2, self.height() - g.height() - 2)
+        g.raise_()
 
     def current(self):
         i = self.list.currentRow()
