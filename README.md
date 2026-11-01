@@ -262,7 +262,7 @@ these values and the default reference values).
 | D-pad up / down | D-pad up / down | Camera tilt, 5° per step, −45° to +45° (hold to repeat) |
 | MENU, hold 1 s | START, hold 1 s | ARM (or leak recovery, see below) |
 | MENU, tap | START, tap | DISARM when armed |
-| VIEW or XBOX | SELECT or PS | E-STOP: disarm and zero all thrusters immediately |
+| VIEW | SELECT | E-STOP: disarm and zero all thrusters immediately |
 | LB / RB | L1 / R1 | Thrust gain down / up (25 - 50 - 75 - 100 %) |
 | A, hold 5 s | CROSS, hold 5 s | Zero depth |
 | A, hold 1 s (while zeroed) | CROSS, hold 1 s (while zeroed) | Clear the depth zero |

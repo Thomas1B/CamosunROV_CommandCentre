@@ -382,7 +382,7 @@ class ConsoleWindow(QMainWindow):
         cg.setSpacing(4)
         self.chips = {}
         chip_layout = ["cross", "circle", "square", "triangle", "l1", "r1", "l2", "r2",
-                       "select", "start", "ps", "dpad"]
+                       "select", "start", "dpad"]
         for i, key in enumerate(chip_layout):
             c = Chip("")      # text set by _apply_kind() for the connected controller
             self.chips[key] = c
@@ -711,7 +711,7 @@ class ConsoleWindow(QMainWindow):
         self.r2_lbl.setText(f"{k['r2']} · ASCEND")
         chip_text = {"cross": k["cross"], "circle": k["circle"], "square": k["sq"], "triangle": k["tri"],
                      "l1": k["l1"], "r1": k["r1"], "l2": k["l2"], "r2": k["r2"],
-                     "select": k["sel"], "start": k["start"], "ps": k["ps"], "dpad": "↑↓"}
+                     "select": k["sel"], "start": k["start"], "dpad": "↑↓"}
         for key, chip in self.chips.items():
             chip.setText(chip_text[key])
 
@@ -782,8 +782,8 @@ class ConsoleWindow(QMainWindow):
         prev = self.prev_buttons
         pressed = lambda b: pad.down(b) and not prev.get(b)
 
-        if pressed("select") or pressed("ps"):
-            self.estop("controller " + (self.k["sel"] if pad.down("select") else self.k["ps"]))
+        if pressed("select"):
+            self.estop("controller " + self.k["sel"])
 
         if pressed("start"):
             if self.armed:

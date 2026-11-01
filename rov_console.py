@@ -28,7 +28,7 @@ DUALSHOCK 3 CONTROLS
     D-pad up / down ... camera tilt servo (hold to repeat)
     START (hold 1 s) .. ARM   (sticks centred + triggers released, link up)
     START (tap) ....... DISARM when armed
-    SELECT or PS ...... E-STOP (disarm + zero thrusters immediately)
+    SELECT ............ E-STOP (disarm + zero thrusters immediately)
     L1 / R1 ........... thrust gain down / up (25-50-75-100 %)
     TRIANGLE .......... toggle all telemetry units SI <-> imperial
     SQUARE ............ drop an operator mark in the event log

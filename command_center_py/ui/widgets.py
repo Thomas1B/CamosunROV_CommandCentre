@@ -473,10 +473,10 @@ class StatusRow(QFrame):
 CONTROLLER_MAPS = {
     "ds3": dict(title="Controller Map - Dualshock 3", short="DUALSHOCK 3", cross="✕", circle="○",
                 l2="L2", r2="R2", l1="L1", r1="R1",
-                start="START", sel="SEL", ps="PS", tri="△", sq="□"),
+                start="START", sel="SEL", tri="△", sq="□"),
     "xbox": dict(title="Controller Map - Xbox", short="XBOX", cross="A", circle="B",
                  l2="LT", r2="RT", l1="LB", r1="RB",
-                 start="MENU", sel="VIEW", ps="XBOX", tri="Y", sq="X"),
+                 start="MENU", sel="VIEW", tri="Y", sq="X"),
 }
 
 
@@ -517,7 +517,7 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
         ]),
         ("VEHICLE", [
             ([m["start"]], f"Hold {arm_hold_s:.0f} s to arm · tap to disarm", None),
-            ([m["sel"], m["ps"]], "E-STOP", DANGER),
+            ([m["sel"]], "E-STOP", DANGER),
         ]),
         ("CONSOLE", [
             ([m["tri"]], "Toggle SI / imperial units", None),
