@@ -33,6 +33,18 @@ from command_center_py.ui.widgets import (BipolarBar, TriggerBar, StickView, Vid
 CARDINALS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
              "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
 
+# Telemetry "stm32_reset" (why the STM32 last restarted, from its RCC reset flags; must match
+# RESET_CAUSE_NAMES in the Pi's rov/UART_DMA.py) -> (event-log text, status-row colour).
+# WATCHDOG is the only one worth attention: the STM32 firmware hung for ~0.5 s and its
+# IWDG restarted it. The others are expected (power-up, button / debugger).
+STM32_RESET_TEXT = {
+    "POWER_ON": ("power-on / brown-out", ACCENT),
+    "WATCHDOG": ("the STM32 firmware hung for ~0.5 s (IWDG)", WARN),
+    "PIN": ("reset pin (button or debugger)", ACCENT),
+    "SOFTWARE": ("software reset", ACCENT),
+    "OTHER": ("other (WWDG / low-power reset)", WARN),
+}
+
 
 class ConsoleWindow(QMainWindow):
     closed = Signal()        # emitted once the console has shut down (back to the main menu)
@@ -79,7 +91,8 @@ class ConsoleWindow(QMainWindow):
         self.temp_warned = False
         self.leak_alarmed = False
         self._tilt_lock_logged = False       # "tilt locked" logged once per leak
-        self.recover_until = 0.0             # send the recover bit until this time
+        self.stm32_reset_seen = None         # stm32_reset already logged for this STM32 connection
+        self.recover_until = 0.0           # send the recover bit until this time
         self.recover_deadline = None         # waiting for the leak shutdown to clear (or None)
 
         self._build_ui()
@@ -492,7 +505,8 @@ class ConsoleWindow(QMainWindow):
         self.st_link = StatusRow("Telemetry link")
         self.st_pad = StatusRow("Controller")
         self.st_cmd = StatusRow("Command stream")
-        for r in (self.st_leak, self.st_link, self.st_pad, self.st_cmd):
+        self.st_reset = StatusRow("STM32 last reset")
+        for r in (self.st_leak, self.st_link, self.st_pad, self.st_cmd, self.st_reset):
             sv.addWidget(r)
         v.addWidget(sw)
         v.addStretch(1)
@@ -884,6 +898,27 @@ class ConsoleWindow(QMainWindow):
         if not leak and was_leak and self.recover_deadline is None:   # cleared some other way
             self.log("RECOV", "Leak shutdown cleared", ACCENT)
         self._service_recover(now, leak)
+        self._report_stm32_reset(linked)
+
+    def _report_stm32_reset(self, linked):
+        """Logs why the STM32 last restarted, once each time it (re)connects, like the Pi does.
+
+        "stm32_reset" is information, not a fault: the STM32 is already running again when it
+        is sent. It is null while the STM32 is not answering, so a restart (link to the STM32
+        drops, then comes back) is logged again even if the cause is the same as before.
+        """
+        cause = self.tel.get("stm32_reset") if linked else None
+        if not isinstance(cause, str) or self.tel.get("stm32") is False:
+            self.stm32_reset_seen = None     # STM32 / link gone: log the cause again on return
+            return
+        if cause == self.stm32_reset_seen:
+            return
+        self.stm32_reset_seen = cause
+        text, color = STM32_RESET_TEXT.get(cause, (f"unknown cause {cause}", WARN))
+        if cause == "WATCHDOG":
+            self.log("WARN", f"STM32 restarted by its watchdog — {text}", WARN)
+        else:
+            self.log("STM32", f"STM32 last reset: {text}", color)
 
     # ---------------- UI refresh ----------------
     def _num(self, key):
@@ -998,6 +1033,11 @@ class ConsoleWindow(QMainWindow):
         else:                                # MISSING fades in and out, like LEAK
             self.st_pad.set("MISSING", DANGER, pulse)
         self.st_cmd.set(f"{RATE_HZ} Hz", TEXT)
+        cause = self.tel.get("stm32_reset")
+        if not linked or not isinstance(cause, str) or self.tel.get("stm32") is False:
+            self.st_reset.set("NO DATA", MUTED)
+        else:
+            self.st_reset.set(cause.replace("_", "-"), STM32_RESET_TEXT.get(cause, ("", WARN))[1])
 
         # video frame + HUD
         self._update_video(now)

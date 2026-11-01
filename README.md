@@ -16,7 +16,8 @@ the STM32 motor controller.
 In the other direction, it receives telemetry and the live camera stream from
 the Pi and displays them: depth, pressure, water and internal temperature,
 orientation (roll, pitch, heading), battery voltage with an estimated charge
-level, the leak sensor, and link quality (round-trip time and packet loss).
+level, the leak sensor, why the STM32 last reset, and link quality (round-trip
+time and packet loss).
 
 Main features:
 
@@ -320,6 +321,16 @@ To recover, hold START (or the ARM button) for 1 s. The console sends a
 *recover* request for 0.5 s. If the STM32 finds the leak sensor dry it clears
 the leak shutdown and the console arms. If the shutdown is still set 1 s later,
 the event log shows `Recover refused — leak sensor still wet`.
+
+### STM32 reset reason
+
+The **STM32 last reset** row in SYSTEM STATUS shows why the STM32 last
+restarted, as reported in every telemetry packet: `POWER-ON` (power-up or a
+battery brown-out), `PIN` (reset button or debugger), `SOFTWARE`, `OTHER`, or
+`WATCHDOG`. Each time the STM32 (re)connects the event log records it once.
+`WATCHDOG` is shown in amber and logged as a warning: the STM32 firmware hung
+for about 0.5 s and its watchdog (IWDG) restarted it. It is information, not a
+fault, so the console does not disarm for it.
 
 ### Depth zero
 

@@ -39,8 +39,13 @@ SI units. A value is null while its sensor is faulted or the STM32 is not answer
     {"depth_m": 12.4, "pressure_kpa": 224.0, "water_c": 8.7, "internal_c": 41.6,
      "roll": 1.2, "pitch": -0.4, "yaw": 214.0, "voltage": 15.8,
      "leak": false, "faults": ["TEMP"], "fault_flags": 8, "stm32": true,
+     "stm32_reset": "POWER_ON",
      "uart_errors": 0, "ack": <last cmd seq received>, "rx_cmds": <total cmds received>,
      "ref_ack": <last reference packet ref_seq applied>}
+    stm32_reset: why the STM32 last restarted - "POWER_ON" (power-up / brown-out),
+    "WATCHDOG" (IWDG: its firmware hung for ~0.5 s), "PIN" (reset button / debugger),
+    "SOFTWARE" or "OTHER". Unchanged until the STM32 restarts; null while it is not
+    answering. Information, not a fault (shown in SYSTEM STATUS and the event log).
 """
 
 import binascii
@@ -329,6 +334,7 @@ class DemoLink(Link):
             "voltage": 15.8 - load * 0.9,
             "leak": self.leak_latched,               # like the real STM32: leak = latched shutdown flag
             "faults": ["LEAK"] if self.leak_latched else [],
+            "stm32_reset": "POWER_ON",               # simulated STM32 was just powered up
             "ack": seq,                 # last command received, as the real Pi reports it
             "rx_cmds": self.rx_cmds,
             "ref_ack": self._pi_ref_ack,
