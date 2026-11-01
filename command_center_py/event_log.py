@@ -131,22 +131,26 @@ def export_xlsx(rows, path, vehicle=""):
     """Excel workbook: a 'Marks' sheet (one column per telemetry value) and an 'Events' sheet.
     Times are real Excel date-times, numbers are numbers. Needs openpyxl."""
     from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
     from openpyxl.utils import get_column_letter
 
     def when(s):
         return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f") if s else None
 
     wb = Workbook()
-    head_font, head_fill = Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="1F2933")
+    # White header row (bold black text, thin line under it); every column centred except the
+    # long Message text, which reads better left-aligned.
+    head_font, head_fill = Font(bold=True, color="000000"), PatternFill("solid", fgColor="FFFFFF")
+    head_border = Border(bottom=Side(style="thin", color="000000"))
+    centre, left = Alignment(horizontal="center", vertical="center"), Alignment(horizontal="left", vertical="center")
     for title, cols, data in (("Marks", MARK_COLS, [r for r in rows if r["tag"] == "MARK"]),
                               ("Events", ["local_time", "utc_offset", "utc_time", "tag", "message"], rows)):
         ws = wb.active if title == "Marks" else wb.create_sheet(title)
         ws.title = title
         ws.append([LABELS[c] for c in cols])
         for cell in ws[1]:
-            cell.font, cell.fill = head_font, head_fill
-            cell.alignment = Alignment(horizontal="center")
+            cell.font, cell.fill, cell.border = head_font, head_fill, head_border
+            cell.alignment = centre
         for r in data:
             ws.append([when(r.get(c)) if c in ("local_time", "utc_time")
                        else (None if r.get(c, "") == "" else r.get(c)) for c in cols])
@@ -159,8 +163,10 @@ def export_xlsx(rows, path, vehicle=""):
             elif c == "message":
                 width = 90
             else:
-                width = max(10, len(LABELS[c]) + 2)
+                width = max(10, len(LABELS[c]) + 5)     # + room for the filter arrow
             ws.column_dimensions[letter].width = width
+            for cell in ws[letter][1:]:
+                cell.alignment = left if c == "message" else centre
         ws.freeze_panes = "A2"
         ws.auto_filter.ref = ws.dimensions
     wb.properties.title = f"Camosun ROV event log {vehicle}".strip()
