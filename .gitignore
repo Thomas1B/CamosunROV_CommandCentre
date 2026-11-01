@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+vehicle_profiles/
 
 # Virtual environment - each collaborator builds their own (see README)
 .venv/
