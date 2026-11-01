@@ -31,7 +31,7 @@ DUALSHOCK 3 CONTROLS
     SELECT ............ E-STOP (disarm + zero thrusters immediately)
     L1 / R1 ........... thrust gain down / up (25-50-75-100 %)
     TRIANGLE .......... toggle all telemetry units SI <-> imperial
-    SQUARE ............ drop an operator mark in the event log
+    SQUARE ............ drop an operator mark in the event log (hold: one per second)
     Keyboard SPACE .... E-STOP (when this window has focus)
 
 -----------------------------------------------------------------------------

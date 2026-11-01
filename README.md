@@ -267,7 +267,7 @@ these values and the default reference values).
 | A, hold 5 s | CROSS, hold 5 s | Zero depth |
 | A, hold 1 s (while zeroed) | CROSS, hold 1 s (while zeroed) | Clear the depth zero |
 | Y | TRIANGLE | Toggle all telemetry units SI ↔ imperial |
-| X | SQUARE | Drop an operator mark in the event log |
+| X | SQUARE | Drop an operator mark in the event log (hold to repeat, one per second) |
 | Keyboard SPACE | Keyboard SPACE | E-STOP (when the console window has focus) |
 
 Help > Dualshock3 Map / Xbox Map in the console shows both layouts.

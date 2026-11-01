@@ -6,7 +6,7 @@ from PySide6.QtGui import (QColor, QFont, QLinearGradient, QPainter, QPainterPat
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QVBoxLayout, QWidget)
 
-from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, TILT_MIN, TILT_MAX, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S
+from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, TILT_MIN, TILT_MAX, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S
 from command_center_py.ui.theme import (PANEL, HEAD, WELL, BORDER, BORDER2, GRID, TEXT, BRIGHT,
                           MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, VALUE_PX, UNIT_PX, fs, mono, lab)
 
@@ -521,7 +521,7 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
         ]),
         ("CONSOLE", [
             ([m["tri"]], "Toggle SI / imperial units", None),
-            ([m["sq"]], "Operator mark in log", None),
+            ([m["sq"]], f"Operator mark in log · hold to repeat every {MARK_REPEAT_S:g} s", None),
             ([m["cross"]], f"Hold {ZERO_HOLD_S:.0f} s to zero depth (averaged) · {ZERO_CLEAR_HOLD_S:.0f} s to clear", None),
         ]),
     ]

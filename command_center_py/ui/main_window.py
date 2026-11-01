@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
                                QVBoxLayout, QWidget)
 
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
-                        TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, REQUIRE_LINK_TO_ARM,
+                        TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S, REQUIRE_LINK_TO_ARM,
                         RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD)
 from command_center_py.demo_pad import DemoPad
@@ -833,13 +833,22 @@ class ConsoleWindow(QMainWindow):
         elif self.clear_hold_start is not None and now - self.clear_hold_start >= ZERO_CLEAR_HOLD_S:
             self.clear_hold_start = None
             self.clear_zero(f"{self.k['cross']} held")
+        # SQUARE / X: one mark on the press, then one more every MARK_REPEAT_S while held
         if pressed("square"):
-            d = self._num("depth_m")
-            r1 = lambda v: round(v, 1) + 0.0          # 1 decimal; + 0.0 turns -0.0 into 0.0
-            rel = f" (rel {r1(d - self.tare):.1f} m)" if (d is not None and self.tare is not None) else ""
-            self.log("MARK", "Operator mark" + (f" @ {r1(d):.1f} m{rel}" if d is not None else ""), BLUE)
+            self._log_mark()
+            self.repeat_at["square"] = now + MARK_REPEAT_S
+        elif pad.down("square") and now >= self.repeat_at.get("square", math.inf):
+            self._log_mark()
+            self.repeat_at["square"] = now + MARK_REPEAT_S
 
         self.prev_buttons = dict(pad.buttons)
+
+    def _log_mark(self):
+        """Operator mark in the event log, with the depth (and the zeroed depth) at that moment."""
+        d = self._num("depth_m")
+        r1 = lambda v: round(v, 1) + 0.0          # 1 decimal; + 0.0 turns -0.0 into 0.0
+        rel = f" (rel {r1(d - self.tare):.1f} m)" if (d is not None and self.tare is not None) else ""
+        self.log("MARK", "Operator mark" + (f" @ {r1(d):.1f} m{rel}" if d is not None else ""), BLUE)
 
     def _step_tilt(self, d, first=False):
         """first: a fresh D-pad press (not a hold-repeat) - only those log a refusal."""
