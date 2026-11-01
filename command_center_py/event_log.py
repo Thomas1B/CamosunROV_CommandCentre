@@ -171,3 +171,65 @@ def export_xlsx(rows, path, vehicle=""):
         ws.auto_filter.ref = ws.dimensions
     wb.properties.title = f"Camosun ROV event log {vehicle}".strip()
     wb.save(path)
+
+
+# ---------------------------------------------------------------------------------------
+# Saved session logs (main menu > VIEW LOGS)
+# ---------------------------------------------------------------------------------------
+_NAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})_(\d{2})-(\d{2})-(\d{2})_(.+?)(?:_\d+)?$")
+
+
+class SavedLog:
+    """One CSV file in LOGS_DIR, read back. Same `rows` / `marks()` / `vehicle` / `path`
+    interface as EventLogFile, so the preview table and the exports work on either."""
+
+    def __init__(self, path):
+        self.path = path
+        m = _NAME_RE.match(path.stem)
+        self.started = f"{m.group(1)} {m.group(2)}:{m.group(3)}:{m.group(4)}" if m else path.stem
+        self.vehicle = m.group(5) if m else "?"
+        self.rows = []
+        self.error = None
+        try:
+            with open(path, newline="", encoding="utf-8-sig") as f:
+                for r in csv.DictReader(f):
+                    for k in SNAPSHOT_FIELDS:            # numbers back to numbers for Excel / alignment
+                        v = r.get(k)
+                        if v not in (None, "") and k not in ("heading_cardinal", "leak"):
+                            try:
+                                r[k] = float(v)
+                            except ValueError:
+                                pass
+                    self.rows.append(r)
+        except (OSError, csv.Error, UnicodeDecodeError) as e:
+            self.error = f"Could not read {path.name} — {e}"
+
+    def marks(self):
+        return [r for r in self.rows if r.get("tag") == "MARK"]
+
+    def duration(self):
+        """Session length as H:MM:SS, from the first and last row, or '--'."""
+        try:
+            a = datetime.strptime(self.rows[0]["local_time"], "%Y-%m-%d %H:%M:%S.%f")
+            b = datetime.strptime(self.rows[-1]["local_time"], "%Y-%m-%d %H:%M:%S.%f")
+        except (IndexError, KeyError, ValueError):
+            return "--"
+        secs = max(0, round((b - a).total_seconds()))
+        return f"{secs // 3600}:{secs // 60 % 60:02d}:{secs % 60:02d}"
+
+    def delete(self):
+        """Deletes the file. Returns an error message, or None."""
+        try:
+            self.path.unlink()
+            return None
+        except FileNotFoundError:
+            return None
+        except OSError as e:
+            return f"Could not delete {self.path.name} — {e}"
+
+
+def list_logs():
+    """Every session log in LOGS_DIR, newest first (file names start with the start time)."""
+    if not LOGS_DIR.is_dir():
+        return []
+    return [SavedLog(p) for p in sorted(LOGS_DIR.glob("*.csv"), key=lambda p: p.name, reverse=True)]

@@ -149,50 +149,7 @@ class ExitLogDialog(QDialog):
         return b
 
     def _table(self, rows, cols):
-        s = self._s
-        t = QTableWidget(len(rows), len(cols))
-        t.setHorizontalHeaderLabels([LABELS[c] for c in cols])
-        t.verticalHeader().setVisible(False)
-        t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        t.setWordWrap(False)
-        t.setFont(mono(s(11)))
-        t.horizontalHeader().setFont(mono(s(10), QFont.Weight.DemiBold))
-        t.setStyleSheet(
-            f"QTableWidget {{ background: {WELL}; color: {TEXT}; gridline-color: {BORDER}; border: 1px solid {BORDER};"
-            f" selection-background-color: #16303a; selection-color: {BRIGHT}; }}"
-            f"QHeaderView {{ background: {HEAD}; border: none; }}"
-            f"QHeaderView::section {{ background: {HEAD}; color: {LABEL}; border: none;"
-            f" border-right: 1px solid {BORDER}; border-bottom: 1px solid {BORDER}; padding: {s(4)}px {s(6)}px; }}"
-            f"QTableCornerButton::section {{ background: {HEAD}; border: none; }}"
-            f"QScrollBar {{ background: {PANEL}; border: none; width: {s(10)}px; height: {s(10)}px; }}"
-            f"QScrollBar::handle {{ background: {GRID}; border-radius: {s(4)}px; min-width: {s(24)}px; min-height: {s(24)}px; }}"
-            f"QScrollBar::handle:hover {{ background: {LABEL}; }}"
-            f"QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}"
-            f"QScrollBar::add-page, QScrollBar::sub-page {{ background: none; }}")
-        for r, row in enumerate(rows):
-            for c, key in enumerate(cols):
-                val = row.get(key, "")
-                text = "--" if val in ("", None) and key not in EVENT_COLS else str(val)
-                if key in ("local_time", "utc_time"):
-                    text = text[11:]                       # HH:MM:SS.mmm (date is in the header)
-                it = QTableWidgetItem(text)
-                if key == "tag":
-                    it.setForeground(QColor(TAG_COLORS.get(text, ACCENT)))
-                elif key == "leak":
-                    it.setForeground(QColor(DANGER if text == "LEAK" else (MUTED if text == "NO DATA" else ACCENT)))
-                elif key in ("local_time", "utc_time") or text == "--":
-                    it.setForeground(QColor(MUTED))
-                if key in SNAPSHOT_FIELDS and key != "leak":       # numbers (and "--") right-aligned
-                    it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                t.setItem(r, c, it)
-        h = t.horizontalHeader()
-        h.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        if "message" in cols:
-            h.setSectionResizeMode(cols.index("message"), QHeaderView.ResizeMode.Stretch)
-        t.verticalHeader().setDefaultSectionSize(s(22))
-        t.scrollToBottom()
-        return t
+        return log_table(rows, cols, self._s)
 
     # ---------------- options ----------------
     def _keep(self):
@@ -223,35 +180,13 @@ class ExitLogDialog(QDialog):
             self.status.setText("")
 
     def _export(self):
-        lf = self.log_file
-        stem = lf.path.stem if lf.path is not None else "event_log"
-        start_dir = os.path.join(os.path.expanduser("~"), "Documents")
-        if not os.path.isdir(start_dir):
-            start_dir = os.path.expanduser("~")
-        path, chosen = QFileDialog.getSaveFileName(self, "Export Session Log", os.path.join(start_dir, stem + ".xlsx"),
-                                                   ";;".join(FILTERS))
-        if not path:
-            return
-        ext = os.path.splitext(path)[1].lower()
-        if ext not in FILTERS.values():               # no / wrong extension: use the chosen filter's
-            ext = FILTERS.get(chosen, ".xlsx")
-            path += ext
-        try:
-            if ext == ".csv":
-                export_csv(lf.rows, path)
-            elif ext == ".pdf":
-                export_pdf(lf, path)
-            else:
-                export_xlsx(lf.rows, path, lf.vehicle)
-        except ImportError:
-            self._say(DANGER, "Excel export needs openpyxl — run: python -m pip install -r py_requirements.txt")
-            return
-        except Exception as e:                        # disk full, file open in Excel, ...
-            self._say(DANGER, f"Export failed — {e}")
-            return
-        self.exported.append(path)
-        self._say(ACCENT, f"Exported {os.path.basename(path)} to {os.path.dirname(path)}. "
-                          "Export another format, or choose SAVE or DISCARD to exit.")
+        path, err = export_session(self, self.log_file)
+        if err:
+            self._say(DANGER, err)
+        elif path:
+            self.exported.append(path)
+            self._say(ACCENT, f"Exported {os.path.basename(path)} to {os.path.dirname(path)}. "
+                              "Export another format, or choose SAVE or DISCARD to exit.")
 
     def _say(self, color, text):
         self.status.setStyleSheet(f"color: {color}; background: transparent;")
@@ -273,6 +208,83 @@ class ExitLogDialog(QDialog):
         if p is not None:   # centre over the console window
             g = p.frameGeometry()
             self.move(g.center().x() - self.width() // 2, g.center().y() - self.height() // 2)
+
+
+def log_table(rows, cols, s=lambda v: v):
+    """Read-only, dark-themed table of log rows. s scales px sizes. Shared by the exit
+    dialog and the main menu's VIEW LOGS browser."""
+    t = QTableWidget(len(rows), len(cols))
+    t.setHorizontalHeaderLabels([LABELS[c] for c in cols])
+    t.verticalHeader().setVisible(False)
+    t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+    t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+    t.setWordWrap(False)
+    t.setFont(mono(s(11)))
+    t.horizontalHeader().setFont(mono(s(10), QFont.Weight.DemiBold))
+    t.setStyleSheet(
+        f"QTableWidget {{ background: {WELL}; color: {TEXT}; gridline-color: {BORDER}; border: 1px solid {BORDER};"
+        f" selection-background-color: #16303a; selection-color: {BRIGHT}; }}"
+        f"QHeaderView {{ background: {HEAD}; border: none; }}"
+        f"QHeaderView::section {{ background: {HEAD}; color: {LABEL}; border: none;"
+        f" border-right: 1px solid {BORDER}; border-bottom: 1px solid {BORDER}; padding: {s(4)}px {s(6)}px; }}"
+        f"QTableCornerButton::section {{ background: {HEAD}; border: none; }}"
+        f"QScrollBar {{ background: {PANEL}; border: none; width: {s(10)}px; height: {s(10)}px; }}"
+        f"QScrollBar::handle {{ background: {GRID}; border-radius: {s(4)}px; min-width: {s(24)}px; min-height: {s(24)}px; }}"
+        f"QScrollBar::handle:hover {{ background: {LABEL}; }}"
+        f"QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}"
+        f"QScrollBar::add-page, QScrollBar::sub-page {{ background: none; }}")
+    for r, row in enumerate(rows):
+        for c, key in enumerate(cols):
+            val = row.get(key, "")
+            text = "--" if val in ("", None) and key not in EVENT_COLS else str(val)
+            if key in ("local_time", "utc_time"):
+                text = text[11:]                       # HH:MM:SS.mmm (date is in the header)
+            it = QTableWidgetItem(text)
+            if key == "tag":
+                it.setForeground(QColor(TAG_COLORS.get(text, ACCENT)))
+            elif key == "leak":
+                it.setForeground(QColor(DANGER if text == "LEAK" else (MUTED if text == "NO DATA" else ACCENT)))
+            elif key in ("local_time", "utc_time") or text == "--":
+                it.setForeground(QColor(MUTED))
+            if key in SNAPSHOT_FIELDS and key != "leak":       # numbers (and "--") right-aligned
+                it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            t.setItem(r, c, it)
+    h = t.horizontalHeader()
+    h.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+    if "message" in cols:
+        h.setSectionResizeMode(cols.index("message"), QHeaderView.ResizeMode.Stretch)
+    t.verticalHeader().setDefaultSectionSize(s(22))
+    t.scrollToBottom()
+    return t
+
+
+def export_session(parent, log):
+    """Asks where to save, then exports `log` (an EventLogFile or SavedLog) as .xlsx / .csv / .pdf.
+    Returns (path, None) on success, (None, error) on failure, (None, None) if cancelled."""
+    stem = log.path.stem if log.path is not None else "event_log"
+    start_dir = os.path.join(os.path.expanduser("~"), "Documents")
+    if not os.path.isdir(start_dir):
+        start_dir = os.path.expanduser("~")
+    path, chosen = QFileDialog.getSaveFileName(parent, "Export Session Log", os.path.join(start_dir, stem + ".xlsx"),
+                                               ";;".join(FILTERS))
+    if not path:
+        return None, None
+    ext = os.path.splitext(path)[1].lower()
+    if ext not in FILTERS.values():               # no / wrong extension: use the chosen filter's
+        ext = FILTERS.get(chosen, ".xlsx")
+        path += ext
+    try:
+        if ext == ".csv":
+            export_csv(log.rows, path)
+        elif ext == ".pdf":
+            export_pdf(log, path)
+        else:
+            export_xlsx(log.rows, path, log.vehicle)
+    except ImportError:
+        return None, "Excel export needs openpyxl — run: python -m pip install -r py_requirements.txt"
+    except Exception as e:                        # disk full, file open in Excel, ...
+        return None, f"Export failed — {e}"
+    return path, None
 
 
 def export_pdf(log_file, path):

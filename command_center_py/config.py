@@ -40,7 +40,7 @@ ARM_HOLD_S = 1.0
 ZERO_HOLD_S = 5.0        # hold CROSS / A (or the ZERO chip) this long to zero depth - the depth readings
                          # during the hold are averaged and used as the zero (display only, see main_window.py)
 ZERO_CLEAR_HOLD_S = 1.0  # hold CROSS / A this long to clear the zero (a click on REL clears at once)
-MARK_REPEAT_S = 1.0      # SQUARE / X held: one more operator mark every this many seconds
+MARK_REPEAT_S = 0.25      # SQUARE / X held: one more operator mark every this many seconds
 LINK_TIMEOUT_S = 1.0
 # Bar30 reference values - defaults for the CONNECT dialog (same as the STM32 firmware #defines).
 # The console sends them to the Pi, which passes them to the STM32. See reference.py.

@@ -34,7 +34,8 @@ Main features:
 - Bar30 depth sensor reference values (surface pressure, water density,
   second-order calibration), sent to the Pi/STM32 and confirmed by it
 - Event log with operator marks
-- Main menu: connect to a vehicle (with saved vehicle profiles), demo mode, controller maps
+- Main menu: connect to a vehicle (with saved vehicle profiles), demo mode, controller maps,
+  saved session logs
 - Demo mode with a simulated vehicle, a simulated controller and simulated
   packet loss, for testing without the ROV
 
@@ -373,6 +374,14 @@ options; Esc does nothing:
 The pop-up is skipped when the program is stopped with Ctrl+C; the log is
 kept. Excel export needs `openpyxl`, which is in `py_requirements.txt`. If
 your venv is older, re-run `python -m pip install -r py_requirements.txt`.
+
+**Viewing saved logs.** In the main menu, **VIEW LOGS** opens the **SESSION LOGS**
+card. It lists every session in `logs/`, newest first, with its start time, vehicle,
+number of events and marks. Pick one (mouse, arrow keys or D-pad) to see the same
+*Operator marks* and *All events* tables as the exit pop-up, plus the session
+length and its UTC times. **EXPORT…** saves it as `.xlsx`, `.csv` or `.pdf`.
+**DELETE** removes the file (click twice). **OPEN FOLDER** opens `logs/` in File
+Explorer. Esc, ○ / B, ✕ or CLOSE close the card.
 
 ### Depth zero
 
