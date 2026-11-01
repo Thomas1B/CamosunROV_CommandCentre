@@ -20,6 +20,8 @@ from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_
                         RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD)
 from command_center_py.demo_pad import DemoPad
+from command_center_py.event_log import EventLogFile
+from command_center_py.ui.log_dialog import ExitLogDialog
 from command_center_py.mixer import mix
 from command_center_py.video import VideoReceiver
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
@@ -94,6 +96,8 @@ class ConsoleWindow(QMainWindow):
         self.stm32_reset_seen = None         # stm32_reset already logged for this STM32 connection
         self.recover_until = 0.0           # send the recover bit until this time
         self.recover_deadline = None         # waiting for the leak shutdown to clear (or None)
+        # Every event-log line is also saved to logs/<start time>_<vehicle>.csv (event_log.py)
+        self.log_file = EventLogFile("DEMO" if demo else vehicle)
 
         self._build_ui()
         self._apply_kind(LAYOUT["kind"])
@@ -109,6 +113,10 @@ class ConsoleWindow(QMainWindow):
             self.video_rx = VideoReceiver(getattr(link, "video_port", VIDEO_PORT))
         self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo
                                                              else f" — {self.vehicle} @ {self.link.label}"), BLUE)
+        if self.log_file.error:
+            self.log("WARN", self.log_file.error, WARN)
+        else:
+            self.log("LOG", f"Saving event log to {self.log_file.path.parent.name}/{self.log_file.path.name}", MUTED)
         self.log("CFG", f"Reference values — {self.link.refs.summary()}", ACCENT)
         self._refs_ack_logged = False
         if self.pad.error:
@@ -535,8 +543,15 @@ class ConsoleWindow(QMainWindow):
             sb.addPermanentWidget(w)
 
     # ---------------- actions ----------------
-    def log(self, tag, msg, color=ACCENT):
-        t = datetime.now().strftime("%H:%M:%S")
+    def log(self, tag, msg, color=ACCENT, snapshot=None):
+        """Adds a line to the on-screen EVENT LOG (local time) and saves it to the CSV log
+        file (local + UTC time). snapshot: telemetry values for the file's columns (MARK)."""
+        when = datetime.now(timezone.utc)
+        err = self.log_file.error
+        self.log_file.write(when, tag, msg, snapshot)
+        t = when.astimezone().strftime("%H:%M:%S")
+        if self.log_file.error and not err:          # writing just failed: say so once
+            self.log_view.append(f'<span style="color:{WARN}">{html.escape(self.log_file.error)}</span>')
         tagp = html.escape(tag).ljust(5).replace(" ", "&nbsp;")
         self.log_view.append(f'<span style="color:#4d5d6d">{t}</span>&nbsp;&nbsp;'
                              f'<span style="color:{color}; font-weight:600">{tagp}</span>&nbsp;'
@@ -844,11 +859,33 @@ class ConsoleWindow(QMainWindow):
         self.prev_buttons = dict(pad.buttons)
 
     def _log_mark(self):
-        """Operator mark in the event log, with the depth (and the zeroed depth) at that moment."""
-        d = self._num("depth_m")
-        r1 = lambda v: round(v, 1) + 0.0          # 1 decimal; + 0.0 turns -0.0 into 0.0
-        rel = f" (rel {r1(d - self.tare):.1f} m)" if (d is not None and self.tare is not None) else ""
-        self.log("MARK", "Operator mark" + (f" @ {r1(d):.1f} m{rel}" if d is not None else ""), BLUE)
+        """Operator mark: logs a snapshot of the telemetry at that moment, on screen and as
+        separate columns in the CSV log file. Values that are not available show as "--"."""
+        linked = self.link.up(time.monotonic())
+        num = lambda k: self._num(k) if linked else None
+        d, p, wt, it = num("depth_m"), num("pressure_kpa"), num("water_c"), num("internal_c")
+        roll, pitch, yaw, v = num("roll"), num("pitch"), num("yaw"), num("voltage")
+        rel = None if (d is None or self.tare is None) else d - self.tare
+        hdg = None if yaw is None else yaw % 360
+        card = None if hdg is None else CARDINALS[int(round(hdg / 22.5)) % 16]
+        yaw_pm = None if yaw is None else ((yaw + 180) % 360) - 180      # -180..+180, as the YAW bar
+        leak_raw = self.tel.get("leak") if linked else None
+        leak = "NO DATA" if leak_raw is None else ("LEAK" if leak_raw else "DRY")
+
+        r = lambda x, n: None if x is None else round(x, n) + 0.0      # + 0.0 turns -0.0 into 0.0
+        f = lambda x, n, sign="": "--" if x is None else format(r(x, n), f"{sign}.{n}f")
+        msg = (f"Operator mark — depth {f(d, 1)} m"
+               + (f" (rel {f(rel, 1)} m)" if rel is not None else "")
+               + f" · {f(p, 1)} kPa · water {f(wt, 1)} °C · internal {f(it, 1)} °C"
+               + f" · roll {f(roll, 1, '+')}° pitch {f(pitch, 1, '+')}° yaw {f(yaw_pm, 1, '+')}°"
+               + f" · heading {'--' if hdg is None else f'{hdg:03.0f}° {card}'}"
+               + f" · battery {f(v, 2)} V · leak {leak}")
+        snapshot = {"depth_m": r(d, 2), "rel_depth_m": r(rel, 2), "pressure_kpa": r(p, 1),
+                    "water_temp_c": r(wt, 2), "internal_temp_c": r(it, 2),
+                    "roll_deg": r(roll, 2), "pitch_deg": r(pitch, 2), "yaw_deg": r(yaw_pm, 2),
+                    "heading_deg": r(hdg, 1), "heading_cardinal": card, "battery_v": r(v, 2),
+                    "leak": leak}
+        self.log("MARK", msg, BLUE, snapshot)
 
     def _step_tilt(self, d, first=False):
         """first: a fresh D-pad press (not a hold-repeat) - only those log a refusal."""
@@ -1117,6 +1154,13 @@ class ConsoleWindow(QMainWindow):
             for _ in range(3):   # make sure the Pi sees a disarmed frame on exit
                 self.link.send(False, [0] * 6, self.tilt)
             self.link.close()
+            self.log("SYS", "Console closed", BLUE)
+            self.log_file.close()
+            # Session log preview: KEEP / EXPORT... / DISCARD. The ROV is already disarmed and the
+            # link closed, so nothing is sent while it is open. Skipped on Ctrl+C / program exit
+            # (force_close), where the log is simply kept.
+            if not self._force_close:
+                ExitLogDialog(self, self.log_file, scale=fs(100) / 100).exec()
             self.closed.emit()
         super().closeEvent(e)
 

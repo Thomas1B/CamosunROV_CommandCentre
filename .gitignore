@@ -3,3 +3,5 @@ __pycache__/
 
 # Virtual environment - each collaborator builds their own (see README)
 .venv/
+# Event log files written by the console (one CSV per session)
+logs/

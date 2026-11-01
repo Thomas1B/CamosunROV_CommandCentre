@@ -332,6 +332,48 @@ battery brown-out), `PIN` (reset button or debugger), `SOFTWARE`, `OTHER`, or
 for about 0.5 s and its watchdog (IWDG) restarted it. It is information, not a
 fault, so the console does not disarm for it.
 
+### Event log file and operator marks
+
+Everything in the EVENT LOG is also saved to a CSV file in the `logs/` folder
+(next to `vehicle_profiles/`), one file per console session, named by the
+local start time and the vehicle, e.g. `logs/2026-10-31_23-44-18_DEMO.csv`.
+The first log line on screen shows the file name. Each row is written to disk
+immediately, so the file is complete even after a crash. The folder is
+git-ignored.
+
+| Column | Contents |
+|---|---|
+| `local_time` | Laptop local time, `YYYY-MM-DD HH:MM:SS.mmm` |
+| `utc_offset` | Local time minus UTC, e.g. `-07:00` |
+| `utc_time` | Same moment in UTC |
+| `tag`, `message` | As shown on screen (`SYS`, `LINK`, `MARK`, ...) |
+| `depth_m`, `rel_depth_m`, `pressure_kpa`, `water_temp_c`, `internal_temp_c`, `roll_deg`, `pitch_deg`, `yaw_deg`, `heading_deg`, `heading_cardinal`, `battery_v`, `leak` | Telemetry snapshot, `MARK` rows only |
+
+An operator mark (SQUARE / X; hold to repeat once per second) records depth,
+zeroed depth (if a zero is set), pressure, water and internal temperature,
+roll, pitch, yaw (−180° to +180°), heading (0–360° and compass point, e.g.
+`SW`), battery voltage and leak status (`DRY`, `LEAK` or `NO DATA`). The
+on-screen line shows the same values; a value that is unavailable (sensor
+faulted or link down) shows as `--` on screen and is left empty in the file.
+
+**Leaving the console.** When you exit the console (it must be disarmed), it
+sends its last zero-thrust frames, closes the link, and then shows the
+**SESSION LOG** pop-up. The pop-up previews the log in two tabs: *Operator
+marks* (one column per value) and *All events*. You must pick one of three
+options; Esc does nothing:
+
+- **SAVE**: keep the session file in `logs/` and exit.
+- **EXPORT…**: save a copy as Excel (`.xlsx`, with *Marks* and *Events*
+  sheets), CSV (`.csv`) or PDF (`.pdf`, A4 landscape) wherever you choose. The
+  pop-up stays open, so you can export more than one format before choosing
+  SAVE or DISCARD.
+- **DISCARD**: delete the session file from `logs/` and exit. Click it twice to
+  confirm. Copies you already exported are not touched.
+
+The pop-up is skipped when the program is stopped with Ctrl+C; the log is
+kept. Excel export needs `openpyxl`, which is in `py_requirements.txt`. If
+your venv is older, re-run `python -m pip install -r py_requirements.txt`.
+
 ### Depth zero
 
 Hold CROSS (or the ZERO chip on the depth card) for 5 s. Every depth reading
