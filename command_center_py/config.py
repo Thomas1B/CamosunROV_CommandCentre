@@ -23,6 +23,8 @@ TOP_DIR = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False
 PROFILES_DIR = TOP_DIR / "vehicle_profiles"
 # The console's event log is saved in <top>/logs/, one CSV file per console session.
 LOGS_DIR = TOP_DIR / "logs"
+# Camera recordings (console REC button), one .mkv per recording.
+RECORDINGS_DIR = TOP_DIR / "recordings"
 # Controller calibration profiles (main menu > CONTROLLER PROFILES), one JSON file each.
 CONTROLLER_PROFILES_DIR = TOP_DIR / "controller_profiles"
 

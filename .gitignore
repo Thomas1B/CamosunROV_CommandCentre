@@ -6,3 +6,5 @@ vehicle_profiles/
 .venv/
 # Event log files written by the console (one CSV per session)
 logs/
+# Camera recordings (console REC button)
+recordings/

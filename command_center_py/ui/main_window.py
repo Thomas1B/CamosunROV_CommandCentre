@@ -6,6 +6,8 @@ main menu - but only once the thrusters are disarmed.
 
 import html
 import math
+import os
+import re
 import time
 from datetime import datetime, timezone
 
@@ -18,7 +20,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S, REQUIRE_LINK_TO_ARM,
                         RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
-                        THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD)
+                        THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD, RECORDINGS_DIR)
 from command_center_py.controller_profiles import CalibratedPad
 from command_center_py.demo_pad import DemoPad
 from command_center_py.event_log import EventLogFile
@@ -252,6 +254,17 @@ class ConsoleWindow(QMainWindow):
         self.pad_lbl = QLabel()
         self.pad_lbl.setFont(mono(fs(11)))
         h.addWidget(self.pad_lbl)
+
+        # REC: records the camera stream to recordings/<start time>_<vehicle>.mkv (see video.py)
+        self.rec_btn = QPushButton("● REC")
+        self.rec_btn.setFont(mono(fs(12), QFont.Weight.Bold))
+        self.rec_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rec_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.rec_btn.setMinimumWidth(fs(150))
+        self.rec_btn.clicked.connect(self.toggle_recording)
+        h.addWidget(self.rec_btn)
+        self._rec_style = None
+        self._rec_logged = None               # path whose "started" line is in the log
 
         self.arm_btn = QPushButton("DISARMED")
         self.arm_btn.setFont(mono(fs(12), QFont.Weight.Bold))
@@ -885,11 +898,16 @@ class ConsoleWindow(QMainWindow):
                + f" · roll {f(roll, 1, '+')}° pitch {f(pitch, 1, '+')}° yaw {f(yaw_pm, 1, '+')}°"
                + f" · heading {'--' if hdg is None else f'{hdg:03.0f}° {card}'}"
                + f" · battery {f(v, 2)} V · leak {leak}")
+        rec = self.video_rx.recording() if self.video_rx is not None else {"state": "off"}
+        vt = vfile = None
+        if rec["state"] == "rec":               # where this mark is in the recording
+            vt, vfile = self._rec_clock(rec["seconds"]), os.path.basename(rec["path"])
+            msg += f" · REC {vt}"
         snapshot = {"depth_m": r(d, 2), "rel_depth_m": r(rel, 2), "pressure_kpa": r(p, 1),
                     "water_temp_c": r(wt, 2), "internal_temp_c": r(it, 2),
                     "roll_deg": r(roll, 2), "pitch_deg": r(pitch, 2), "yaw_deg": r(yaw_pm, 2),
                     "heading_deg": r(hdg, 1), "heading_cardinal": card, "battery_v": r(v, 2),
-                    "leak": leak}
+                    "leak": leak, "video_time": vt, "video_file": vfile}
         self.log("MARK", msg, BLUE, snapshot)
 
     def _step_tilt(self, d, first=False):
@@ -1097,6 +1115,7 @@ class ConsoleWindow(QMainWindow):
 
         # video frame + HUD
         self._update_video(now)
+        self._update_rec()
         zh = 0.0                             # chip loading bar: zeroing (5 s) or clearing (1 s) hold
         if self.zero_hold_start is not None:
             zh = min(1.0, (now - self.zero_hold_start) / ZERO_HOLD_S)
@@ -1129,6 +1148,81 @@ class ConsoleWindow(QMainWindow):
         lost = self.link.lost_total          # None until the Pi has reported ack / rx_cmds
         self.lost_lbl.setText(f"LOST {'--' if lost is None else f'{lost:,}'} pkt   │")
 
+    # ---------------- recording ----------------
+    @staticmethod
+    def _rec_clock(seconds):
+        s = int(seconds)
+        return f"{s // 3600}:{s // 60 % 60:02d}:{s % 60:02d}" if s >= 3600 else f"{s // 60:02d}:{s % 60:02d}"
+
+    def toggle_recording(self):
+        """REC button: start / stop recording the camera stream."""
+        if self.video_rx is None:
+            self.log("DENY", "Can't record — no camera stream in demo mode", WARN)
+            return
+        if self.video_rx.recording()["state"] != "off":
+            self._stop_recording()
+            return
+        start = datetime.now()
+        name = re.sub(r"[^A-Za-z0-9_-]+", "_", self.vehicle or "").strip("_") or "ROV"
+        path = RECORDINGS_DIR / f"{start:%Y-%m-%d_%H-%M-%S}_{name}.mkv"
+        try:
+            RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            self.log("WARN", f"Can't record — {e}", WARN)
+            return
+        if self.video_rx.start_recording(path):
+            self._rec_logged = None
+            self.log("REC", f"Recording requested — starts at the next key frame → recordings/{path.name}", DANGER)
+
+    def _stop_recording(self, why=""):
+        rec = self.video_rx.recording()
+        if rec["state"] == "off":
+            return
+        self.video_rx.stop_recording()
+        name = os.path.basename(rec["path"])
+        if rec["state"] == "waiting":
+            self.log("REC", "Recording cancelled — no video arrived, nothing saved", MUTED)
+        else:
+            self.log("REC", f"Recording stopped{' (' + why + ')' if why else ''} — {self._rec_clock(rec['seconds'])}"
+                            f" · {rec['bytes'] / 1e6:.1f} MB → recordings/{name}", DANGER)
+
+    def _update_rec(self):
+        """REC button text / colour, the "started" log line and recording errors (UI timer)."""
+        rec = self.video_rx.recording() if self.video_rx is not None else {"state": "off", "error": None}
+        if rec.get("error"):
+            self.log("WARN", rec["error"], WARN)
+            self.video_rx.rec_error = None
+        state = rec["state"]
+        if state == "rec" and self._rec_logged != rec["path"]:
+            self._rec_logged = rec["path"]
+            self.log("REC", f"Recording started → recordings/{os.path.basename(rec['path'])}", DANGER)
+        if state == "rec":
+            text = f"■ REC {self._rec_clock(rec['seconds'])}"
+            if not self._video_was_live:
+                text += " ⏸"                      # stream dropped: recording resumes when it's back
+        else:
+            text = {"waiting": "● REC …", "off": "● REC"}[state]
+        if self.rec_btn.text() != text:
+            self.rec_btn.setText(text)
+        if state == "rec":
+            tip = f"Recording to recordings/{os.path.basename(rec.get('path') or '')} — click to stop"
+        elif state == "waiting":
+            tip = "Waiting for the next key frame — click to cancel"
+        else:
+            tip = ("Record the camera stream to recordings/" if self.video_rx is not None
+                   else "No camera in demo mode — recording needs the live stream")
+        if self.rec_btn.toolTip() != tip:
+            self.rec_btn.setToolTip(tip)
+        style = state if self.video_rx is not None else "disabled"
+        if style != self._rec_style:
+            self._rec_style = style
+            css = {"off": f"border: 1px solid #3a4653; background: #151b23; color: #c9d3de;",
+                   "disabled": f"border: 1px solid {BORDER2}; background: #121820; color: {MUTED};",
+                   "waiting": "border: 1px solid #7f2b2e; background: #1f1214; color: #ffb3b4;",
+                   "rec": "border: 1px solid #ff6b6e; background: #3a1416; color: #ff6b6e;"}[style]
+            self.rec_btn.setStyleSheet(f"QPushButton {{ padding: 7px 14px; border-radius: 4px; {css} }}"
+                                       f"QPushButton:hover {{ border-color: #ff6b6e; color: #fff; }}")
+
     def _update_video(self, now):
         if self.video_rx is None:
             return
@@ -1159,6 +1253,7 @@ class ConsoleWindow(QMainWindow):
             self.ui_timer.stop()
             self.loss_timer.stop()
             if self.video_rx is not None:
+                self._stop_recording("console closed")
                 self.video_rx.stop()      # frees the UDP video port for the next session
             self.armed = False
             for _ in range(3):   # make sure the Pi sees a disarmed frame on exit

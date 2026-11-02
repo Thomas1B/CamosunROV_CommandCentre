@@ -25,6 +25,7 @@ Main features:
 - Adjustable thrust gain (25 / 50 / 75 / 100 %)
 - Live camera view (H.264 over UDP, decoded with PyAV) with a HUD; shows
   *VIDEO LOST* over the last frame if the stream stops for 1.5 s
+- Camera recording (REC button) to `recordings/*.mkv`, full quality, almost no CPU
 - Failsafes: the ROV is automatically disarmed if the controller disconnects,
   the tether link is lost, or a leak is detected
 - No keyboard control of the ROV except SPACE for E-STOP
@@ -416,6 +417,7 @@ git-ignored.
 | `utc_time` | Same moment in UTC |
 | `tag`, `message` | As shown on screen (`SYS`, `LINK`, `MARK`, ...) |
 | `depth_m`, `rel_depth_m`, `pressure_kpa`, `water_temp_c`, `internal_temp_c`, `roll_deg`, `pitch_deg`, `yaw_deg`, `heading_deg`, `heading_cardinal`, `battery_v`, `leak` | Telemetry snapshot, `MARK` rows only |
+| `video_time`, `video_file` | Position in the camera recording (`mm:ss`) and its file name, `MARK` rows made while recording |
 
 An operator mark (SQUARE / X; hold to repeat once per second) records depth,
 zeroed depth (if a zero is set), pressure, water and internal temperature,
@@ -450,6 +452,35 @@ length and its UTC times. **EXPORT…** saves it as `.xlsx`, `.csv` or `.pdf`.
 **DELETE** removes the file (click twice). **OPEN FOLDER** opens `logs/` in File
 Explorer. Drag the grip in the card's bottom-right corner to resize it (it keeps that
 size until the program closes). Esc, ○ / B, ✕ or CLOSE close the card.
+
+### Recording the camera
+
+Click **● REC** in the console toolbar to record the camera stream; click it again
+(**■ REC 02:14**) to stop. Recordings are saved in the `recordings/` folder,
+one file per recording, named like the logs, e.g.
+`recordings/2026-11-01_18-40-05_ROV-01.mkv`. The folder is git-ignored. There's
+no controller button for it; use the mouse.
+
+- **Full quality, almost no CPU.** The H.264 video the Pi sends is saved exactly
+  as received. It isn't decoded or compressed again. At the Pi's 4 Mbit/s that's
+  about 30 MB per minute (1.8 GB per hour).
+- **Starts cleanly.** Recording starts at the next key frame, at most 0.5 s after
+  the click, so the file never opens on a broken picture. The button shows
+  **● REC …** until then.
+- **Dropouts.** If the stream drops out (the button shows ⏸ and the log says
+  *Camera stream lost*), the same file continues when the video comes back. The
+  gap is left out, so the time shown is the length of video in the file.
+- **Crash-safe.** If the program or laptop crashes while recording, everything up
+  to about the last second is kept.
+- **Event log.** The event log records *Recording started* and *Recording
+  stopped* (with length, size and file name). An operator mark made while
+  recording ends with the video time, e.g. `· REC 02:14`, and the log file gets
+  `video_time` and `video_file` columns. Use those to find a mark in the video.
+- **Closing the console** stops the recording. Demo mode has no camera, so REC
+  does nothing there.
+
+The `.mkv` files play in VLC or the Windows Media Player / Films & TV app.
+Packets lost on the tether show as a brief glitch, the same as on screen.
 
 ### Depth zero
 

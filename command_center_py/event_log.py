@@ -26,7 +26,7 @@ from command_center_py.config import LOGS_DIR
 
 SNAPSHOT_FIELDS = ["depth_m", "rel_depth_m", "pressure_kpa", "water_temp_c", "internal_temp_c",
                    "roll_deg", "pitch_deg", "yaw_deg", "heading_deg", "heading_cardinal",
-                   "battery_v", "leak"]
+                   "battery_v", "leak", "video_time", "video_file"]
 FIELDS = ["local_time", "utc_offset", "utc_time", "tag", "message"] + SNAPSHOT_FIELDS
 
 # Column headings (SI units) for the exit preview, Excel and PDF exports.
@@ -35,7 +35,7 @@ LABELS = {"local_time": "Local time", "utc_offset": "UTC offset", "utc_time": "U
           "pressure_kpa": "Pressure (kPa)", "water_temp_c": "Water (°C)", "internal_temp_c": "Internal (°C)",
           "roll_deg": "Roll (°)", "pitch_deg": "Pitch (°)", "yaw_deg": "Yaw (°)",
           "heading_deg": "Heading (°)", "heading_cardinal": "Compass", "battery_v": "Battery (V)",
-          "leak": "Leak"}
+          "leak": "Leak", "video_time": "Video time", "video_file": "Video file"}
 EVENT_COLS = ["local_time", "utc_time", "tag", "message"]
 MARK_COLS = ["local_time", "utc_time"] + SNAPSHOT_FIELDS
 
