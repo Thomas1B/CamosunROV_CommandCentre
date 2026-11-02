@@ -566,6 +566,12 @@ class ConsoleWindow(QMainWindow):
         """Adds a line to the on-screen EVENT LOG (local time) and saves it to the CSV log
         file (local + UTC time). snapshot: telemetry values for the file's columns (MARK)."""
         when = datetime.now(timezone.utc)
+        rx = getattr(self, "video_rx", None)
+        if rx is not None and not (snapshot or {}).get("video_file"):
+            rec = rx.recording()
+            if rec["state"] == "rec":              # while recording, every event gets its video time
+                snapshot = dict(snapshot or {}, video_time=self._rec_clock(rec["seconds"]),
+                                video_file=os.path.basename(rec["path"]))
         err = self.log_file.error
         self.log_file.write(when, tag, msg, snapshot)
         t = when.astimezone().strftime("%H:%M:%S")
@@ -1187,7 +1193,8 @@ class ConsoleWindow(QMainWindow):
             self.log("REC", "Recording cancelled — no video arrived, nothing saved", MUTED)
         else:
             self.log("REC", f"Recording stopped{' (' + why + ')' if why else ''} — {self._rec_clock(rec['seconds'])}"
-                            f" · {rec['bytes'] / 1e6:.1f} MB → recordings/{name}", DANGER)
+                            f" · {rec['bytes'] / 1e6:.1f} MB → recordings/{name}", DANGER,
+                     {"video_time": self._rec_clock(rec["seconds"]), "video_file": name})
 
     def _update_rec(self):
         """REC button text / colour, the "started" log line and recording errors (UI timer)."""

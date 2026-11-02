@@ -5,6 +5,7 @@
                         opens once the Pi answers, otherwise the dialog stays open.
     DEMO MODE ......... opens the console with a simulated vehicle (nothing transmitted)
     VIEW LOGS ......... saved console session logs (logs/): preview, export, delete
+    VIEW RECORDINGS ... camera recordings (recordings/): built-in player, marks, open folder
     CONTROLLER MAP .... DualShock 3 and Xbox button maps side by side
     CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
     QUIT .............. closes the program
@@ -23,19 +24,22 @@ from PySide6.QtGui import (QBrush, QColor, QDesktopServices, QFont, QPainter, QP
                            QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QComboBox, QFrame, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout,
                                QDoubleSpinBox, QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QSizePolicy,
-                               QTabWidget, QVBoxLayout, QWidget)
+                               QFileDialog, QTabWidget, QVBoxLayout, QWidget)
 
 from command_center_py import controller_profiles as cp
 from command_center_py import profiles
 from command_center_py.config import (APP_BUILD, APP_VERSION, ARM_HOLD_S, CMD_PORT,
                                       CONNECT_TIMEOUT_S, DEFAULT_VEHICLE_NAME, PI_HOST, RATE_HZ,
-                                      LOGS_DIR, TELEM_PORT, VIDEO_PORT)
+                                      LOGS_DIR, RECORDINGS_DIR, TELEM_PORT, VIDEO_PORT)
 from command_center_py.event_log import EVENT_COLS, MARK_COLS, list_logs
 from command_center_py.link import Link, check_ipv4, check_port
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD,
                                         DIM, LABEL, MUTED, OFF, PANEL, SANS, WARN, WELL, combo_arrow_css, lab, mono)
 from command_center_py.ui.controller_page import StickCalView, TriggerCalBar
 from command_center_py.ui.log_dialog import export_session, log_table
+from command_center_py.ui.recordings_page import SeekBar, VideoView
+from command_center_py.recordings import clock, events_for, list_recordings
+from command_center_py.video_player import VideoPlayer
 from command_center_py.ui.reference_fields import RefFields
 from command_center_py.ui.widgets import CONTROLLER_MAPS, LAYOUT, controller_map_body, key_chip
 
@@ -1361,11 +1365,302 @@ class ControllerProfilesCard(Card):
         self.status.setText(text)
 
 
+class RecordingsCard(Card):
+    """RECORDINGS: camera recordings in recordings/ (console REC button), newest first.
+
+    Left: the recordings (start time, vehicle, length, size, marks). Middle: the built-in
+    player (PyAV, see video_player.py) with play / pause, -5 s / +5 s and a seek bar. Right:
+    the operator marks made while that file was recording (from logs/); click one to jump.
+    Footer: OPEN FOLDER, SAVE FRAME... (PNG of the frame on screen), DELETE (click twice), CLOSE.
+    Keys: Space play / pause, Left / Right -5 / +5 s, Up / Down another recording, Esc close.
+    Controller: CROSS (A) play / pause, D-pad left / right -5 / +5 s, up / down another
+    recording, CIRCLE (B) close. Resizable from the bottom-right corner.
+    """
+
+    MIN_W, MIN_H = 960, 520
+    STEP_S = 5.0
+
+    def __init__(self, on_close):
+        super().__init__("RECORDINGS", 1180)
+        self._on_close = on_close
+        self.close_btn.clicked.connect(self.close_card)
+        self.recs = []
+        self.marks = []
+        self.player = VideoPlayer()
+        self._del_armed = False
+        self._last_err = None
+
+        h = QHBoxLayout(self.body)
+        h.setContentsMargins(14, 14, 14, 10)
+        h.setSpacing(14)
+
+        self.list = QListWidget()
+        self.list.setFixedWidth(260)
+        self.list.setFont(mono(12))
+        self.list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.list.setStyleSheet(LIST_CSS)
+        self.list.currentRowChanged.connect(self._show)
+        h.addWidget(self.list)
+
+        mid = QVBoxLayout()
+        mid.setSpacing(8)
+        self.info = lab("", 12, SOFT)
+        self.info.setWordWrap(True)
+        mid.addWidget(self.info)
+        self.view = VideoView()
+        mid.addWidget(self.view, 1)
+        ctl = QHBoxLayout()
+        ctl.setSpacing(6)
+        small = (f"padding: 6px 10px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
+                 f"border-color: {ACCENT}; color: {ACCENT};")
+        self.back_btn = button("◀◀ 5 s", 11, None, *small)
+        self.back_btn.clicked.connect(lambda: self.step(-self.STEP_S))
+        self.play_btn = button("▶ PLAY", 11, 96,
+                               f"padding: 6px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
+                               f"border-color: {ACCENT}; color: {OK_TEXT};")
+        self.play_btn.clicked.connect(self.player.toggle)
+        self.fwd_btn = button("5 s ▶▶", 11, None, *small)
+        self.fwd_btn.clicked.connect(lambda: self.step(self.STEP_S))
+        self.seek = SeekBar()
+        self.seek.jumped.connect(self.player.seek)
+        self.time_lbl = lab("00:00 / 00:00", 12, SOFT)
+        for w_ in (self.back_btn, self.play_btn, self.fwd_btn):
+            ctl.addWidget(w_)
+        ctl.addWidget(self.seek, 1)
+        ctl.addWidget(self.time_lbl)
+        mid.addLayout(ctl)
+        h.addLayout(mid, 1)
+
+        right = QVBoxLayout()
+        right.setSpacing(6)
+        right.addWidget(slab("EVENTS IN THIS RECORDING", 10, LABEL, QFont.Weight.Bold, 1.0))
+        self.marks_list = QListWidget()
+        self.marks_list.setFixedWidth(250)
+        self.marks_list.setFont(mono(11))
+        self.marks_list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.marks_list.setWordWrap(True)
+        self.marks_list.setStyleSheet(LIST_CSS)
+        self.marks_list.itemClicked.connect(self._jump_to_mark)
+        right.addWidget(self.marks_list, 1)
+        self.marks_hint = lab("Click an event to jump to it.", 10, MUTED)
+        self.marks_hint.setWordWrap(True)
+        right.addWidget(self.marks_hint)
+        h.addLayout(right)
+
+        # footer: OPEN FOLDER  SAVE FRAME…  DELETE  status ........ CLOSE
+        folder = button("OPEN FOLDER", 11, None, *small)
+        folder.clicked.connect(self._open_folder)
+        self.foot_lay.addWidget(folder)
+        self.frame_btn = button("SAVE FRAME…", 11, None, *small)
+        self.frame_btn.clicked.connect(self._save_frame)
+        self.foot_lay.addWidget(self.frame_btn)
+        self.del_btn = button("DELETE", 11, 190,
+                              f"padding: 6px 0; border: 1px solid {RED_BORDER}; border-radius: 3px; background: #2a1416; color: {DANGER};",
+                              f"border-color: {DANGER};")
+        self.del_btn.clicked.connect(self._delete)
+        self.foot_lay.addWidget(self.del_btn)
+        self.status = lab("", 11, LABEL)
+        self.status.setWordWrap(True)
+        self.foot_lay.addWidget(self.status, 1)
+        close = button("CLOSE", 11, 84,
+                       f"padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
+                       f"border-color: {ACCENT}; color: {ACCENT};")
+        close.clicked.connect(self.close_card)
+        self.foot_lay.addWidget(close)
+        disabled = f" QPushButton:disabled {{ color: {MUTED}; border-color: {BORDER2}; background: transparent; }}"
+        for b in (self.back_btn, self.play_btn, self.fwd_btn, self.frame_btn, self.del_btn):
+            b.setStyleSheet(b.styleSheet() + disabled)
+
+        self.layout().setStretchFactor(self.body, 1)
+        self.setFixedSize(1180, 700)
+        self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
+        self.timer = QTimer(self)
+        self.timer.setInterval(33)                # ~30 fps display refresh while open
+        self.timer.timeout.connect(self._tick)
+
+    # ---------------- lifecycle ----------------
+    def opened(self):
+        """Called each time the card is shown: re-reads recordings/."""
+        self.setFixedSize(*self.grip.clamp(self.width(), self.height()))
+        self.recs = list_recordings()
+        self.list.blockSignals(True)
+        self.list.clear()
+        for r in self.recs:
+            ev = events_for(r)
+            n, m = len(ev), sum(1 for e in ev if e[2] == "MARK")
+            length = clock(r.length) if r.length is not None else "--:--"
+            count = (f"{n} event{'' if n == 1 else 's'}" + (f"  ·  {m} mark{'' if m == 1 else 's'}" if m else "")
+                     if n else "")
+            self.list.addItem(QListWidgetItem(f"{r.started}\n{r.vehicle}  ·  {length}  ·  {r.size_text()}"
+                                              + (f"\n{count}" if count else "")))
+        self.list.blockSignals(False)
+        self._say(LABEL, "")
+        self.list.setCurrentRow(0 if self.recs else -1)
+        self._show(self.list.currentRow())
+        self.timer.start()
+
+    def close_card(self):
+        self.timer.stop()
+        self.player.close()
+        self._disarm_delete()
+        self._on_close()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        g = self.grip
+        g.move(self.width() - g.width() - 2, self.height() - g.height() - 2)
+        g.raise_()
+
+    def current(self):
+        i = self.list.currentRow()
+        return self.recs[i] if 0 <= i < len(self.recs) else None
+
+    def _show(self, i):
+        self._disarm_delete()
+        r = self.current()
+        self.player.close()
+        self.marks_list.clear()
+        has = r is not None
+        for b in (self.back_btn, self.play_btn, self.fwd_btn, self.frame_btn, self.del_btn):
+            b.setEnabled(has)
+        if not has:
+            self.info.setText("")
+            self.view.set_image(None, "No recordings yet. Use ● REC in the console to record the camera.")
+            self.seek.setRange(0, 0)
+            self.time_lbl.setText("00:00 / 00:00")
+            self.marks_hint.setText("")
+            return
+        self.info.setText(f"recordings/{r.path.name}\n{r.vehicle}  ·  started {r.started}  ·  "
+                          f"{clock(r.length) if r.length is not None else 'length unknown'}  ·  {r.size_text()}")
+        self.marks = events_for(r)
+        for t, local, tag, text in self.marks:
+            it = QListWidgetItem(f"{clock(t)}   {local}   {tag}\n{text}")
+            it.setData(Qt.ItemDataRole.UserRole, t)
+            self.marks_list.addItem(it)
+        self.marks_hint.setText("Click an event to jump to it." if self.marks
+                                else "No events were logged while this was recording.")
+        self.seek.setRange(0, int(round((r.length or 0) * 10)))
+        self.seek.setValue(0)
+        self.view.set_image(None, "Loading…")
+        self.player.open(r.path, r.length)
+
+    def step(self, d):
+        _, pos, _, _ = self.player.state()
+        self.player.seek(pos + d)
+
+    def select(self, d):
+        if self.recs:
+            self.list.setCurrentRow(max(0, min(len(self.recs) - 1, self.list.currentRow() + d)))
+
+    def _jump_to_mark(self, item):
+        t = item.data(Qt.ItemDataRole.UserRole)
+        if t is not None:
+            self.player.seek(max(0.0, float(t)))
+
+    def _tick(self):
+        img, pos, length, playing = self.player.state()
+        if self.current() is None:
+            return
+        if self.player.error and self.player.error != self._last_err:
+            self._last_err = self.player.error
+            self._say(DANGER, self.player.error)
+        self.view.set_image(img, "" if img is not None else ("Loading…" if not self.player.error else "Can't play this file"))
+        if length and self.seek.maximum() != int(round(length * 10)):
+            self.seek.setRange(0, int(round(length * 10)))
+        if not self.seek.isSliderDown():
+            self.seek.blockSignals(True)
+            self.seek.setValue(int(round(pos * 10)))
+            self.seek.blockSignals(False)
+        self.time_lbl.setText(f"{clock(pos)} / {clock(length) if length else '--:--'}")
+        text = "⏸ PAUSE" if playing else "▶ PLAY"
+        if self.play_btn.text() != text:
+            self.play_btn.setText(text)
+
+    def _say(self, color, text):
+        self.status.setStyleSheet(f"color: {color}; background: transparent;")
+        self.status.setText(text)
+
+    # ---------------- footer ----------------
+    def _open_folder(self):
+        try:
+            RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            self._say(DANGER, f"Can't open recordings/ — {e}")
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(RECORDINGS_DIR)))
+
+    def _save_frame(self):
+        r = self.current()
+        img, pos, _, _ = self.player.state()
+        if r is None or img is None:
+            return
+        self.player.pause()
+        pics = Path.home() / "Pictures"
+        start = pics if pics.is_dir() else Path.home()
+        name = f"{r.path.stem}_{clock(pos).replace(':', '-')}.png"
+        path, _ = QFileDialog.getSaveFileName(self.window(), "Save Frame", str(start / name), "PNG image (*.png)")
+        if not path:
+            return
+        if not path.lower().endswith(".png"):
+            path += ".png"
+        if img.save(path, "PNG"):
+            self._say(ACCENT, f"Saved {Path(path).name} ({clock(pos)})")
+        else:
+            self._say(DANGER, f"Could not save {Path(path).name}")
+
+    def _delete(self):
+        r = self.current()
+        if r is None:
+            return
+        if not self._del_armed:              # first click arms, second deletes
+            self._del_armed = True
+            self.del_btn.setText("CLICK AGAIN TO DELETE")
+            self._say(WARN, f"Deletes {r.path.name}. Can't be undone.")
+            QTimer.singleShot(4000, self._disarm_delete)
+            return
+        self.player.close()                  # Windows can't delete a file that is open
+        err = r.delete()
+        if err:
+            self._disarm_delete()
+            self._say(DANGER, err)
+            self._show(self.list.currentRow())
+            return
+        row = self.list.currentRow()
+        self.opened()
+        if self.recs:
+            self.list.setCurrentRow(min(row, len(self.recs) - 1))
+        self._say(LABEL, f"Deleted {r.path.name}")
+
+    def _disarm_delete(self):
+        if self._del_armed:
+            self._del_armed = False
+            self.del_btn.setText("DELETE")
+            self._say(LABEL, "")
+
+    def key(self, e):
+        k = e.key()
+        if k == Qt.Key.Key_Escape:
+            self.close_card()
+        elif k == Qt.Key.Key_Space:
+            self.player.toggle()
+        elif k == Qt.Key.Key_Left:
+            self.step(-self.STEP_S)
+        elif k == Qt.Key.Key_Right:
+            self.step(self.STEP_S)
+        elif k == Qt.Key.Key_Up:
+            self.select(-1)
+        elif k == Qt.Key.Key_Down:
+            self.select(1)
+        else:
+            return False
+        return True
+
+
 # ============================================================================
 # MAIN MENU WINDOW
 # ============================================================================
 class MainMenu(QWidget):
-    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "VIEW LOGS", "CONTROLLER MAP", "CONTROLLER PROFILES", "QUIT")
+    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "VIEW LOGS", "VIEW RECORDINGS", "CONTROLLER MAP", "CONTROLLER PROFILES", "QUIT")
 
     def __init__(self, pad, on_connected, on_demo):
         super().__init__()
@@ -1450,6 +1745,8 @@ class MainMenu(QWidget):
         self.map_ov = Overlay(self, self.map_card, self.close_overlay)
         self.logs_card = LogsCard(self.close_overlay)
         self.logs_ov = Overlay(self, self.logs_card, self.close_overlay)
+        self.rec_card = RecordingsCard(self.close_overlay)
+        self.rec_ov = Overlay(self, self.rec_card, self.rec_card.close_card)
         self.ctl_card = ControllerProfilesCard(self.close_overlay)
         self.ctl_ov = Overlay(self, self.ctl_card, self.ctl_card.close_card)
         self.overlay = None
@@ -1532,6 +1829,9 @@ class MainMenu(QWidget):
             self.open_overlay(self.ctl_ov)
             st = self.pad.snapshot()
             self.ctl_card.opened(st.name if st.connected else "")
+        elif item == "VIEW RECORDINGS":
+            self.open_overlay(self.rec_ov)
+            self.rec_card.opened()
         elif item == "VIEW LOGS":
             self.open_overlay(self.logs_ov)
             self.logs_card.opened()
@@ -1545,7 +1845,7 @@ class MainMenu(QWidget):
         ov.setGeometry(self.rect())
         ov.show()
         ov.raise_()
-        if ov in (self.map_ov, self.logs_ov, self.ctl_ov):
+        if ov in (self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov):
             self.setFocus()
 
     def close_overlay(self):
@@ -1560,7 +1860,7 @@ class MainMenu(QWidget):
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
-        for ov in (self.connect_ov, self.map_ov, self.logs_ov, self.ctl_ov):
+        for ov in (self.connect_ov, self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov):
             ov.setGeometry(self.rect())
 
     def keyPressEvent(self, e):
@@ -1572,6 +1872,10 @@ class MainMenu(QWidget):
         if self.overlay is self.map_ov:
             if k in (Qt.Key.Key_Escape, Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 self.close_overlay()
+            return
+        if self.overlay is self.rec_ov:
+            if not self.rec_card.key(e):
+                super().keyPressEvent(e)
             return
         if self.overlay is self.ctl_ov:
             if not self.ctl_card.key(e):
@@ -1627,6 +1931,19 @@ class MainMenu(QWidget):
         elif self.overlay is self.map_ov:
             if pressed("cross") or pressed("circle"):
                 self.close_overlay()
+        elif self.overlay is self.rec_ov:           # CROSS play/pause, D-pad seek / pick, CIRCLE closes
+            if pressed("circle"):
+                self.rec_card.close_card()
+            elif pressed("cross"):
+                self.rec_card.player.toggle()
+            if pressed("left"):
+                self.rec_card.step(-self.rec_card.STEP_S)
+            if pressed("right"):
+                self.rec_card.step(self.rec_card.STEP_S)
+            if pressed("up"):
+                self.rec_card.select(-1)
+            if pressed("down"):
+                self.rec_card.select(1)
         elif self.overlay is self.logs_ov:          # D-pad picks a session, circle (B) closes
             if pressed("circle"):
                 self.close_overlay()
@@ -1647,5 +1964,6 @@ class MainMenu(QWidget):
 
     def closeEvent(self, e):
         self.connect_card.abort_attempt()
+        self.rec_card.player.close()          # stop the playback thread / release the file
         self.timer.stop()
         super().closeEvent(e)

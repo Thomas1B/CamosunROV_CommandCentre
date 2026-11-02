@@ -13,6 +13,8 @@ Columns, one row per event, SI units:
     message           the on-screen text
     depth_m ... leak  telemetry snapshot - only filled on MARK (operator mark) rows,
                       empty where the value was not available (sensor faulted, link down)
+    video_time        mm:ss into the camera recording, and its file name, on every row
+    video_file        logged while REC was on (empty otherwise)
 
 Each row is written straight to disk (flushed), so the file is complete up to the last
 event even if the program or laptop crashes.

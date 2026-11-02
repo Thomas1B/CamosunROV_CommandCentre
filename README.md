@@ -474,13 +474,39 @@ no controller button for it; use the mouse.
   to about the last second is kept.
 - **Event log.** The event log records *Recording started* and *Recording
   stopped* (with length, size and file name). An operator mark made while
-  recording ends with the video time, e.g. `· REC 02:14`, and the log file gets
-  `video_time` and `video_file` columns. Use those to find a mark in the video.
+  recording ends with the video time, e.g. `· REC 02:14`. Every event logged
+  while recording gets the `video_time` and `video_file` columns in the log file,
+  which VIEW RECORDINGS uses to put the events on the video.
 - **Closing the console** stops the recording. Demo mode has no camera, so REC
   does nothing there.
 
 The `.mkv` files play in VLC or the Windows Media Player / Films & TV app.
 Packets lost on the tether show as a brief glitch, the same as on screen.
+
+### Viewing recordings
+
+**VIEW RECORDINGS** on the main menu (under VIEW LOGS) lists every
+`recordings/*.mkv`, newest first, with start time, vehicle, length, size and how
+many events (and operator marks) were logged while it was recording. It plays them with a
+built-in player, so nothing extra has to be installed.
+
+- **Play.** ▶ PLAY / ⏸ PAUSE, ◀◀ 5 s and 5 s ▶▶, and a seek bar. Click anywhere
+  on the bar to jump there, or drag the handle.
+- **Events.** The EVENTS list shows every event-log line from while that file was
+  recording (link, alarms, arming, warnings, operator marks, ...) with its video
+  time, local time and tag. Operator marks show depth, heading, water temperature
+  and leak. Click an event to jump to it. Events are read from the `video_time` /
+  `video_file` columns in `logs/*.csv`, so a deleted log takes its events with it.
+  Recordings made before this update only have their operator marks.
+- **OPEN FOLDER** opens `recordings/` in File Explorer.
+- **SAVE FRAME…** pauses and saves the frame on screen as a PNG (default folder
+  `Pictures`, named after the recording and the video time).
+- **DELETE** deletes the selected file. Click it twice; the first click arms it
+  for 4 s. This can't be undone.
+- **Keys.** Space play/pause, ← / → 5 s, ↑ / ↓ pick a recording, Esc close.
+  **Controller:** ✕ play/pause, D-pad ← / → 5 s and ↑ / ↓ pick, ○ close.
+
+The window can be resized from the bottom-right corner.
 
 ### Depth zero
 
