@@ -33,7 +33,7 @@ from command_center_py.config import (APP_BUILD, APP_VERSION, ARM_HOLD_S, CMD_PO
 from command_center_py.event_log import EVENT_COLS, MARK_COLS, list_logs
 from command_center_py.link import Link, check_ipv4, check_port
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD,
-                                        DIM, LABEL, MUTED, OFF, PANEL, SANS, WARN, WELL, lab, mono)
+                                        DIM, LABEL, MUTED, OFF, PANEL, SANS, WARN, WELL, combo_arrow_css, lab, mono)
 from command_center_py.ui.controller_page import StickCalView, TriggerCalBar
 from command_center_py.ui.log_dialog import export_session, log_table
 from command_center_py.ui.reference_fields import RefFields
@@ -265,7 +265,7 @@ class ConnectCard(Card):
     CONNECT opens the UDP link and streams disarmed, zero-thrust frames while it
     listens for telemetry. If the Pi answers within CONNECT_TIMEOUT_S, the live
     Link is handed to on_connected(link, vehicle_name, controller_profile) and the console
-    opens; controller_profile is the CONTROLLER PROFILE choice (AUTO, NONE or a profile name).
+    opens; controller_profile is the CONTROLLER PROFILE choice (NONE or a profile name).
     Otherwise the link is closed and the dialog stays open showing RETRY.
     """
 
@@ -332,7 +332,7 @@ class ConnectCard(Card):
         self.profile_box.setStyleSheet(
             f"QComboBox {{ padding: 0 {s(8)}px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT}; }}"
             f"QComboBox:focus {{ border-color: {ACCENT}; }}"
-            f"QComboBox::drop-down {{ border: none; width: {s(16)}px; }}"
+            + combo_arrow_css(s(24)) +
             f"QComboBox QAbstractItemView {{ background: {HEAD}; color: {SOFT}; border: 1px solid {BORDER2};"
             f" selection-background-color: {BORDER}; selection-color: {BRIGHT}; outline: none; }}")
         self.profile_box.activated.connect(self._pick_profile)
@@ -365,29 +365,36 @@ class ConnectCard(Card):
         self.vid_edit.setMaxLength(5)
         self.vid_edit.textEdited.connect(self._fields_edited)
         ports.addWidget(self.vid_edit, 3, 0)
-        # beside it: which controller profile the console uses (auto-match / defaults / a saved one)
-        ports.addWidget(field_label("CONTROLLER PROFILE"), 2, 1)
-        self.ctl_box = QComboBox()
-        self.ctl_box.setFont(mono(s(11)))
-        self.ctl_box.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.ctl_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.ctl_box.setToolTip("Auto uses the profile saved for the connected controller (CONTROLLER PROFILES)")
-        self.ctl_box.setStyleSheet(
-            f"QComboBox {{ padding: 0 {s(8)}px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT}; }}"
-            f"QComboBox:focus {{ border-color: {ACCENT}; }}"
-            f"QComboBox::drop-down {{ border: none; width: {s(16)}px; }}"
-            f"QComboBox QAbstractItemView {{ background: {HEAD}; color: {SOFT}; border: 1px solid {BORDER2};"
-            f" selection-background-color: {BORDER}; selection-color: {BRIGHT}; outline: none; }}")
-        ports.addWidget(self.ctl_box, 3, 1)
         ports.setRowMinimumHeight(2, s(9) + s(10))     # gap above the second row of ports
         ports.setColumnStretch(0, 1)
         ports.setColumnStretch(1, 1)
         v.addLayout(ports)
 
         # Bar30 reference values: surface pressure, water density, second-order cal
-        self.ref_fields = RefFields(self.SCALE, label_color=BRIGHT)
+        self.ref_fields = RefFields(self.SCALE, label_color=BRIGHT, readable_units=True)
         self.ref_fields.edited.connect(lambda: self._set("idle"))
         v.addWidget(self.ref_fields)
+        # under the reference values: which controller profile the console uses
+        # (defaults, or a saved one). Starts on Defaults every time the dialog opens.
+        col = QVBoxLayout()
+        col.setSpacing(s(6))
+        col.addWidget(field_label("CONTROLLER PROFILE"))
+        self.ctl_box = QComboBox()
+        self.ctl_box.setFont(mono(s(11)))
+        self.ctl_box.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.ctl_box.setFixedHeight(s(38))
+        self.ctl_box.setToolTip("Make and edit profiles in CONTROLLER PROFILES on the main menu")
+        self.ctl_box.setStyleSheet(
+            f"QComboBox {{ padding: 0 {s(8)}px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT}; }}"
+            f"QComboBox:focus {{ border-color: {ACCENT}; }}"
+            + combo_arrow_css(s(24)) +
+            f"QComboBox QAbstractItemView {{ background: {HEAD}; color: {SOFT}; border: 1px solid {BORDER2};"
+            f" selection-background-color: {BORDER}; selection-color: {BRIGHT}; outline: none; }}")
+        col.addWidget(self.ctl_box)
+        hint = lab("Make and edit profiles in CONTROLLER PROFILES on the main menu", s(10), MUTED)
+        hint.setWordWrap(True)
+        col.addWidget(hint)
+        v.addLayout(col)
 
         self.msg_row = QWidget()                 # hidden while there is no message (idle)
         msg = QHBoxLayout(self.msg_row)
@@ -543,16 +550,14 @@ class ConnectCard(Card):
         self.profile_box.blockSignals(False)
 
     def reload_controller_profiles(self):
-        """AUTO, NONE, then every saved controller profile. Keeps the current choice if it still exists."""
-        keep = self.ctl_box.currentData() if self.ctl_box.count() else cp.AUTO
+        """Defaults, then every saved controller profile; Defaults selected."""
         self.ctl_box.clear()
-        for choice in [cp.AUTO, cp.NONE] + [p.name for p in cp.load_all()]:
+        for choice in [cp.NONE] + [p.name for p in cp.load_all()]:
             self.ctl_box.addItem(cp.describe(choice), choice)
-        i = self.ctl_box.findData(keep)
-        self.ctl_box.setCurrentIndex(i if i >= 0 else 0)
+        self.ctl_box.setCurrentIndex(0)
 
     def controller_choice(self):
-        return self.ctl_box.currentData() or cp.AUTO
+        return self.ctl_box.currentData() or cp.NONE
 
     def _pick_profile(self, index):
         if 0 <= index < len(self.profiles):
@@ -924,7 +929,7 @@ SPIN_CSS = (f"QDoubleSpinBox {{ padding: 4px 7px; border: 1px solid {GRID}; bord
 class ControllerProfilesCard(Card):
     """CONTROLLER PROFILES: calibrate a controller and save it as a profile.
 
-    Left: saved profiles (★ = the one auto-matched for the connected controller), NEW, DELETE.
+    Left: saved profiles, NEW, DELETE.
     Right: name + controller it belongs to, live stick and trigger views, the CALIBRATE wizard
     (REST -> ROTATE -> TRIGGERS) and every value as an editable field. SAVE writes
     controller_profiles/<name>.json. Mouse / keyboard only: the controller is being
@@ -992,7 +997,7 @@ class ControllerProfilesCard(Card):
         top.setHorizontalSpacing(10)
         top.setVerticalSpacing(4)
         top.addWidget(slab("PROFILE NAME", 9, BRIGHT, spacing=0.9), 0, 0)
-        top.addWidget(slab("CONTROLLER · USED TO AUTO-MATCH", 9, BRIGHT, spacing=0.9), 0, 1, 1, 2)
+        top.addWidget(slab("CONTROLLER · NOTE OF WHICH ONE IT'S FOR", 9, BRIGHT, spacing=0.9), 0, 1, 1, 2)
         self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText("e.g. Josh DS3")
         self.name_edit.textEdited.connect(self._edited)
@@ -1119,10 +1124,8 @@ class ControllerProfilesCard(Card):
         self.pad_name = pad_name
         self._cancel_cal()
         self.reload()
-        hit = cp.match(pad_name, self.profiles)
-        i = self.profiles.index(hit) if hit in self.profiles else (0 if self.profiles else -1)
-        if i >= 0:
-            self.list.setCurrentRow(i)
+        if self.profiles:
+            self.list.setCurrentRow(0)
         else:
             self.new_profile()
 
@@ -1130,13 +1133,8 @@ class ControllerProfilesCard(Card):
         self.profiles = cp.load_all()
         self.list.blockSignals(True)
         self.list.clear()
-        auto = cp.match(self.pad_name, self.profiles)
         for p in self.profiles:
-            star = "★ " if p is auto else ""
-            it = QListWidgetItem(f"{star}{p.name}\n{p.controller or '(no controller set)'}")
-            if p is auto:
-                it.setToolTip("Used automatically for the connected controller")
-            self.list.addItem(it)
+            self.list.addItem(QListWidgetItem(f"{p.name}\n{p.controller or '(no controller noted)'}"))
         self.list.blockSignals(False)
         if select is not None:
             names = [p.name for p in self.profiles]
@@ -1256,7 +1254,7 @@ class ControllerProfilesCard(Card):
             return
         self.dirty = False
         self.reload(select=name)
-        note = "" if self.edit.controller else "  No controller set, so it's only used when picked in CONNECT VEHICLE."
+        note = ""
         self._say(ACCENT, f'Saved "{name}"' + (" (replaced)" if replaced else "") + "." + note)
 
     # ---------------- calibration ----------------
@@ -1315,9 +1313,8 @@ class ControllerProfilesCard(Card):
         if name != self.pad_name:
             self.pad_name = name
             self.reload(select=self.edit.name if self.edit.name else None)
-        auto = cp.match(self.pad_name, self.profiles)
-        self.pad_lbl.setText(f"Connected: {self.pad_name}" + (f"  ·  auto profile: {auto.name}" if auto else "  ·  no saved profile for it")
-                             if self.pad_name else "No controller connected — plug one in to calibrate.")
+        self.pad_lbl.setText(f"Connected: {self.pad_name}" if self.pad_name
+                             else "No controller connected — plug one in to calibrate.")
         self.pad_lbl.setStyleSheet(f"color: {LABEL if self.pad_name else WARN}; background: transparent;")
         if self.cal is not None:
             if self.cal.name in cp.Calibration.ROTATE:
@@ -1557,7 +1554,7 @@ class MainMenu(QWidget):
         self.overlay = None
         self.setFocus()
 
-    def _connected(self, link, name, controller_profile=cp.AUTO):
+    def _connected(self, link, name, controller_profile=cp.NONE):
         self.close_overlay()
         self._on_connected(link, name, controller_profile)
 

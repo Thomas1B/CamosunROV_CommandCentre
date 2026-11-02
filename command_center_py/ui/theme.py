@@ -1,5 +1,7 @@
 """Colours and fonts (from the ROV Control Console mockup) plus a label helper."""
 
+from pathlib import Path
+
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel
 
@@ -47,6 +49,19 @@ CONSOLE_FONT_SCALE = 1.25
 # Matches the UI design: values 16 pt, units / status values 12 pt (CSS pt = 4/3 px).
 VALUE_PX = 21            # 16 pt
 UNIT_PX = 16             # 12 pt
+
+
+# Drop-down arrow for every QComboBox. Styling a combo box with a stylesheet removes Qt's
+# own arrow, so this puts a chevron back on the right-hand side.
+CHEVRON_SVG = (Path(__file__).resolve().parent / "assets" / "chevron-down.svg").as_posix()
+
+
+def combo_arrow_css(width_px):
+    """QComboBox stylesheet rules for a right-aligned chevron in a width_px-wide button."""
+    return (f"QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: center right;"
+            f" border: none; width: {width_px}px; }}"
+            f"QComboBox::down-arrow {{ image: url({CHEVRON_SVG}); width: 10px; height: 7px; }}"
+            f"QComboBox::down-arrow:on {{ top: 1px; }}")
 
 
 def fs(px):

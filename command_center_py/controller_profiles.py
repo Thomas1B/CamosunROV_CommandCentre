@@ -1,8 +1,9 @@
 """Controller profiles: per-controller stick and trigger calibration.
 
 One JSON file per profile in <top dir>/controller_profiles/ (config.CONTROLLER_PROFILES_DIR).
-Made and edited on the main menu's CONTROLLER PROFILES page; picked automatically for the
-connected controller (by its name), or chosen in CONNECT VEHICLE.
+Made and edited on the main menu's CONTROLLER PROFILES page; chosen in CONNECT VEHICLE
+(default: none, i.e. the config.py defaults). "controller" is only a note of which
+controller the profile was made for (filled in from the connected one when calibrating).
 
 File contents, e.g. controller_profiles/Josh_DS3.json (raw SDL axis values, -1..1 / 0..1):
     {"name": "Josh DS3", "controller": "PS3 Controller",
@@ -35,7 +36,7 @@ AXES = ("lx", "ly", "rx", "ry")
 TRIGGERS = ("l2", "r2")
 AXIS_NAMES = {"lx": "Left X", "ly": "Left Y", "rx": "Right X", "ry": "Right Y", "l2": "L2 / LT", "r2": "R2 / RT"}
 
-AUTO, NONE = "auto", "none"      # picker choices besides a profile name
+NONE = "none"                    # picker choice for "no profile"; anything else is a profile name
 
 # Calibration wizard rules
 MIN_DEADZONE = 0.03              # never below this, even for a perfectly quiet stick
@@ -167,17 +168,8 @@ def delete(name):
         pass
 
 
-def match(controller_name, profiles=None):
-    """The profile saved for this controller name (most recently saved wins), or None."""
-    if not controller_name:
-        return None
-    hits = [p for p in (profiles if profiles is not None else load_all())
-            if p.controller and p.controller.lower() == controller_name.lower()]
-    return max(hits, key=lambda p: p.saved) if hits else None
-
-
 def describe(choice):
-    return {AUTO: "Auto — match controller", NONE: "Defaults (no calibration)"}.get(choice, choice)
+    return "Defaults (no calibration)" if choice == NONE else choice
 
 
 # ---------------------------------------------------------------------------------------
@@ -186,19 +178,18 @@ def describe(choice):
 class CalibratedPad:
     """Wraps the shared Gamepad and applies a controller profile to every snapshot.
 
-    choice: AUTO (use the profile saved for the connected controller's name, if any),
-            NONE (config.py defaults, no calibration) or a profile name.
+    choice: NONE (config.py defaults, no calibration) or a saved profile's name.
     `profile` is the profile in use right now (None = defaults); `deadzones()` gives the
     mixer's per-axis deadzones. Profiles are read from disk when this is created.
     """
 
-    def __init__(self, pad, choice=AUTO):
+    def __init__(self, pad, choice=NONE):
         self.base = pad
-        self.choice = choice or AUTO
+        self.choice = choice or NONE
         self._profiles = load_all()
         self._name = None
         self.profile = None
-        self.missing = choice not in (AUTO, NONE) and not any(p.name == choice for p in self._profiles)
+        self.missing = self.choice != NONE and not any(p.name == self.choice for p in self._profiles)
 
     def __getattr__(self, attr):                 # error, close, ... from the real pad
         return getattr(self.base, attr)
@@ -206,13 +197,11 @@ class CalibratedPad:
     def _resolve(self, name):
         if self.choice == NONE:
             return None
-        if self.choice == AUTO:
-            return match(name, self._profiles)
         return next((p for p in self._profiles if p.name == self.choice), None)
 
     def snapshot(self):
         st = self.base.snapshot()
-        if st.name != self._name:                # controller changed: pick its profile
+        if st.name != self._name:                # controller (re)connected: apply the chosen profile
             self._name = st.name
             self.profile = self._resolve(st.name) if st.connected else self.profile
         return self.profile.apply(st) if (self.profile is not None and st.connected) else st
@@ -229,10 +218,8 @@ class CalibratedPad:
         if self.profile is None:
             if self.missing:
                 return f'Controller profile "{self.choice}" not found — using defaults'
-            return "No controller profile — using default deadzones" + (
-                "" if self.choice == NONE or not self._name else f" (none saved for {self._name})")
-        how = "auto-matched" if self.choice == AUTO else "selected"
-        return f'Controller profile "{self.profile.name}" ({how})'
+            return "No controller profile — using default deadzones"
+        return f'Controller profile "{self.profile.name}"'
 
 
 # ---------------------------------------------------------------------------------------

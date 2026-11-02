@@ -332,20 +332,19 @@ fully, the page says so and keeps the old values for it. The controller's button
 page, because you're using it to calibrate; use the mouse and keyboard. Esc or
 CLOSE closes it, and asks first if there are unsaved changes.
 
-**Which profile is used.** Each profile stores the name of the controller it
-belongs to (**USE CONNECTED** fills it in). In **CONNECT VEHICLE**, the
-**CONTROLLER PROFILE** setting picks one of these:
+**Which profile is used.** You choose it each time in **CONNECT VEHICLE**,
+with the **CONTROLLER PROFILE** setting (below SECOND-ORDER PRESSURE CAL):
 
-- **Auto — match controller** (default): the profile saved for the connected
-  controller's name, or the defaults if there isn't one. A ★ in the profile
-  list marks the auto-matched profile.
-- **Defaults (no calibration):** the `config.py` defaults.
-- A named profile: that profile, whichever controller is plugged in.
+- **Defaults (no calibration)**, selected every time the dialog opens: the
+  `config.py` defaults.
+- A saved profile: that profile, whichever controller is plugged in.
 
-Demo mode always uses Auto. When the controller connects, the console's event
-log says which profile it's using, e.g. `PAD Controller profile "Josh DS3"
-(auto-matched)`. The dashed deadzone ring on the console's stick views follows
-the profile.
+Nothing is picked automatically. Each profile also notes which controller it
+was made for (**USE CONNECTED**, or filled in when you calibrate). That note is
+only a reminder in the profile list. Demo mode always uses the defaults. When
+the controller connects, the console's event log says which profile it's using,
+e.g. `PAD Controller profile "Josh DS3"`. The dashed deadzone ring on the
+console's stick views follows the profile.
 
 ### Arming
 

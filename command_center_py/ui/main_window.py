@@ -55,7 +55,7 @@ class ConsoleWindow(QMainWindow):
     def __init__(self, link, pad, demo=False, vehicle=""):
         """link: an open Link / DemoLink (the console closes it on exit).
         pad: the shared Gamepad (owned by the app, not closed here), usually wrapped in a
-        CalibratedPad that applies the chosen / auto-matched controller profile."""
+        CalibratedPad that applies the controller profile picked in CONNECT VEHICLE."""
         super().__init__()
         self.setWindowTitle("Camosun ROV — Control Console"
                             + (" — DEMO" if demo else (f" — {vehicle}" if vehicle else "")))

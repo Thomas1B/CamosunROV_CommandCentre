@@ -64,8 +64,9 @@ class RovApp:
     def open_demo(self):
         self.open_console(DemoLink(), "DEMO", demo=True)
 
-    def open_console(self, link, vehicle, demo=False, controller_profile=controller_profiles.AUTO):
-        """controller_profile: AUTO (match the connected controller), NONE, or a profile name."""
+    def open_console(self, link, vehicle, demo=False, controller_profile=controller_profiles.NONE):
+        """controller_profile: NONE (config.py defaults) or a saved profile's name (CONNECT VEHICLE).
+        Demo mode always uses NONE."""
         if self.console is not None:
             link.close()
             return

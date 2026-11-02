@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QFrame, QGridLayout, QHBoxLay
 from command_center_py import reference
 from command_center_py.reference import RefValues
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD, LABEL,
-                                        MUTED, PANEL, WELL, lab, mono)
+                                        MUTED, PANEL, WELL, combo_arrow_css, lab, mono)
 
 SOFT = "#c9d3de"
 OK_GREEN, OK_BORDER = "#123a30", "#2a6f5c"
@@ -31,11 +31,13 @@ def _label(text, px, color=LABEL):
 
 class RefFields(QWidget):
     """SURFACE PRESSURE [value][unit]  |  WATER DENSITY · KG/M³
-       SECOND-ORDER PRESSURE CAL ........................ [ON|OFF]"""
+       SECOND-ORDER PRESSURE CAL ........................ [ON|OFF]
+    readable_units=True (CONNECT VEHICLE): the unit is shown as "(kg/m³)" in normal case and a
+    little larger, so it reads as a unit; the Reference Values dialog keeps "· KG/M³"."""
 
     edited = Signal()
 
-    def __init__(self, scale=1.0, refs=None, label_color=LABEL):
+    def __init__(self, scale=1.0, refs=None, label_color=LABEL, readable_units=False):
         super().__init__()
         s = self._s = lambda v: round(v * scale)
         self._bad_surface = self._bad_density = False
@@ -50,7 +52,12 @@ class RefFields(QWidget):
         grid.setHorizontalSpacing(s(10))
         grid.setVerticalSpacing(s(6))
         grid.addWidget(_label("SURFACE PRESSURE", s(9), label_color), 0, 0)
-        grid.addWidget(_label("WATER DENSITY · KG/M³", s(9), label_color), 0, 1)
+        if readable_units:   # unit in normal case and a bit larger, so it reads as kg/m³, not KG/M³
+            dens = _label(f'WATER DENSITY&nbsp;&nbsp;<span style="font-size:{s(12)}px; color:{SOFT}">(kg/m³)</span>', s(9), label_color)
+            dens.setTextFormat(Qt.TextFormat.RichText)
+        else:
+            dens = _label("WATER DENSITY · KG/M³", s(9), label_color)
+        grid.addWidget(dens, 0, 1)
         row = QHBoxLayout()
         row.setSpacing(s(6))
         self.surface_edit = self._line_edit(str(reference.SURFACE_RANGE_HPA[0]))
@@ -65,7 +72,7 @@ class RefFields(QWidget):
         self.unit_box.setStyleSheet(
             f"QComboBox {{ padding: 0 {s(6)}px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT}; }}"
             f"QComboBox:focus {{ border-color: {ACCENT}; }}"
-            f"QComboBox::drop-down {{ border: none; width: {s(14)}px; }}"
+            + combo_arrow_css(s(20)) +
             f"QComboBox QAbstractItemView {{ background: {HEAD}; color: {SOFT}; border: 1px solid {BORDER2};"
             f" selection-background-color: {BORDER}; selection-color: {BRIGHT}; outline: none; }}")
         self.unit_box.activated.connect(self._unit_changed)
