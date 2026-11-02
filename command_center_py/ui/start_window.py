@@ -5,6 +5,7 @@
                         opens once the Pi answers, otherwise the dialog stays open.
     DEMO MODE ......... opens the console with a simulated vehicle (nothing transmitted)
     CONTROLLER MAP .... DualShock 3 and Xbox button maps side by side
+    CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
     VIEW LOGS ......... saved console session logs (logs/): preview, export, delete
     QUIT .............. closes the program
 
@@ -21,9 +22,10 @@ from PySide6.QtCore import QRectF, Qt, QTimer, QUrl
 from PySide6.QtGui import (QBrush, QColor, QDesktopServices, QFont, QPainter, QPen, QPixmap,
                            QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QComboBox, QFrame, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout,
-                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QSizePolicy,
+                               QDoubleSpinBox, QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QSizePolicy,
                                QTabWidget, QVBoxLayout, QWidget)
 
+from command_center_py import controller_profiles as cp
 from command_center_py import profiles
 from command_center_py.config import (APP_BUILD, APP_VERSION, ARM_HOLD_S, CMD_PORT,
                                       CONNECT_TIMEOUT_S, DEFAULT_VEHICLE_NAME, PI_HOST, RATE_HZ,
@@ -31,7 +33,8 @@ from command_center_py.config import (APP_BUILD, APP_VERSION, ARM_HOLD_S, CMD_PO
 from command_center_py.event_log import EVENT_COLS, MARK_COLS, list_logs
 from command_center_py.link import Link, check_ipv4, check_port
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD,
-                                        LABEL, MUTED, OFF, PANEL, SANS, WARN, WELL, lab, mono)
+                                        DIM, LABEL, MUTED, OFF, PANEL, SANS, WARN, WELL, lab, mono)
+from command_center_py.ui.controller_page import StickCalView, TriggerCalBar
 from command_center_py.ui.log_dialog import export_session, log_table
 from command_center_py.ui.reference_fields import RefFields
 from command_center_py.ui.widgets import CONTROLLER_MAPS, LAYOUT, controller_map_body, key_chip
@@ -261,7 +264,8 @@ class ConnectCard(Card):
 
     CONNECT opens the UDP link and streams disarmed, zero-thrust frames while it
     listens for telemetry. If the Pi answers within CONNECT_TIMEOUT_S, the live
-    Link is handed to on_connected(link, vehicle_name) and the console opens.
+    Link is handed to on_connected(link, vehicle_name, controller_profile) and the console
+    opens; controller_profile is the CONTROLLER PROFILE choice (AUTO, NONE or a profile name).
     Otherwise the link is closed and the dialog stays open showing RETRY.
     """
 
@@ -361,6 +365,20 @@ class ConnectCard(Card):
         self.vid_edit.setMaxLength(5)
         self.vid_edit.textEdited.connect(self._fields_edited)
         ports.addWidget(self.vid_edit, 3, 0)
+        # beside it: which controller profile the console uses (auto-match / defaults / a saved one)
+        ports.addWidget(field_label("CONTROLLER PROFILE"), 2, 1)
+        self.ctl_box = QComboBox()
+        self.ctl_box.setFont(mono(s(11)))
+        self.ctl_box.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.ctl_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.ctl_box.setToolTip("Auto uses the profile saved for the connected controller (CONTROLLER PROFILES)")
+        self.ctl_box.setStyleSheet(
+            f"QComboBox {{ padding: 0 {s(8)}px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT}; }}"
+            f"QComboBox:focus {{ border-color: {ACCENT}; }}"
+            f"QComboBox::drop-down {{ border: none; width: {s(16)}px; }}"
+            f"QComboBox QAbstractItemView {{ background: {HEAD}; color: {SOFT}; border: 1px solid {BORDER2};"
+            f" selection-background-color: {BORDER}; selection-color: {BRIGHT}; outline: none; }}")
+        ports.addWidget(self.ctl_box, 3, 1)
         ports.setRowMinimumHeight(2, s(9) + s(10))     # gap above the second row of ports
         ports.setColumnStretch(0, 1)
         ports.setColumnStretch(1, 1)
@@ -417,6 +435,7 @@ class ConnectCard(Card):
 
         self.profiles = []
         self.reload_profiles()
+        self.reload_controller_profiles()
         self._refresh()
 
     # ---------------- state ----------------
@@ -424,6 +443,7 @@ class ConnectCard(Card):
         """Called each time the dialog is shown."""
         self.state = "idle"
         self.reload_profiles()
+        self.reload_controller_profiles()
         self._refresh()
         self.ip_edit.setFocus()
         self.ip_edit.selectAll()
@@ -522,6 +542,18 @@ class ConnectCard(Card):
         self.profile_box.setCurrentIndex(-1)
         self.profile_box.blockSignals(False)
 
+    def reload_controller_profiles(self):
+        """AUTO, NONE, then every saved controller profile. Keeps the current choice if it still exists."""
+        keep = self.ctl_box.currentData() if self.ctl_box.count() else cp.AUTO
+        self.ctl_box.clear()
+        for choice in [cp.AUTO, cp.NONE] + [p.name for p in cp.load_all()]:
+            self.ctl_box.addItem(cp.describe(choice), choice)
+        i = self.ctl_box.findData(keep)
+        self.ctl_box.setCurrentIndex(i if i >= 0 else 0)
+
+    def controller_choice(self):
+        return self.ctl_box.currentData() or cp.AUTO
+
     def _pick_profile(self, index):
         if 0 <= index < len(self.profiles):
             p = self.profiles[index]
@@ -585,7 +617,7 @@ class ConnectCard(Card):
             name = self.name_edit.text().strip() or link.addr[0]
             self.state = "idle"
             self._refresh()
-            self._on_connected(link, name)
+            self._on_connected(link, name, self.controller_choice())
         elif now >= self.deadline:
             self.attempt.stop()
             self.link = None
@@ -874,11 +906,469 @@ class LogsCard(Card):
         return True
 
 
+LIST_CSS = (f"QListWidget {{ background: {WELL}; border: 1px solid {BORDER}; outline: none; }}"
+            f"QListWidget::item {{ color: {LABEL}; padding: 8px 10px; border-bottom: 1px solid {BORDER}; }}"
+            f"QListWidget::item:hover {{ color: {BRIGHT}; }}"
+            f"QListWidget::item:selected {{ background: rgba(18,58,48,0.75); color: {BRIGHT}; border-left: 2px solid {ACCENT}; }}"
+            f"QScrollBar {{ background: {PANEL}; border: none; width: 10px; }}"
+            f"QScrollBar::handle {{ background: {GRID}; border-radius: 4px; min-height: 24px; }}"
+            f"QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}")
+EDIT_CSS = (f"QLineEdit {{ padding: 7px 9px; border: 1px solid {GRID}; border-radius: 3px; background: {WELL}; color: {BRIGHT};"
+            f" selection-background-color: {OK_BORDER}; }} QLineEdit:focus {{ border-color: {ACCENT}; }}")
+SPIN_CSS = (f"QDoubleSpinBox {{ padding: 4px 7px; border: 1px solid {GRID}; border-radius: 3px; background: {WELL}; color: {BRIGHT};"
+            f" selection-background-color: {OK_BORDER}; }} QDoubleSpinBox:focus {{ border-color: {ACCENT}; }}"
+            # arrows hidden here, not with setButtonSymbols(NoButtons): that plus a stylesheet hides the text
+            f" QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{ width: 0; border: none; }}")
+
+
+class ControllerProfilesCard(Card):
+    """CONTROLLER PROFILES: calibrate a controller and save it as a profile.
+
+    Left: saved profiles (★ = the one auto-matched for the connected controller), NEW, DELETE.
+    Right: name + controller it belongs to, live stick and trigger views, the CALIBRATE wizard
+    (REST -> ROTATE -> TRIGGERS) and every value as an editable field. SAVE writes
+    controller_profiles/<name>.json. Mouse / keyboard only: the controller is being
+    calibrated, so its buttons don't operate this page. Esc or CLOSE closes it.
+    """
+
+    MIN_W, MIN_H = 900, 560
+    STEP_TEXT = {
+        "ready": "Hands off both sticks and both triggers, then press OK to start.",
+        "left_flick": "1a / 3  LEFT STICK — {flick}   {n} / {N} flicks",
+        "left_cw": "1b / 3  LEFT STICK — push it to the edge and rotate CLOCKWISE ↻   {n} / {N} turns",
+        "left_ccw": "1c / 3  LEFT STICK — now rotate COUNTER-CLOCKWISE ↺   {n} / {N} turns",
+        "right_flick": "2a / 3  RIGHT STICK — {flick}   {n} / {N} flicks",
+        "right_cw": "2b / 3  RIGHT STICK — push it to the edge and rotate CLOCKWISE ↻   {n} / {N} turns",
+        "right_ccw": "2c / 3  RIGHT STICK — now rotate COUNTER-CLOCKWISE ↺   {n} / {N} turns",
+        "triggers": "3 / 3  TRIGGERS — press L2 and R2 (LT / RT) all the way down, release, then press FINISH.",
+    }
+
+    def __init__(self, on_close):
+        super().__init__("CONTROLLER PROFILES", 1120)
+        self._on_close = on_close
+        self.close_btn.clicked.connect(self.close_card)
+        self.profiles = []
+        self.edit = cp.ControllerProfile()
+        self.dirty = False
+        self.cal = None
+        self.trail = {"l": [], "r": []}
+        self.pad_name = ""
+        self._armed = None                    # "delete" / "close" while waiting for a 2nd click
+        self._loading = False
+
+        h = QHBoxLayout(self.body)
+        h.setContentsMargins(14, 14, 14, 10)
+        h.setSpacing(14)
+
+        # ---- left: saved profiles ----
+        left = QVBoxLayout()
+        left.setSpacing(6)
+        left.addWidget(slab("SAVED PROFILES", 10, LABEL, QFont.Weight.Bold, 1.0))
+        self.list = QListWidget()
+        self.list.setFixedWidth(250)
+        self.list.setFont(mono(12))
+        self.list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.list.setStyleSheet(LIST_CSS)
+        self.list.currentRowChanged.connect(self._pick)
+        left.addWidget(self.list, 1)
+        lb = QHBoxLayout()
+        lb.setSpacing(6)
+        new = button("NEW", 11, None, f"padding: 6px 12px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
+                     f"border-color: {ACCENT}; color: {ACCENT};")
+        new.clicked.connect(self.new_profile)
+        lb.addWidget(new)
+        self.del_btn = button("DELETE", 11, None, f"padding: 6px 12px; border: none; background: transparent; color: {LABEL};",
+                              f"color: {DANGER};")
+        self.del_btn.clicked.connect(self._delete)
+        lb.addWidget(self.del_btn)
+        lb.addStretch(1)
+        left.addLayout(lb)
+        h.addLayout(left)
+
+        # ---- right: editor ----
+        right = QVBoxLayout()
+        right.setSpacing(10)
+        top = QGridLayout()
+        top.setHorizontalSpacing(10)
+        top.setVerticalSpacing(4)
+        top.addWidget(slab("PROFILE NAME", 9, BRIGHT, spacing=0.9), 0, 0)
+        top.addWidget(slab("CONTROLLER · USED TO AUTO-MATCH", 9, BRIGHT, spacing=0.9), 0, 1, 1, 2)
+        self.name_edit = QLineEdit()
+        self.name_edit.setPlaceholderText("e.g. Josh DS3")
+        self.name_edit.textEdited.connect(self._edited)
+        self.ctrl_edit = QLineEdit()
+        self.ctrl_edit.setPlaceholderText("connected controller's name")
+        self.ctrl_edit.textEdited.connect(self._edited)
+        for e in (self.name_edit, self.ctrl_edit):
+            e.setFont(mono(13))
+            e.setStyleSheet(EDIT_CSS)
+        top.addWidget(self.name_edit, 1, 0)
+        top.addWidget(self.ctrl_edit, 1, 1)
+        self.use_btn = button("USE CONNECTED", 11, None,
+                              f"padding: 7px 10px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
+                              f"border-color: {ACCENT}; color: {ACCENT};")
+        self.use_btn.clicked.connect(self._use_connected)
+        top.addWidget(self.use_btn, 1, 2)
+        top.setColumnStretch(0, 2)
+        top.setColumnStretch(1, 3)
+        self.pad_lbl = lab("", 11, LABEL)
+        top.addWidget(self.pad_lbl, 2, 0, 1, 3)
+        right.addLayout(top)
+
+        # live view + wizard
+        live = QHBoxLayout()
+        live.setSpacing(12)
+        self.stick_l = StickCalView("LEFT STICK")
+        self.stick_r = StickCalView("RIGHT STICK")
+        live.addWidget(self.stick_l, 1)
+        live.addWidget(self.stick_r, 1)
+        side = QVBoxLayout()
+        side.setSpacing(6)
+        self.trig_l = TriggerCalBar("L2 / LT")
+        self.trig_r = TriggerCalBar("R2 / RT")
+        side.addWidget(self.trig_l)
+        side.addWidget(self.trig_r)
+        self.out_lbl = lab("", 11, DIM)
+        self.out_lbl.setWordWrap(True)
+        side.addWidget(self.out_lbl)
+        side.addStretch(1)
+        live.addLayout(side, 1)
+        right.addLayout(live, 1)
+
+        wiz = QFrame()
+        wiz.setObjectName("wiz")
+        wiz.setStyleSheet(f"QFrame#wiz {{ background: {HEAD}; border: 1px solid {BORDER}; border-radius: 3px; }}")
+        wh = QHBoxLayout(wiz)
+        wh.setContentsMargins(12, 8, 8, 8)
+        wh.setSpacing(8)
+        self.step_lbl = lab("Calibrate: measures drift, deadzone and full range for this controller in three short steps.",
+                            12, SOFT)
+        self.step_lbl.setWordWrap(True)
+        wh.addWidget(self.step_lbl, 1)
+        self.cal_btn = button("CALIBRATE", 11, 130,
+                              f"padding: 7px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
+                              f"border-color: {ACCENT}; color: {OK_TEXT};")
+        self.cal_btn.clicked.connect(self._cal_button)
+        wh.addWidget(self.cal_btn)
+        self.cancel_cal = button("CANCEL", 11, 84,
+                                 f"padding: 7px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {SOFT};",
+                                 f"color: {BRIGHT};")
+        self.cancel_cal.clicked.connect(self._cancel_cal)
+        wh.addWidget(self.cancel_cal)
+        right.addWidget(wiz)
+
+        # values
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(4)
+        heads = ("", "CENTRE / REST", "DEADZONE", "MIN", "MAX")
+        for c, t in enumerate(heads):
+            grid.addWidget(slab(t, 9, LABEL, spacing=0.9), 0, c)
+        self.fields = {}
+        for r, k in enumerate(cp.AXES + cp.TRIGGERS, 1):
+            grid.addWidget(lab(cp.AXIS_NAMES[k], 12, SOFT), r, 0)
+            cols = (("center", -0.5, 0.5), ("deadzone", 0.0, cp.MAX_DEADZONE), ("min", -1.0, 0.0), ("max", 0.0, 1.0)) \
+                if k in cp.AXES else (("rest", 0.0, 0.5), ("deadzone", 0.0, cp.MAX_DEADZONE), None, ("max", 0.1, 1.0))
+            for c, spec in enumerate(cols, 1):
+                if spec is None:
+                    grid.addWidget(lab("—", 12, MUTED), r, c)
+                    continue
+                f, lo, hi = spec
+                sb = QDoubleSpinBox()
+                sb.setDecimals(3)
+                sb.setSingleStep(0.01)
+                sb.setRange(lo, hi)
+                sb.setFont(mono(12))
+                sb.setStyleSheet(SPIN_CSS)
+                sb.valueChanged.connect(lambda v, k=k, f=f: self._field(k, f, v))
+                self.fields[(k, f)] = sb
+                grid.addWidget(sb, r, c)
+        for c in range(1, 5):
+            grid.setColumnStretch(c, 1)
+        right.addLayout(grid)
+        h.addLayout(right, 1)
+        self.layout().setStretchFactor(self.body, 1)
+
+        # footer: status ........ RESET  SAVE  CLOSE
+        self.status = lab("", 11, LABEL)
+        self.status.setWordWrap(True)
+        self.foot_lay.addWidget(self.status, 1)
+        reset = button("RESET VALUES", 11, None,
+                       f"padding: 6px 10px; border: none; background: transparent; color: {LABEL};", f"color: {BRIGHT};")
+        reset.setToolTip("Back to the defaults from config.py (no calibration)")
+        reset.clicked.connect(self._reset_values)
+        self.foot_lay.addWidget(reset)
+        self.save_btn = button("SAVE", 11, 110,
+                               f"padding: 6px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
+                               f"border-color: {ACCENT}; color: {OK_TEXT};")
+        self.save_btn.clicked.connect(self.save)
+        self.foot_lay.addWidget(self.save_btn)
+        self.close2 = button("CLOSE", 11, 84,
+                             f"padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
+                             f"border-color: {ACCENT}; color: {ACCENT};")
+        self.close2.clicked.connect(self.close_card)
+        self.foot_lay.addWidget(self.close2)
+
+        self.setFixedSize(1120, 690)
+        self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
+        self._show_wizard()
+
+    # ---------------- lifecycle ----------------
+    def opened(self, pad_name=""):
+        self.setFixedSize(*self.grip.clamp(self.width(), self.height()))
+        self.pad_name = pad_name
+        self._cancel_cal()
+        self.reload()
+        hit = cp.match(pad_name, self.profiles)
+        i = self.profiles.index(hit) if hit in self.profiles else (0 if self.profiles else -1)
+        if i >= 0:
+            self.list.setCurrentRow(i)
+        else:
+            self.new_profile()
+
+    def reload(self, select=None):
+        self.profiles = cp.load_all()
+        self.list.blockSignals(True)
+        self.list.clear()
+        auto = cp.match(self.pad_name, self.profiles)
+        for p in self.profiles:
+            star = "★ " if p is auto else ""
+            it = QListWidgetItem(f"{star}{p.name}\n{p.controller or '(no controller set)'}")
+            if p is auto:
+                it.setToolTip("Used automatically for the connected controller")
+            self.list.addItem(it)
+        self.list.blockSignals(False)
+        if select is not None:
+            names = [p.name for p in self.profiles]
+            if select in names:
+                self.list.blockSignals(True)
+                self.list.setCurrentRow(names.index(select))
+                self.list.blockSignals(False)
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        g = self.grip
+        g.move(self.width() - g.width() - 2, self.height() - g.height() - 2)
+        g.raise_()
+
+    def close_card(self):
+        if self.dirty and self._armed != "close":
+            self._arm("close", "Unsaved changes — click CLOSE again to discard them.")
+            return
+        self._cancel_cal()
+        self._disarm()
+        self._on_close()
+
+    def key(self, e):
+        if e.key() == Qt.Key.Key_Escape:
+            self.close_card()
+            return True
+        return False
+
+    # ---------------- profile list ----------------
+    def _pick(self, i):
+        if not (0 <= i < len(self.profiles)):
+            return
+        self._cancel_cal()
+        self._load(self.profiles[i].copy(), dirty=False)
+        self._say(LABEL, "")
+
+    def new_profile(self):
+        self._cancel_cal()
+        self.list.blockSignals(True)
+        self.list.clearSelection()
+        self.list.setCurrentRow(-1)
+        self.list.blockSignals(False)
+        self._load(cp.ControllerProfile("", self.pad_name), dirty=False)
+        self._say(LABEL, "New profile — press CALIBRATE with the controller connected, then SAVE.")
+
+    def _delete(self):
+        i = self.list.currentRow()
+        if not (0 <= i < len(self.profiles)):
+            return
+        name = self.profiles[i].name
+        if self._armed != "delete":
+            self._arm("delete", f'Click DELETE again to delete "{name}".')
+            return
+        self._disarm()
+        try:
+            cp.delete(name)
+        except OSError as e:
+            self._say(DANGER, f"Could not delete — {e}")
+            return
+        self.reload()
+        if self.profiles:
+            self.list.setCurrentRow(min(i, len(self.profiles) - 1))
+        else:
+            self.new_profile()
+        self._say(LABEL, f'Deleted "{name}"')
+
+    # ---------------- editing ----------------
+    def _load(self, prof, dirty):
+        self._loading = True
+        self.edit = prof
+        self.name_edit.setText(prof.name)
+        self.ctrl_edit.setText(prof.controller)
+        for (k, f), sb in self.fields.items():
+            src = prof.axes[k] if k in cp.AXES else prof.triggers[k]
+            sb.setValue(src[f])
+        self._loading = False
+        self.dirty = dirty
+
+    def _edited(self, *_):
+        if not self._loading:
+            self.dirty = True
+            self._disarm()
+
+    def _field(self, k, f, v):
+        if self._loading:
+            return
+        (self.edit.axes[k] if k in cp.AXES else self.edit.triggers[k])[f] = v
+        self._edited()
+
+    def _use_connected(self):
+        if not self.pad_name:
+            self._say(WARN, "No controller connected.")
+            return
+        self.ctrl_edit.setText(self.pad_name)
+        self._edited()
+
+    def _reset_values(self):
+        self._cancel_cal()
+        p = cp.ControllerProfile(self.name_edit.text().strip(), self.ctrl_edit.text().strip())
+        self._load(p, dirty=True)
+        self._say(LABEL, "Values reset to the defaults — SAVE to keep.")
+
+    def save(self):
+        name = self.name_edit.text().strip()
+        if not name:
+            self._say(DANGER, "Enter a profile name first.")
+            self.name_edit.setFocus()
+            return
+        self._cancel_cal()
+        self.edit.name = name
+        self.edit.controller = self.ctrl_edit.text().strip()
+        replaced = any(p.name == name for p in self.profiles)
+        try:
+            cp.save(self.edit)
+        except OSError as e:
+            self._say(DANGER, f"Could not save — {e}")
+            return
+        self.dirty = False
+        self.reload(select=name)
+        note = "" if self.edit.controller else "  No controller set, so it's only used when picked in CONNECT VEHICLE."
+        self._say(ACCENT, f'Saved "{name}"' + (" (replaced)" if replaced else "") + "." + note)
+
+    # ---------------- calibration ----------------
+    def _cal_button(self):
+        if self.cal is None:
+            if not self.pad_name:
+                self._say(WARN, "Connect the controller first.")
+                return
+            self.cal = cp.Calibration()
+            self.trail = {"l": [], "r": []}
+            self._say(LABEL, "")
+        elif self.cal.name == "ready":          # OK: start with the left stick's flicks
+            self.cal.next()
+        elif self.cal.stick() is not None:     # NEXT: skip the rest of this flick / rotate step
+            self.cal.next()
+        elif self.cal.name == "triggers":
+            self.cal.next()
+            warn = self.cal.warnings()
+            self._load(self.cal.result(self.edit), dirty=True)
+            if not self.edit.controller and self.pad_name:
+                self.ctrl_edit.setText(self.pad_name)
+                self.edit.controller = self.pad_name
+            self.cal = None
+            if warn:
+                self._say(WARN, "Calibrated, but: " + "; ".join(warn) + ". Kept the old range there — "
+                          "calibrate again or edit the values.")
+            else:
+                self._say(ACCENT, "Calibrated. Check the live view, adjust any value, then SAVE.")
+        self._show_wizard()
+
+    def _cancel_cal(self):
+        if self.cal is not None:
+            self.cal = None
+            self._say(LABEL, "Calibration cancelled — nothing changed.")
+        self.trail = {"l": [], "r": []}
+        self._show_wizard()
+
+    def _show_wizard(self):
+        step = self.cal.name if self.cal is not None else None
+        self.cancel_cal.setVisible(step is not None)
+        self.cal_btn.setText({None: "CALIBRATE", "ready": "OK", "triggers": "FINISH"}.get(step, "NEXT"))
+        self.cal_btn.setToolTip("Skip the rest of this step" if (self.cal is not None and self.cal.stick()) else "")
+        if step is None:
+            self.step_lbl.setText("Calibrate: measures drift, deadzone and full range for this controller in three short steps.")
+        elif step in cp.Calibration.FLICK:
+            c = self.cal
+            flick = (f"flick it {c.arrow()} to the edge and let go" if c.phase == "push"
+                     else "let go — waiting for it to settle…")
+            self.step_lbl.setText(self.STEP_TEXT[step].format(flick=flick, n=c.flicks(), N=cp.Calibration.FLICKS))
+        else:
+            self.step_lbl.setText(self.STEP_TEXT[step].format(n=self.cal.turns(), N=cp.Calibration.TURNS))
+
+    # ---------------- live update (menu timer, 20 Hz) ----------------
+    def update_pad(self, st):
+        name = st.name if st.connected else ""
+        if name != self.pad_name:
+            self.pad_name = name
+            self.reload(select=self.edit.name if self.edit.name else None)
+        auto = cp.match(self.pad_name, self.profiles)
+        self.pad_lbl.setText(f"Connected: {self.pad_name}" + (f"  ·  auto profile: {auto.name}" if auto else "  ·  no saved profile for it")
+                             if self.pad_name else "No controller connected — plug one in to calibrate.")
+        self.pad_lbl.setStyleSheet(f"color: {LABEL if self.pad_name else WARN}; background: transparent;")
+        if self.cal is not None:
+            if self.cal.name in cp.Calibration.ROTATE:
+                self.trail[self.cal.stick()].append((st.lx, st.ly) if self.cal.stick() == "l" else (st.rx, st.ry))
+            self.cal.feed(st)                    # may move on by itself (12 flicks, 10 turns)
+            self._show_wizard()                  # flick direction / counts
+        e = self.edit
+        c = self.cal
+        name = c.name if c is not None else None
+        for s, view, kx, ky in (("l", self.stick_l, "lx", "ly"), ("r", self.stick_r, "rx", "ry")):
+            active = c is not None and c.stick() == s
+            view.set(getattr(st, kx), getattr(st, ky), e.axes[kx], e.axes[ky], st.connected,
+                     self.trail[s] if (active and name in cp.Calibration.ROTATE) else None,
+                     c.target if (active and name in cp.Calibration.FLICK and c.phase == "push") else None,
+                     c.settled[s] if (active and name in cp.Calibration.FLICK) else None)
+        peak = self.cal.tmax if (self.cal is not None and self.cal.name == "triggers") else {}
+        self.trig_l.set(st.l2, e.triggers["l2"], peak.get("l2"))
+        self.trig_r.set(st.r2, e.triggers["r2"], peak.get("r2"))
+        if st.connected:
+            out = e.apply(st)
+            dz = e.deadzones()
+            f = lambda k, v: "  0.00" if abs(v) < dz[k] else f"{v:+.2f}"
+            self.out_lbl.setText(f"OUTPUT (after this profile)\n"
+                                 f"L  {f('lx', out.lx)}  {f('ly', out.ly)}\n"
+                                 f"R  {f('rx', out.rx)}  {f('ry', out.ry)}\n"
+                                 f"L2 {out.l2:.2f}   R2 {out.r2:.2f}\n"
+                                 f"At rest this should read 0.00; full throw ±1.00.")
+        else:
+            self.out_lbl.setText("")
+
+    # ---------------- helpers ----------------
+    def _arm(self, what, msg):
+        self._armed = what
+        self._say(WARN, msg)
+        QTimer.singleShot(4000, lambda w=what: self._disarm() if self._armed == w else None)
+
+    def _disarm(self):
+        if self._armed is not None:
+            self._armed = None
+            self._say(LABEL, "")
+
+    def _say(self, color, text):
+        self.status.setStyleSheet(f"color: {color}; background: transparent;")
+        self.status.setText(text)
+
+
 # ============================================================================
 # MAIN MENU WINDOW
 # ============================================================================
 class MainMenu(QWidget):
-    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "CONTROLLER MAP", "VIEW LOGS", "QUIT")
+    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "CONTROLLER MAP", "CONTROLLER PROFILES", "VIEW LOGS", "QUIT")
 
     def __init__(self, pad, on_connected, on_demo):
         super().__init__()
@@ -963,6 +1453,8 @@ class MainMenu(QWidget):
         self.map_ov = Overlay(self, self.map_card, self.close_overlay)
         self.logs_card = LogsCard(self.close_overlay)
         self.logs_ov = Overlay(self, self.logs_card, self.close_overlay)
+        self.ctl_card = ControllerProfilesCard(self.close_overlay)
+        self.ctl_ov = Overlay(self, self.ctl_card, self.ctl_card.close_card)
         self.overlay = None
 
         self.select(0)
@@ -1039,6 +1531,10 @@ class MainMenu(QWidget):
             self._on_demo()
         elif item == "CONTROLLER MAP":
             self.open_overlay(self.map_ov)
+        elif item == "CONTROLLER PROFILES":
+            self.open_overlay(self.ctl_ov)
+            st = self.pad.snapshot()
+            self.ctl_card.opened(st.name if st.connected else "")
         elif item == "VIEW LOGS":
             self.open_overlay(self.logs_ov)
             self.logs_card.opened()
@@ -1052,7 +1548,7 @@ class MainMenu(QWidget):
         ov.setGeometry(self.rect())
         ov.show()
         ov.raise_()
-        if ov in (self.map_ov, self.logs_ov):
+        if ov in (self.map_ov, self.logs_ov, self.ctl_ov):
             self.setFocus()
 
     def close_overlay(self):
@@ -1061,13 +1557,13 @@ class MainMenu(QWidget):
         self.overlay = None
         self.setFocus()
 
-    def _connected(self, link, name):
+    def _connected(self, link, name, controller_profile=cp.AUTO):
         self.close_overlay()
-        self._on_connected(link, name)
+        self._on_connected(link, name, controller_profile)
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
-        for ov in (self.connect_ov, self.map_ov, self.logs_ov):
+        for ov in (self.connect_ov, self.map_ov, self.logs_ov, self.ctl_ov):
             ov.setGeometry(self.rect())
 
     def keyPressEvent(self, e):
@@ -1079,6 +1575,10 @@ class MainMenu(QWidget):
         if self.overlay is self.map_ov:
             if k in (Qt.Key.Key_Escape, Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 self.close_overlay()
+            return
+        if self.overlay is self.ctl_ov:
+            if not self.ctl_card.key(e):
+                super().keyPressEvent(e)
             return
         if self.overlay is self.logs_ov:
             if not self.logs_card.key(e):
@@ -1114,6 +1614,10 @@ class MainMenu(QWidget):
             self.back_cap.setText(back)
             self.status_lbl.setText(f"D-pad to navigate · {ok} to select" if pad.connected
                                     else "Arrow keys + Enter to navigate — or connect a controller")
+        if self.overlay is self.ctl_ov:              # calibrating: the pad is input, not navigation
+            self.ctl_card.update_pad(pad)
+            self.prev = dict(pad.buttons)
+            return
         if not pad.connected:
             self.prev = {}
             return

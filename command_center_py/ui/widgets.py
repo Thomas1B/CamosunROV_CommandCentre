@@ -81,9 +81,12 @@ class StickView(QWidget):
         self.x = self.y = 0.0
         self.pressed = False
         self.x_only = x_only
+        self.deadzone = DEADZONE     # dashed ring; the console sets it from the controller profile
 
-    def set(self, x, y, pressed=False):
+    def set(self, x, y, pressed=False, deadzone=None):
         self.x, self.y, self.pressed = x, y, pressed
+        if deadzone is not None:
+            self.deadzone = deadzone
         self.update()
 
     def paintEvent(self, _):
@@ -98,7 +101,7 @@ class StickView(QWidget):
         p.drawLine(QPointF(c.x(), r.top()), QPointF(c.x(), r.bottom()))
         p.drawLine(QPointF(r.left(), c.y()), QPointF(r.right(), c.y()))
         span = r.width() * 0.42
-        dz = span * DEADZONE
+        dz = span * self.deadzone
         p.setPen(QPen(QColor(GRID), 1, Qt.PenStyle.DashLine))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawEllipse(c, dz, dz)

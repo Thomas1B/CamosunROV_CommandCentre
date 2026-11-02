@@ -19,6 +19,7 @@ from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S, REQUIRE_LINK_TO_ARM,
                         RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD)
+from command_center_py.controller_profiles import CalibratedPad
 from command_center_py.demo_pad import DemoPad
 from command_center_py.event_log import EventLogFile
 from command_center_py.ui.log_dialog import ExitLogDialog
@@ -53,7 +54,8 @@ class ConsoleWindow(QMainWindow):
 
     def __init__(self, link, pad, demo=False, vehicle=""):
         """link: an open Link / DemoLink (the console closes it on exit).
-        pad: the shared Gamepad (owned by the app, not closed here)."""
+        pad: the shared Gamepad (owned by the app, not closed here), usually wrapped in a
+        CalibratedPad that applies the chosen / auto-matched controller profile."""
         super().__init__()
         self.setWindowTitle("Camosun ROV — Control Console"
                             + (" — DEMO" if demo else (f" — {vehicle}" if vehicle else "")))
@@ -65,6 +67,7 @@ class ConsoleWindow(QMainWindow):
         self.link = link
         # demo mode: a simulated controller drives the vehicle until a real one is plugged in
         self.pad = DemoPad(pad, lambda: self.armed) if (demo and DEMO_SIM_PAD) else pad
+        self.cal_pad = pad if isinstance(pad, CalibratedPad) else None   # controller profile in use
         self._force_close = False
         self._done = False
         self.notice = ""
@@ -777,6 +780,8 @@ class ConsoleWindow(QMainWindow):
     def _handle_pad(self, pad, now):
         if pad.connected and not self.was_connected:
             self.log("PAD", f"Controller connected — {pad.name} [{pad.mode}]", ACCENT)
+            if self.cal_pad is not None and pad.name == self.cal_pad.base.snapshot().name:   # not the demo pad
+                self.log("PAD", self.cal_pad.status(), ACCENT if self.cal_pad.profile else MUTED)
         if not pad.connected and self.was_connected:
             # Controller lost: disarm and, like E-STOP, send a zero-thrust frame straight away
             # rather than waiting for the next tick. The camera tilt stays where it is - the
@@ -904,7 +909,11 @@ class ConsoleWindow(QMainWindow):
             self.log("CAM", f"Camera tilt {new:+d}°", BLUE)
 
     def _mix(self, pad):
-        return mix(pad, GAIN_STEPS[self.gain_idx])
+        return mix(pad, GAIN_STEPS[self.gain_idx], self._deadzones())
+
+    def _deadzones(self):
+        """Per-axis deadzones from the controller profile (None = config.py defaults)."""
+        return self.cal_pad.deadzones() if self.cal_pad is not None else None
 
     def _failsafes(self, now):
         if self.link.refs_acked() and not self._refs_ack_logged:
@@ -1027,8 +1036,9 @@ class ConsoleWindow(QMainWindow):
         for row, pct in zip(self.thr_rows, self.throttles):
             row.set(pct)
         self.gain_lbl.setText(f"{GAIN_STEPS[self.gain_idx]}%")
-        self.stick_l.set(pad.lx, pad.ly, pad.down("l3"))
-        self.stick_r.set(pad.rx, 0.0, pad.down("r3"))
+        dz = self._deadzones()
+        self.stick_l.set(pad.lx, pad.ly, pad.down("l3"), None if dz is None else max(dz["lx"], dz["ly"]))
+        self.stick_r.set(pad.rx, 0.0, pad.down("r3"), None if dz is None else dz["rx"])
         self.l2_bar.set(pad.l2)
         self.r2_bar.set(pad.r2)
         for key, chip in self.chips.items():

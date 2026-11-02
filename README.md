@@ -35,7 +35,7 @@ Main features:
   second-order calibration), sent to the Pi/STM32 and confirmed by it
 - Event log with operator marks
 - Main menu: connect to a vehicle (with saved vehicle profiles), demo mode, controller maps,
-  saved session logs
+  controller profiles (stick drift / deadzone / range calibration), saved session logs
 - Demo mode with a simulated vehicle, a simulated controller and simulated
   packet loss, for testing without the ROV
 
@@ -65,6 +65,9 @@ One of:
 
 Switch the on-screen button names to match with the DUALSHOCK 3 / XBOX toggle
 above STICK INPUT in the console.
+
+Worn sticks drift. Calibrate each controller once in **CONTROLLER PROFILES**
+(see [Controller profiles](#controller-profiles)).
 
 ### Software
 
@@ -130,7 +133,6 @@ repeat step 2.
 ##### 3c. Install the dependencies
 
 ```
-python.exe -m pip install --upgrade pip
 python -m pip install -r py_requirements.txt
 ```
 
@@ -279,6 +281,71 @@ Help > Dualshock3 Map / Xbox Map in the console shows both layouts.
 > applying reference values, the demo leak toggle) is done with the controller
 > or the mouse. The keyboard is only for typing values into the dialogs and for
 > moving around the main menu.
+
+### Controller profiles
+
+Without a profile, every controller uses the defaults in `config.py`: a 0.20
+stick deadzone and a 0.06 trigger deadzone, with no correction for an
+off-centre stick or for sticks that don't reach full travel. A **controller
+profile** measures this per controller, so a drifting stick reads exactly 0 at
+rest and full throw reads exactly ±100 %.
+
+**Making one.** In the main menu, open **CONTROLLER PROFILES** with the
+controller plugged in, press **NEW** (or pick a profile to redo it), then
+**CALIBRATE**:
+
+Press **OK** once your hands are off the controller, then:
+
+1. **LEFT STICK**
+   - **1a FLICK (×12):** the page shows an arrow (→ ↗ ↑ …, a new random
+     direction each time). Push the stick to the edge that way and **let go**.
+     Once it has settled, the page records where it stopped (amber dot). Stick
+     springs don't return to exactly the same spot every time. The settled
+     position depends on which way the stick came back from. So the **centre**
+     is the average of the 12 settled points, and the **deadzone** covers the
+     furthest one plus the stick's jitter (at least 0.03). However the spring
+     leaves the stick, it reads 0.
+   - **1b:** push it to the edge and turn it clockwise ↻ 10 times.
+   - **1c:** turn it counter-clockwise ↺ 10 times.
+2. **RIGHT STICK:** the same: **2a** flicks, **2b** clockwise, **2c**
+   counter-clockwise.
+
+   The turns measure each axis's real **min** / **max**. The page counts flicks
+   and turns ("4 / 12 flicks", "4 / 10 turns") and moves on by itself when a
+   part is done. A flick only counts when it goes past 70 % of the travel within
+   45° of the arrow. A turn only counts while the stick is pushed out past half
+   its travel, and turning the wrong way takes turns back off (never below 0).
+   **NEXT** skips the rest of a part.
+3. **TRIGGERS:** press L2 and R2 (LT / RT) all the way, release, then press
+   **FINISH**. This measures each trigger's **max**. Their **rest** and jitter
+   are measured while the sticks settle during the flicks, when the triggers
+   aren't being touched.
+
+The live view shows the raw stick (white dot), the profile's range (dashed teal
+box) and its deadzone (amber box). Under the trigger bars, **OUTPUT** shows the
+values the console will use: 0.00 at rest and ±1.00 at full throw. Every value
+can be edited by hand. Give the profile a name and **SAVE** it. It's written to
+`controller_profiles/<name>.json`.
+
+If a stick got fewer than 3 flicks, barely moved, or a trigger wasn't pressed
+fully, the page says so and keeps the old values for it. The controller's buttons don't operate this
+page, because you're using it to calibrate; use the mouse and keyboard. Esc or
+CLOSE closes it, and asks first if there are unsaved changes.
+
+**Which profile is used.** Each profile stores the name of the controller it
+belongs to (**USE CONNECTED** fills it in). In **CONNECT VEHICLE**, the
+**CONTROLLER PROFILE** setting picks one of these:
+
+- **Auto — match controller** (default): the profile saved for the connected
+  controller's name, or the defaults if there isn't one. A ★ in the profile
+  list marks the auto-matched profile.
+- **Defaults (no calibration):** the `config.py` defaults.
+- A named profile: that profile, whichever controller is plugged in.
+
+Demo mode always uses Auto. When the controller connects, the console's event
+log says which profile it's using, e.g. `PAD Controller profile "Josh DS3"
+(auto-matched)`. The dashed deadzone ring on the console's stick views follows
+the profile.
 
 ### Arming
 

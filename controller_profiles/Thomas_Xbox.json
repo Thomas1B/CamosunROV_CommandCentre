@@ -1,0 +1,43 @@
+{
+  "name": "Thomas' Xbox",
+  "controller": "Xbox One Elite 2 Controller",
+  "axes": {
+    "lx": {
+      "center": 0.0002,
+      "deadzone": 0.063,
+      "min": -1.0,
+      "max": 1.0
+    },
+    "ly": {
+      "center": -0.0003,
+      "deadzone": 0.071,
+      "min": -1.0,
+      "max": 1.0
+    },
+    "rx": {
+      "center": -0.02,
+      "deadzone": 0.061,
+      "min": -1.0,
+      "max": 1.0
+    },
+    "ry": {
+      "center": 0.015,
+      "deadzone": 0.059,
+      "min": -1.0,
+      "max": 1.0
+    }
+  },
+  "triggers": {
+    "l2": {
+      "rest": 0.0,
+      "max": 1.0,
+      "deadzone": 0.03
+    },
+    "r2": {
+      "rest": 0.0,
+      "max": 1.0,
+      "deadzone": 0.03
+    }
+  },
+  "saved": "2026-11-01T17:51:18-07:00"
+}

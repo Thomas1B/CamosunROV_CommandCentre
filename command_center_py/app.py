@@ -12,6 +12,7 @@ from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication
 
+from command_center_py import controller_profiles
 from command_center_py.gamepad import Gamepad
 from command_center_py.link import DemoLink
 from command_center_py.ui.start_window import MainMenu
@@ -63,13 +64,15 @@ class RovApp:
     def open_demo(self):
         self.open_console(DemoLink(), "DEMO", demo=True)
 
-    def open_console(self, link, vehicle, demo=False):
+    def open_console(self, link, vehicle, demo=False, controller_profile=controller_profiles.AUTO):
+        """controller_profile: AUTO (match the connected controller), NONE, or a profile name."""
         if self.console is not None:
             link.close()
             return
         print(f"Opening console - {'demo mode' if demo else f'{vehicle} @ {link.label}'}", flush=True)
         self.menu.pause()
-        self.console = ConsoleWindow(link, self.pad, demo, vehicle)
+        pad = controller_profiles.CalibratedPad(self.pad, controller_profile)   # reads profiles from disk
+        self.console = ConsoleWindow(link, pad, demo, vehicle)
         self.console.closed.connect(self._console_closed)
         self._swap(self.menu, self.console)
 
