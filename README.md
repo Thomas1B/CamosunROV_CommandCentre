@@ -134,6 +134,7 @@ repeat step 2.
 ##### 3c. Install the dependencies
 
 ```
+python.exe -m pip install --upgrade pip
 python -m pip install -r py_requirements.txt
 ```
 
