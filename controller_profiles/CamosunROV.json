@@ -1,0 +1,43 @@
+{
+  "name": "CamosunROV",
+  "controller": "PS3",
+  "axes": {
+    "lx": {
+      "center": 0.0212,
+      "deadzone": 0.088,
+      "min": -1.0,
+      "max": 1.0
+    },
+    "ly": {
+      "center": 0.1349,
+      "deadzone": 0.083,
+      "min": -1.0,
+      "max": 1.0
+    },
+    "rx": {
+      "center": 0.1585,
+      "deadzone": 0.094,
+      "min": -1.0,
+      "max": 1.0
+    },
+    "ry": {
+      "center": -0.0733,
+      "deadzone": 0.073,
+      "min": -1.0,
+      "max": 1.0
+    }
+  },
+  "triggers": {
+    "l2": {
+      "rest": 0.0,
+      "max": 1.0,
+      "deadzone": 0.03
+    },
+    "r2": {
+      "rest": 0.0,
+      "max": 1.0,
+      "deadzone": 0.03
+    }
+  },
+  "saved": "2026-11-02T12:51:51-07:00"
+}
