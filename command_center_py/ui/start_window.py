@@ -622,7 +622,7 @@ class ConnectCard(Card):
             name = self.name_edit.text().strip() or link.addr[0]
             self.state = "idle"
             self._refresh()
-            self._on_connected(link, name, self.controller_choice())
+            self._on_connected(link, name, controller_profile=self.controller_choice())
         elif now >= self.deadline:
             self.attempt.stop()
             self.link = None
@@ -1556,7 +1556,7 @@ class MainMenu(QWidget):
 
     def _connected(self, link, name, controller_profile=cp.NONE):
         self.close_overlay()
-        self._on_connected(link, name, controller_profile)
+        self._on_connected(link, name, controller_profile=controller_profile)
 
     def resizeEvent(self, e):
         super().resizeEvent(e)

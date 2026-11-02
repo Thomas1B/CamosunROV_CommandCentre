@@ -22,6 +22,7 @@ from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_
                         RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD, RECORDINGS_DIR)
 from command_center_py.controller_profiles import CalibratedPad
+from command_center_py.link import DemoLink
 from command_center_py.demo_pad import DemoPad
 from command_center_py.event_log import EventLogFile
 from command_center_py.ui.log_dialog import ExitLogDialog
@@ -59,6 +60,8 @@ class ConsoleWindow(QMainWindow):
         pad: the shared Gamepad (owned by the app, not closed here), usually wrapped in a
         CalibratedPad that applies the controller profile picked in CONNECT VEHICLE."""
         super().__init__()
+        # Never run demo mode on a real link: the simulated controller would arm and drive the ROV.
+        demo = bool(demo) and isinstance(link, DemoLink)
         self.setWindowTitle("Camosun ROV — Control Console"
                             + (" — DEMO" if demo else (f" — {vehicle}" if vehicle else "")))
         self.resize(1440, 900)

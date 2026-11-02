@@ -62,11 +62,14 @@ class RovApp:
 
     # ---------------- screen switching ----------------
     def open_demo(self):
-        self.open_console(DemoLink(), "DEMO", demo=True)
+        self.open_console(DemoLink(), "DEMO")
 
-    def open_console(self, link, vehicle, demo=False, controller_profile=controller_profiles.NONE):
-        """controller_profile: NONE (config.py defaults) or a saved profile's name (CONNECT VEHICLE).
-        Demo mode always uses NONE."""
+    def open_console(self, link, vehicle, controller_profile=controller_profiles.NONE):
+        """link: a connected Link (CONNECT VEHICLE) or a DemoLink (DEMO MODE).
+        controller_profile: NONE (config.py defaults) or a saved profile's name (CONNECT VEHICLE).
+        Demo mode is decided by the link itself, never by an argument: a real Link can't
+        end up in demo mode, where the simulated controller would drive the real ROV."""
+        demo = isinstance(link, DemoLink)
         if self.console is not None:
             link.close()
             return
