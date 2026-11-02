@@ -1369,16 +1369,17 @@ class RecordingsCard(Card):
     """RECORDINGS: camera recordings in recordings/ (console REC button), newest first.
 
     Left: the recordings (start time, vehicle, length, size, marks). Middle: the built-in
-    player (PyAV, see video_player.py) with play / pause, -5 s / +5 s and a seek bar. Right:
-    the operator marks made while that file was recording (from logs/); click one to jump.
+    player (PyAV, see video_player.py) with play / pause, -3 / -1 / +1 / +3 s and a seek bar.
+    Right: every event logged while that file was recording (from logs/); click one to jump.
     Footer: OPEN FOLDER, SAVE FRAME... (PNG of the frame on screen), DELETE (click twice), CLOSE.
-    Keys: Space play / pause, Left / Right -5 / +5 s, Up / Down another recording, Esc close.
-    Controller: CROSS (A) play / pause, D-pad left / right -5 / +5 s, up / down another
-    recording, CIRCLE (B) close. Resizable from the bottom-right corner.
+    Keys: Space play / pause, Left / Right -3 / +3 s (with Shift -1 / +1 s), Up / Down another
+    recording, Esc close. Controller: CROSS (A) play / pause, D-pad left / right -3 / +3 s,
+    L1 / R1 (LB / RB) -1 / +1 s, up / down another recording, CIRCLE (B) close. Resizable from the bottom-right corner.
     """
 
     MIN_W, MIN_H = 960, 520
-    STEP_S = 5.0
+    STEP_S = 3.0          # ◀◀ / ▶▶, ← / →, D-pad
+    FINE_S = 1.0          # ◀ / ▶, Shift+← / →, L1 / R1
 
     def __init__(self, on_close):
         super().__init__("RECORDINGS", 1180)
@@ -1413,18 +1414,22 @@ class RecordingsCard(Card):
         ctl.setSpacing(6)
         small = (f"padding: 6px 10px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
                  f"border-color: {ACCENT}; color: {ACCENT};")
-        self.back_btn = button("◀◀ 5 s", 11, None, *small)
+        self.back_btn = button("◀◀ 3 s", 11, None, *small)
         self.back_btn.clicked.connect(lambda: self.step(-self.STEP_S))
+        self.back1_btn = button("◀ 1 s", 11, None, *small)
+        self.back1_btn.clicked.connect(lambda: self.step(-self.FINE_S))
         self.play_btn = button("▶ PLAY", 11, 96,
                                f"padding: 6px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
                                f"border-color: {ACCENT}; color: {OK_TEXT};")
         self.play_btn.clicked.connect(self.player.toggle)
-        self.fwd_btn = button("5 s ▶▶", 11, None, *small)
+        self.fwd1_btn = button("1 s ▶", 11, None, *small)
+        self.fwd1_btn.clicked.connect(lambda: self.step(self.FINE_S))
+        self.fwd_btn = button("3 s ▶▶", 11, None, *small)
         self.fwd_btn.clicked.connect(lambda: self.step(self.STEP_S))
         self.seek = SeekBar()
         self.seek.jumped.connect(self.player.seek)
         self.time_lbl = lab("00:00 / 00:00", 12, SOFT)
-        for w_ in (self.back_btn, self.play_btn, self.fwd_btn):
+        for w_ in (self.back_btn, self.back1_btn, self.play_btn, self.fwd1_btn, self.fwd_btn):
             ctl.addWidget(w_)
         ctl.addWidget(self.seek, 1)
         ctl.addWidget(self.time_lbl)
@@ -1468,7 +1473,7 @@ class RecordingsCard(Card):
         close.clicked.connect(self.close_card)
         self.foot_lay.addWidget(close)
         disabled = f" QPushButton:disabled {{ color: {MUTED}; border-color: {BORDER2}; background: transparent; }}"
-        for b in (self.back_btn, self.play_btn, self.fwd_btn, self.frame_btn, self.del_btn):
+        for b in (self.back_btn, self.back1_btn, self.play_btn, self.fwd1_btn, self.fwd_btn, self.frame_btn, self.del_btn):
             b.setStyleSheet(b.styleSheet() + disabled)
 
         self.layout().setStretchFactor(self.body, 1)
@@ -1521,7 +1526,7 @@ class RecordingsCard(Card):
         self.player.close()
         self.marks_list.clear()
         has = r is not None
-        for b in (self.back_btn, self.play_btn, self.fwd_btn, self.frame_btn, self.del_btn):
+        for b in (self.back_btn, self.back1_btn, self.play_btn, self.fwd1_btn, self.fwd_btn, self.frame_btn, self.del_btn):
             b.setEnabled(has)
         if not has:
             self.info.setText("")
@@ -1643,10 +1648,10 @@ class RecordingsCard(Card):
             self.close_card()
         elif k == Qt.Key.Key_Space:
             self.player.toggle()
-        elif k == Qt.Key.Key_Left:
-            self.step(-self.STEP_S)
-        elif k == Qt.Key.Key_Right:
-            self.step(self.STEP_S)
+        elif k in (Qt.Key.Key_Left, Qt.Key.Key_Right):      # Shift: the 1 s step
+            fine = bool(e.modifiers() & Qt.KeyboardModifier.ShiftModifier)
+            d = self.FINE_S if fine else self.STEP_S
+            self.step(-d if k == Qt.Key.Key_Left else d)
         elif k == Qt.Key.Key_Up:
             self.select(-1)
         elif k == Qt.Key.Key_Down:
@@ -1931,7 +1936,7 @@ class MainMenu(QWidget):
         elif self.overlay is self.map_ov:
             if pressed("cross") or pressed("circle"):
                 self.close_overlay()
-        elif self.overlay is self.rec_ov:           # CROSS play/pause, D-pad seek / pick, CIRCLE closes
+        elif self.overlay is self.rec_ov:           # CROSS play/pause, D-pad seek 3 s / pick, L1/R1 1 s, CIRCLE closes
             if pressed("circle"):
                 self.rec_card.close_card()
             elif pressed("cross"):
@@ -1940,6 +1945,10 @@ class MainMenu(QWidget):
                 self.rec_card.step(-self.rec_card.STEP_S)
             if pressed("right"):
                 self.rec_card.step(self.rec_card.STEP_S)
+            if pressed("l1"):
+                self.rec_card.step(-self.rec_card.FINE_S)
+            if pressed("r1"):
+                self.rec_card.step(self.rec_card.FINE_S)
             if pressed("up"):
                 self.rec_card.select(-1)
             if pressed("down"):

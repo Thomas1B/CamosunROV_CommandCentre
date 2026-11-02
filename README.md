@@ -503,7 +503,7 @@ Packets lost on the tether show as a brief glitch, the same as on screen.
 many events (and operator marks) were logged while it was recording. It plays them with a
 built-in player, so nothing extra has to be installed.
 
-- **Play.** ▶ PLAY / ⏸ PAUSE, ◀◀ 5 s and 5 s ▶▶, and a seek bar. Click anywhere
+- **Play.** ▶ PLAY / ⏸ PAUSE, ◀◀ 3 s / 3 s ▶▶, ◀ 1 s / 1 s ▶, and a seek bar. Click anywhere
   on the bar to jump there, or drag the handle.
 - **Events.** The EVENTS list shows every event-log line from while that file was
   recording (link, alarms, arming, warnings, operator marks, ...) with its video
@@ -516,8 +516,9 @@ built-in player, so nothing extra has to be installed.
   `Pictures`, named after the recording and the video time).
 - **DELETE** deletes the selected file. Click it twice; the first click arms it
   for 4 s. This can't be undone.
-- **Keys.** Space play/pause, ← / → 5 s, ↑ / ↓ pick a recording, Esc close.
-  **Controller:** ✕ play/pause, D-pad ← / → 5 s and ↑ / ↓ pick, ○ close.
+- **Keys.** Space play/pause, ← / → 3 s, Shift+← / → 1 s, ↑ / ↓ pick a
+  recording, Esc close. **Controller:** ✕ play/pause, D-pad ← / → 3 s and
+  ↑ / ↓ pick, L1 / R1 (LB / RB) 1 s, ○ close.
 
 The window can be resized from the bottom-right corner.
 
