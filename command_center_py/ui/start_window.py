@@ -4,9 +4,9 @@
                         listens for telemetry for CONNECT_TIMEOUT_S; the console only
                         opens once the Pi answers, otherwise the dialog stays open.
     DEMO MODE ......... opens the console with a simulated vehicle (nothing transmitted)
+    VIEW LOGS ......... saved console session logs (logs/): preview, export, delete
     CONTROLLER MAP .... DualShock 3 and Xbox button maps side by side
     CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
-    VIEW LOGS ......... saved console session logs (logs/): preview, export, delete
     QUIT .............. closes the program
 
 Navigation: arrow keys + Enter / Esc, or the controller D-pad + cross (A) / circle (B).
@@ -1365,7 +1365,7 @@ class ControllerProfilesCard(Card):
 # MAIN MENU WINDOW
 # ============================================================================
 class MainMenu(QWidget):
-    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "CONTROLLER MAP", "CONTROLLER PROFILES", "VIEW LOGS", "QUIT")
+    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "VIEW LOGS", "CONTROLLER MAP", "CONTROLLER PROFILES", "QUIT")
 
     def __init__(self, pad, on_connected, on_demo):
         super().__init__()
