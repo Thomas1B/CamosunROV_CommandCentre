@@ -38,7 +38,7 @@ EXPO = 0.30              # 0 = linear, 1 = full cubic (finer control near centre
 GAIN_STEPS = (25, 50, 75, 100)
 DEFAULT_GAIN_INDEX = 1   # start at 50 %
 TRIGGER_DEADZONE = 0.06  # L2/R2 rest noise
-TILT_MIN, TILT_MAX = -45, 45   # camera servo limits in degrees - match the Pi/servo
+TILT_MIN, TILT_MAX = -60, 60   # camera servo limits in degrees - match the Pi/servo
 TILT_STEP = 5
 ARM_HOLD_S = 1.0
 ZERO_HOLD_S = 5.0        # hold CROSS / A (or the ZERO chip) this long to zero depth - the depth readings
