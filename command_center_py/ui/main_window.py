@@ -9,6 +9,7 @@ import math
 import os
 import re
 import time
+from pathlib import Path
 from datetime import datetime, timezone
 
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -26,6 +27,7 @@ from command_center_py.link import DemoLink
 from command_center_py.demo_pad import DemoPad
 from command_center_py.event_log import EventLogFile
 from command_center_py.ui.log_dialog import ExitLogDialog
+from command_center_py.ui.recording_dialog import ExitRecordingDialog
 from command_center_py.mixer import mix
 from command_center_py.video import VideoReceiver
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
@@ -268,6 +270,7 @@ class ConsoleWindow(QMainWindow):
         h.addWidget(self.rec_btn)
         self._rec_style = None
         self._rec_logged = None               # path whose "started" line is in the log
+        self._session_recs = []               # recordings made this session (exit: keep or delete)
 
         self.arm_btn = QPushButton("DISARMED")
         self.arm_btn.setFont(mono(fs(12), QFont.Weight.Bold))
@@ -1192,9 +1195,15 @@ class ConsoleWindow(QMainWindow):
         if rec["state"] == "waiting":
             self.log("REC", "Recording cancelled — no video arrived, nothing saved", MUTED)
         else:
+            self._note_rec(rec["path"])
             self.log("REC", f"Recording stopped{' (' + why + ')' if why else ''} — {self._rec_clock(rec['seconds'])}"
                             f" · {rec['bytes'] / 1e6:.1f} MB → recordings/{name}", DANGER,
                      {"video_time": self._rec_clock(rec["seconds"]), "video_file": name})
+
+    def _note_rec(self, path):
+        p = Path(path)
+        if p not in self._session_recs:
+            self._session_recs.append(p)
 
     def _update_rec(self):
         """REC button text / colour, the "started" log line and recording errors (UI timer)."""
@@ -1205,6 +1214,7 @@ class ConsoleWindow(QMainWindow):
         state = rec["state"]
         if state == "rec" and self._rec_logged != rec["path"]:
             self._rec_logged = rec["path"]
+            self._note_rec(rec["path"])
             self.log("REC", f"Recording started → recordings/{os.path.basename(rec['path'])}", DANGER)
         if state == "rec":
             text = f"■ REC {self._rec_clock(rec['seconds'])}"
@@ -1269,12 +1279,30 @@ class ConsoleWindow(QMainWindow):
             for _ in range(3):   # make sure the Pi sees a disarmed frame on exit
                 self.link.send(False, [0] * 6, self.tilt)
             self.link.close()
+            # Exit dialogs. The ROV is already disarmed and the link closed, so nothing is sent
+            # while they are open. Skipped on Ctrl+C / program exit (force_close), where the
+            # recordings and the log are simply kept.
+            # 1. Recordings made this session: YES keeps the ticked ones and saves the log
+            #    without asking; NO deletes them all and goes on to the Session Log window.
+            show_log = not self._force_close
+            recs = [p for p in self._session_recs if p.exists()]
+            if recs and not self._force_close:
+                dlg = ExitRecordingDialog(self, recs, scale=fs(100) / 100)
+                dlg.exec()
+                for name in dlg.kept:
+                    self.log("REC", f"Recording kept → recordings/{name}", DANGER)
+                for name in dlg.deleted:
+                    self.log("REC", f"Recording deleted → recordings/{name}", MUTED)
+                for err in dlg.errors:
+                    self.log("WARN", err, WARN)
+                if dlg.choice == ExitRecordingDialog.SAVE:
+                    show_log = False
+                    self.log("LOG", f"Event log saved → logs/{self.log_file.path.name}" if self.log_file.path
+                             else "Event log not saved — no log file", MUTED)
             self.log("SYS", "Console closed", BLUE)
             self.log_file.close()
-            # Session log preview: KEEP / EXPORT... / DISCARD. The ROV is already disarmed and the
-            # link closed, so nothing is sent while it is open. Skipped on Ctrl+C / program exit
-            # (force_close), where the log is simply kept.
-            if not self._force_close:
+            # 2. Session log preview: SAVE / EXPORT... / DISCARD.
+            if show_log:
                 ExitLogDialog(self, self.log_file, scale=fs(100) / 100).exec()
             self.closed.emit()
         super().closeEvent(e)

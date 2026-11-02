@@ -104,22 +104,17 @@ class ExitLogDialog(QDialog):
         # status line (export / discard results)
         self.status = lab("", s(11), DIM)
         self.status.setWordWrap(True)
+        self.status.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.status.setContentsMargins(s(16), 0, s(16), s(6))
         root.addWidget(self.status)
 
-        # footer: DISCARD ............ EXPORT...  SAVE
+        # footer: EXPORT...  SAVE ............ DISCARD
         foot = QFrame()
         foot.setObjectName("logFoot")
         foot.setStyleSheet(f"QFrame#logFoot {{ background: #0a0e13; border-top: 1px solid {BORDER}; }}")
         fh = QHBoxLayout(foot)
         fh.setContentsMargins(s(16), s(10), s(16), s(10))
         fh.setSpacing(s(8))
-        self.discard_btn = self._btn("DISCARD", 190, f"border: 1px solid {RED_BORDER}; background: {RED_FILL}; color: {DANGER};",
-                                     f"border-color: {DANGER};")
-        self.discard_btn.clicked.connect(self._discard)
-        self.discard_btn.setEnabled(log_file.path is not None and not log_file.error)
-        fh.addWidget(self.discard_btn)
-        fh.addStretch(1)
         export = self._btn("EXPORT…", 120, f"border: 1px solid {GRID}; background: #1a2029; color: {SOFT};",
                            f"color: {BRIGHT}; border-color: {LABEL};")
         export.clicked.connect(self._export)
@@ -128,6 +123,12 @@ class ExitLogDialog(QDialog):
                          f"border-color: {ACCENT}; color: #5ee7c1;")
         keep.clicked.connect(self._keep)
         fh.addWidget(keep)
+        fh.addStretch(1)
+        self.discard_btn = self._btn("DISCARD", 190, f"border: 1px solid {RED_BORDER}; background: {RED_FILL}; color: {DANGER};",
+                                     f"border-color: {DANGER};")
+        self.discard_btn.clicked.connect(self._discard)
+        self.discard_btn.setEnabled(log_file.path is not None and not log_file.error)
+        fh.addWidget(self.discard_btn)
         root.addWidget(foot)
         # Mouse only, like the Reference Values dialog: no default button, nothing takes focus,
         # so a stray Enter / Space can't pick an option.

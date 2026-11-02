@@ -427,8 +427,20 @@ on-screen line shows the same values; a value that is unavailable (sensor
 faulted or link down) shows as `--` on screen and is left empty in the file.
 
 **Leaving the console.** When you exit the console (it must be disarmed), it
-sends its last zero-thrust frames, closes the link, and then shows the
-**SESSION LOG** pop-up. The pop-up previews the log in two tabs: *Operator
+sends its last zero-thrust frames and closes the link.
+
+If you used **● REC** in the session, the **SAVE RECORDING?** pop-up comes
+first. It lists each recording made in the session with a tick box (all ticked
+to start). You must pick one; Esc does nothing:
+
+- **YES, SAVE**: keep the ticked recordings and delete any you unticked. The
+  event log is saved in `logs/` automatically and the console closes; the
+  SESSION LOG pop-up is skipped. Greyed out while nothing is ticked.
+- **NO, DELETE**: delete all of the session's recordings (click twice to
+  confirm), then go on to the SESSION LOG pop-up.
+
+The event log records each recording kept or deleted. Sessions without a
+recording go straight to the **SESSION LOG** pop-up. The pop-up previews the log in two tabs: *Operator
 marks* (one column per value) and *All events*. You must pick one of three
 options; Esc does nothing:
 
@@ -440,8 +452,8 @@ options; Esc does nothing:
 - **DISCARD**: delete the session file from `logs/` and exit. Click it twice to
   confirm. Copies you already exported are not touched.
 
-The pop-up is skipped when the program is stopped with Ctrl+C; the log is
-kept. Excel export needs `openpyxl`, which is in `py_requirements.txt`. If
+Both pop-ups are skipped when the program is stopped with Ctrl+C; the
+recordings and the log are kept. Excel export needs `openpyxl`, which is in `py_requirements.txt`. If
 your venv is older, re-run `python -m pip install -r py_requirements.txt`.
 
 **Viewing saved logs.** In the main menu, **VIEW LOGS** opens the **SESSION LOGS**
@@ -477,7 +489,8 @@ no controller button for it; use the mouse.
   recording ends with the video time, e.g. `· REC 02:14`. Every event logged
   while recording gets the `video_time` and `video_file` columns in the log file,
   which VIEW RECORDINGS uses to put the events on the video.
-- **Closing the console** stops the recording. Demo mode has no camera, so REC
+- **Closing the console** stops the recording and asks whether to keep it
+  (SAVE RECORDING?, see *Leaving the console*). Demo mode has no camera, so REC
   does nothing there.
 
 The `.mkv` files play in VLC or the Windows Media Player / Films & TV app.
