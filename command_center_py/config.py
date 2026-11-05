@@ -72,8 +72,8 @@ REQUIRE_LINK_TO_ARM = True   # set False to bench-test before telemetry exists
 THRUSTERS = [
     ("T1", "BOW-PORT",  "H", (1,  1, 0,  1)),
     ("T2", "BOW-STBD",  "H", (1, -1, 0, -1)),
-    ("T3", "STERN-PORT",  "H", (1, -1, 0,  1)),
-    ("T4", "STERN-STBD",  "H", (1,  1, 0, -1)),
+    ("T3", "STERN-STBD",  "H", (1, -1, 0,  1)),
+    ("T4", "STERN-PORT",  "H", (1,  1, 0, -1)),
     ("T5", "BOW-VERT", "V", (0,  0, 1,  0)),
     ("T6", "STERN-VERT", "V", (0,  0, 1,  0)),
 ]
