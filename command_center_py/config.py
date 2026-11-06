@@ -69,11 +69,16 @@ REQUIRE_LINK_TO_ARM = True   # set False to bench-test before telemetry exists
 # Group "H" and "V" are normalised separately so full surge doesn't steal heave.
 # !! VERIFY SIGNS ON THE BENCH WITH PROPS OFF - flip a coefficient's sign
 # !! (or the whole row, for a reversed prop) until each stick does the right thing.
+#
+# How to work out each value. For each thruster and each motion, ask: 
+#   if this thruster pushes positive, does that help the motion (+1), 
+#   work against it (−1), or not affect it (0)? Here’s what each column needs, 
+#   assuming surge + is forward, sway + is right, yaw + is nose-right, heave + is up:
 THRUSTERS = [
-    ("T1", "BOW-PORT",  "H", (1,  1, 0,  1)),
-    ("T2", "BOW-STBD",  "H", (1, -1, 0, -1)),
-    ("T3", "STERN-STBD",  "H", (1, -1, 0,  1)),
-    ("T4", "STERN-PORT",  "H", (1,  1, 0, -1)),
-    ("T5", "BOW-VERT", "V", (0,  0, 1,  0)),
-    ("T6", "STERN-VERT", "V", (0,  0, 1,  0)),
+    ("T1", "Front Left",  "H", (1,  1, 0,  1)),
+    ("T2", "Front Right",  "H", (1, -1, 0, -1)),
+    ("T3", "Back Right",  "H", (1, -1, 0,  1)),
+    ("T4", "Back Left",  "H", (1,  1, 0, -1)),
+    ("T5", "Front Vertical", "V", (0,  0, 1,  0)),
+    ("T6", "Back Vertical", "V", (0,  0, 1,  0)),
 ]
