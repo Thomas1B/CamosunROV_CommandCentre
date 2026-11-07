@@ -283,6 +283,12 @@ Help > Dualshock3 Map / Xbox Map in the console shows both layouts.
 > applying reference values, the demo leak toggle) is done with the controller
 > or the mouse. The keyboard is only for typing values into the dialogs and for
 > moving around the main menu.
+>
+> **The controller only works in the console** (main window, demo mode
+> included). The main menu and its cards (CONNECT VEHICLE, VIEW LOGS, VIEW
+> RECORDINGS, CONTROLLER MAP, ...) use the mouse and keyboard only. The one
+> exception is CONTROLLER PROFILES, which reads the sticks and triggers to
+> calibrate them; its buttons still don't operate the page.
 
 ### Controller profiles
 
@@ -459,7 +465,7 @@ your venv is older, re-run `python -m pip install -r py_requirements.txt`.
 
 **Viewing saved logs.** In the main menu, **VIEW LOGS** opens the **SESSION LOGS**
 card. It lists every session in `logs/`, newest first, with its start time, vehicle,
-number of events and marks. Pick one (mouse, arrow keys or D-pad) to see the same
+number of events and marks. Pick one (mouse or arrow keys) to see the same
 *Operator marks* and *All events* tables as the exit pop-up, plus the session
 length and its UTC times. **EXPORT…** saves it as `.xlsx`, `.csv` or `.pdf`.
 **DELETE** removes the file (click twice). **OPEN FOLDER** opens `logs/` in File
@@ -518,8 +524,7 @@ built-in player, so nothing extra has to be installed.
 - **DELETE** deletes the selected file. Click it twice; the first click arms it
   for 4 s. This can't be undone.
 - **Keys.** Space play/pause, ← / → 3 s, Shift+← / → 1 s, ↑ / ↓ pick a
-  recording, Esc close. **Controller:** ✕ play/pause, D-pad ← / → 3 s and
-  ↑ / ↓ pick, L1 / R1 (LB / RB) 1 s, ○ close.
+  recording, Esc close.
 
 The window can be resized from the bottom-right corner.
 

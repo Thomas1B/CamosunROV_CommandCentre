@@ -10,7 +10,9 @@
     CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
     QUIT .............. closes the program
 
-Navigation: arrow keys + Enter / Esc, or the controller D-pad + cross (A) / circle (B).
+Navigation: mouse, or arrow keys + Enter / Esc. The game controller does not navigate the
+menu or its cards; it is only read here by CONTROLLER PROFILES (calibration). It drives
+the console (main window), including demo mode.
 The dialogs are drawn as cards over a dimmed menu, like the design, rather than as
 separate windows.
 """
@@ -41,7 +43,7 @@ from command_center_py.ui.recordings_page import SeekBar, VideoView
 from command_center_py.recordings import clock, events_for, list_recordings
 from command_center_py.video_player import VideoPlayer
 from command_center_py.ui.reference_fields import RefFields
-from command_center_py.ui.widgets import CONTROLLER_MAPS, LAYOUT, controller_map_body, key_chip
+from command_center_py.ui.widgets import CONTROLLER_MAPS, controller_map_body, key_chip
 
 try:
     from PySide6.QtSvg import QSvgRenderer
@@ -710,7 +712,7 @@ class LogsCard(Card):
     Left: the list of sessions (start time, vehicle, events, marks, length). Right: the
     selected session in the same OPERATOR MARKS / ALL EVENTS tables as the exit pop-up.
     Footer: OPEN FOLDER, DELETE (click twice), EXPORT... (.xlsx / .csv / .pdf), CLOSE.
-    Esc / circle (B) / ✕ / CLOSE close it; D-pad or arrow keys pick a session.
+    Esc / ✕ / CLOSE close it; arrow keys pick a session.
     Resizable: drag the grip in the bottom-right corner (kept while the program runs).
     """
 
@@ -1373,13 +1375,12 @@ class RecordingsCard(Card):
     Right: every event logged while that file was recording (from logs/); click one to jump.
     Footer: OPEN FOLDER, SAVE FRAME... (PNG of the frame on screen), DELETE (click twice), CLOSE.
     Keys: Space play / pause, Left / Right -3 / +3 s (with Shift -1 / +1 s), Up / Down another
-    recording, Esc close. Controller: CROSS (A) play / pause, D-pad left / right -3 / +3 s,
-    L1 / R1 (LB / RB) -1 / +1 s, up / down another recording, CIRCLE (B) close. Resizable from the bottom-right corner.
+    recording, Esc close. Resizable from the bottom-right corner.
     """
 
     MIN_W, MIN_H = 960, 520
-    STEP_S = 3.0          # ◀◀ / ▶▶, ← / →, D-pad
-    FINE_S = 1.0          # ◀ / ▶, Shift+← / →, L1 / R1
+    STEP_S = 3.0          # ◀◀ / ▶▶, ← / →
+    FINE_S = 1.0          # ◀ / ▶, Shift+← / →
 
     def __init__(self, on_close):
         super().__init__("RECORDINGS", 1180)
@@ -1683,9 +1684,7 @@ class MainMenu(QWidget):
         self.setFont(f)
 
         self.sel = 0
-        self.prev = {}
-        self.pad_on = None
-        self.xbox = None
+        self.pad_name = None
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -1737,8 +1736,8 @@ class MainMenu(QWidget):
         hints = QHBoxLayout()
         hints.setSpacing(28)
         self._hint(hints, "↑↓", "NAVIGATE")
-        self.ok_cap = self._hint(hints, "✕", "SELECT")
-        self.back_cap = self._hint(hints, "○", "BACK")
+        self._hint(hints, "ENTER", "SELECT")
+        self._hint(hints, "ESC", "BACK")
         hints.addStretch(1)
         v.addLayout(hints)
         v.addStretch(1)
@@ -1900,76 +1899,29 @@ class MainMenu(QWidget):
             super().keyPressEvent(e)
 
     # ---------------- controller ----------------
+    # The controller does not navigate the menu or its cards (mouse / keyboard only).
+    # It is read here just to show whether one is connected, and for calibration in
+    # CONTROLLER PROFILES; it drives the console (main window), demo mode included.
     def pause(self):
         """Stop reading the controller (the console owns it while it is open)."""
         self.timer.stop()
 
     def resume(self):
-        """Start reading the controller. Buttons already held don't count as presses."""
-        self.prev = dict(self.pad.snapshot().buttons)
+        """Start reading the controller again (status line, CONTROLLER PROFILES)."""
+        self.pad_name = None
         self.timer.start(50)
         self.tick()
 
     def tick(self):
         pad = self.pad.snapshot()
-        xbox = LAYOUT["kind"] == "xbox"     # set by the console's DUALSHOCK 3 / XBOX toggle
-        if (pad.connected, xbox) != (self.pad_on, self.xbox):
-            self.pad_on, self.xbox = pad.connected, xbox
-            ok, back = ("A", "B") if xbox else ("✕", "○")
-            self.ok_cap.setText(ok)
-            self.back_cap.setText(back)
-            self.status_lbl.setText(f"D-pad to navigate · {ok} to select" if pad.connected
-                                    else "Arrow keys + Enter to navigate — or connect a controller")
+        name = pad.name if pad.connected else ""
+        if name != self.pad_name:
+            self.pad_name = name
+            self.status_lbl.setText(f"Controller: {name or 'connected'} — drives the ROV in the console"
+                                    if pad.connected else
+                                    "No controller connected — one is needed to drive the ROV in the console")
         if self.overlay is self.ctl_ov:              # calibrating: the pad is input, not navigation
             self.ctl_card.update_pad(pad)
-            self.prev = dict(pad.buttons)
-            return
-        if not pad.connected:
-            self.prev = {}
-            return
-        pressed = lambda b: pad.down(b) and not self.prev.get(b)
-        if self.overlay is self.connect_ov:
-            if pressed("circle"):
-                self.connect_card.cancel()
-            elif pressed("cross"):
-                self.connect_card.connect_vehicle()
-        elif self.overlay is self.map_ov:
-            if pressed("cross") or pressed("circle"):
-                self.close_overlay()
-        elif self.overlay is self.rec_ov:           # CROSS play/pause, D-pad seek 3 s / pick, L1/R1 1 s, CIRCLE closes
-            if pressed("circle"):
-                self.rec_card.close_card()
-            elif pressed("cross"):
-                self.rec_card.player.toggle()
-            if pressed("left"):
-                self.rec_card.step(-self.rec_card.STEP_S)
-            if pressed("right"):
-                self.rec_card.step(self.rec_card.STEP_S)
-            if pressed("l1"):
-                self.rec_card.step(-self.rec_card.FINE_S)
-            if pressed("r1"):
-                self.rec_card.step(self.rec_card.FINE_S)
-            if pressed("up"):
-                self.rec_card.select(-1)
-            if pressed("down"):
-                self.rec_card.select(1)
-        elif self.overlay is self.logs_ov:          # D-pad picks a session, circle (B) closes
-            if pressed("circle"):
-                self.close_overlay()
-            if pressed("up"):
-                self.logs_card.step(-1)
-            if pressed("down"):
-                self.logs_card.step(1)
-        else:
-            if pressed("up"):
-                self.select(self.sel - 1)
-            if pressed("down"):
-                self.select(self.sel + 1)
-            if pressed("cross"):
-                self.prev = dict(pad.buttons)
-                self.launch()
-                return
-        self.prev = dict(pad.buttons)
 
     def closeEvent(self, e):
         self.connect_card.abort_attempt()
