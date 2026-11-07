@@ -79,7 +79,8 @@ class Gamepad:
         self.error = None
         self._thread = threading.Thread(target=self._run, name="gamepad", daemon=True)
         self._thread.start()
-        self._ready.wait(3.0)
+        # No waiting here for SDL to start: the main menu opens straight away and the
+        # controller shows up a moment later (snapshot() reads "not connected" until then).
 
     def snapshot(self) -> PadState:
         with self._lock:
@@ -100,6 +101,7 @@ class Gamepad:
                 sdl_ctrl.init()
         except Exception as exc:       # noqa: BLE001
             self.error = f"SDL init failed: {exc}"
+            print(f"Controller: {self.error}", flush=True)
             self._ready.set()
             return
         self._hotplug = {pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED,

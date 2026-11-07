@@ -1,5 +1,7 @@
 """Custom-painted gauges and composite widgets used by the console window."""
 
+import time
+
 from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import (QColor, QFont, QLinearGradient, QPainter, QPainterPath,
                            QPen, QPixmap, QRadialGradient)
@@ -21,6 +23,8 @@ class BipolarBar(QWidget):
         self.value, self.maxabs, self.color, self.knob = 0.0, 100.0, ACCENT, knob
 
     def set(self, value, color, maxabs=100.0):
+        if (value, color, maxabs) == (self.value, self.color, self.maxabs):
+            return                       # unchanged: no repaint (keeps the GUI thread free)
         self.value, self.color, self.maxabs = value, color, maxabs
         self.update()
 
@@ -59,7 +63,10 @@ class TriggerBar(QWidget):
         self.value, self.color = 0.0, color
 
     def set(self, value):
-        self.value = max(0.0, min(1.0, value))
+        value = max(0.0, min(1.0, value))
+        if value == self.value:
+            return
+        self.value = value
         self.update()
 
     def paintEvent(self, _):
@@ -84,9 +91,10 @@ class StickView(QWidget):
         self.deadzone = DEADZONE     # dashed ring; the console sets it from the controller profile
 
     def set(self, x, y, pressed=False, deadzone=None):
-        self.x, self.y, self.pressed = x, y, pressed
-        if deadzone is not None:
-            self.deadzone = deadzone
+        dz = self.deadzone if deadzone is None else deadzone
+        if (x, y, pressed, dz) == (self.x, self.y, self.pressed, self.deadzone):
+            return
+        self.x, self.y, self.pressed, self.deadzone = x, y, pressed, dz
         self.update()
 
     def paintEvent(self, _):
@@ -134,19 +142,42 @@ class VideoPane(QWidget):
         self.s = dict(roll=0.0, pitch=0.0, heading=0.0, depth=None, armed=False,
                       arm_progress=0.0, gain=50, clock="--:--:--", depth_unit="m", tilt=0,
                       start_btn="START")
+        self.on_view_size = None       # (w, h, dpr) callback: the video receiver scales frames to fit
+        self._view = None
+        self._frame_t = 0.0            # when the last new frame arrived (monotonic s)
 
     def set_state(self, **kw):
+        """HUD values. Repaints only if something changed; while live video is arriving the
+        HUD is repainted with the next frame (<= 33 ms) instead of separately, so the video
+        area is drawn once per frame, not once per frame plus once per UI tick."""
+        changed = any(self.s.get(k) != v for k, v in kw.items())
+        if not changed:
+            return
         self.s.update(kw)
-        self.update()
+        if not (self.video_live and time.monotonic() - self._frame_t < 0.1):
+            self.update()
 
     def set_video(self, frame, live, status):
         """frame: QImage or None. live: True while new frames keep arriving."""
+        if frame is self.frame and live == self.video_live and status == self.video_status:
+            return
+        if frame is not self.frame:
+            self._frame_t = time.monotonic()
         self.frame, self.video_live, self.video_status = frame, live, status
         self.update()
+
+    def _report_view(self):
+        dpr = self.devicePixelRatioF()
+        view = (round(self.width() * dpr), round(self.height() * dpr), dpr)
+        if view != self._view:
+            self._view = view
+            if self.on_view_size is not None:
+                self.on_view_size(*view)
 
     def resizeEvent(self, e):
         self._bg = None
         super().resizeEvent(e)
+        self._report_view()
 
     def _make_bg(self):
         w, h = self.width(), self.height()
@@ -174,15 +205,24 @@ class VideoPane(QWidget):
         p.drawPixmap(0, 0, self._bg)
         cx, cy = w / 2, h / 2
 
+        self._report_view()                # also catches a move to a screen with another scale
         if self.frame is not None and not self.frame.isNull():
-            # live video, scaled to fit and centred (letterboxed, aspect kept)
-            fw, fh = self.frame.width(), self.frame.height()
-            k = min(w / fw, h / fh)
-            target = QRectF((w - fw * k) / 2, (h - fh * k) / 2, fw * k, fh * k)
-            p.save()
-            p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-            p.drawImage(target, self.frame)
-            p.restore()
+            # live video, centred and letterboxed (aspect kept). The receiver already scaled
+            # it to fit this area, so normally it is a straight copy; while the window is
+            # being resized (old-size frame) it is scaled here until the next frame.
+            ls = self.frame.deviceIndependentSize()
+            fw, fh = ls.width(), ls.height()
+            if abs(fw - w) <= 1.5 and fh <= h + 1.5 or abs(fh - h) <= 1.5 and fw <= w + 1.5:
+                x, y = round((w - fw) / 2), round((h - fh) / 2)
+                target = QRectF(x, y, fw, fh)
+                p.drawImage(QPointF(x, y), self.frame)
+            else:
+                k = min(w / fw, h / fh)
+                target = QRectF((w - fw * k) / 2, (h - fh * k) / 2, fw * k, fh * k)
+                p.save()
+                p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+                p.drawImage(target, self.frame)
+                p.restore()
             if not self.video_live:
                 # frozen on the last frame: dim it and say so
                 p.fillRect(target, QColor(5, 7, 10, 150))
@@ -273,6 +313,8 @@ class LevelBarSOC(QWidget):
         self.value = 0
 
     def set(self, value):
+        if value == self.value:
+            return
         self.value = value
         self.update()
 

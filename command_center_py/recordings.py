@@ -11,10 +11,7 @@ import csv
 from command_center_py import filenames
 from command_center_py.config import LOGS_DIR, RECORDINGS_DIR
 
-try:
-    import av
-except ImportError:             # the page still lists files; playing needs PyAV
-    av = None
+from command_center_py import avlib       # PyAV, loaded on first use; without it the page still lists files
 
 
 
@@ -41,6 +38,7 @@ def clock(seconds):
 def probe_length(path):
     """Length of a recording in seconds, or None. Uses the file's own duration when it was
     closed normally; after a crash (no duration written) it reads the packet times instead."""
+    av = avlib.get()
     if av is None:
         return None
     try:

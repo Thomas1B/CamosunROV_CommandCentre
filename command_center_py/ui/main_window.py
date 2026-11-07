@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from datetime import datetime, timezone
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
                                QMessageBox, QPushButton, QScrollArea, QTextEdit,
@@ -52,6 +52,11 @@ STM32_RESET_TEXT = {
     "SOFTWARE": ("software reset", ACCENT),
     "OTHER": ("other (WWDG / low-power reset)", WARN),
 }
+
+
+class _FrameSignal(QObject):
+    """Carries 'new camera frame' from the video receive thread to the GUI thread."""
+    ready = Signal()
 
 
 class ConsoleWindow(QMainWindow):
@@ -121,6 +126,14 @@ class ConsoleWindow(QMainWindow):
             self.video.set_video(None, False, "demo mode - no camera")
         else:
             self.video_rx = VideoReceiver(getattr(link, "video_port", VIDEO_PORT))
+            # Low latency: frames are scaled to the video area in the receive thread, and each
+            # one is drawn as soon as it is decoded (queued signal) - not on the next UI tick.
+            self._frame_signal = _FrameSignal()
+            self._frame_signal.ready.connect(self._on_new_frame)
+            self.video_rx.on_frame = self._frame_signal.ready.emit
+            self.video.on_view_size = self.video_rx.set_view_size
+            self.video._view = None
+            self.video._report_view()
         self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo
                                                              else f" — {self.vehicle} @ {self.link.label}"), BLUE)
         if self.log_file.error:
@@ -1027,7 +1040,9 @@ class ConsoleWindow(QMainWindow):
 
         # toolbar
         lc = ACCENT if linked else "#e5484d"
-        self.link_dot.setStyleSheet(f"background: {lc}; border-radius: 4px;")
+        if lc != getattr(self, "_link_dot_col", None):       # restyle only when it changes
+            self._link_dot_col = lc
+            self.link_dot.setStyleSheet(f"background: {lc}; border-radius: 4px;")
         self.link_lbl.setText("LINK UP" if linked else "LINK DOWN")
         rtt = "--" if self.link.rtt_ms is None or not linked else f"{self.link.rtt_ms:.1f}"
         loss = "--" if self.link.loss_pct is None or not linked else f"{self.link.loss_pct:.1f}"
@@ -1242,6 +1257,11 @@ class ConsoleWindow(QMainWindow):
                    "rec": "border: 1px solid #ff6b6e; background: #3a1416; color: #ff6b6e;"}[style]
             self.rec_btn.setStyleSheet(f"QPushButton {{ padding: 7px 14px; border-radius: 4px; {css} }}"
                                        f"QPushButton:hover {{ border-color: #ff6b6e; color: #fff; }}")
+
+    def _on_new_frame(self):
+        """A new camera frame is ready (signal from the receive thread): show it now."""
+        if not self._done:
+            self._update_video(time.monotonic())
 
     def _update_video(self, now):
         if self.video_rx is None:

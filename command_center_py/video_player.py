@@ -17,17 +17,14 @@ import time
 
 from PySide6.QtGui import QImage
 
-try:
-    import av
-except ImportError:
-    av = None
+from command_center_py import avlib       # PyAV, loaded on first use (see avlib.py)
 
 
 def _to_qimage(frame):
-    rgb = frame.reformat(format="rgb24")
-    plane = rgb.planes[0]
-    data = bytes(plane)
-    return QImage(data, rgb.width, rgb.height, plane.line_size, QImage.Format.Format_RGB888).copy()
+    """Qt's native 32-bit RGB (draws faster than 24-bit), using FFmpeg's buffer directly."""
+    out = frame.reformat(format="bgra")
+    plane = out.planes[0]
+    return QImage(plane, out.width, out.height, plane.line_size, QImage.Format.Format_RGB32)
 
 
 class VideoPlayer:
@@ -49,7 +46,7 @@ class VideoPlayer:
     def open(self, path, length=None):
         """Open a file and show its first frame (paused). length: known length in s, if any."""
         self.close()
-        if av is None:
+        if avlib.get() is None:
             self.error = "PyAV not installed — run: python -m pip install -r py_requirements.txt"
             return
         with self._lock:
@@ -110,7 +107,7 @@ class VideoPlayer:
 
     def _run(self):
         try:
-            container = av.open(self._path)
+            container = avlib.get().open(self._path)
         except Exception as e:
             with self._lock:
                 self.error = f"Can't open {self._path} — {e}"

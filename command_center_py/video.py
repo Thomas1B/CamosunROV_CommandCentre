@@ -8,9 +8,14 @@ frame as a QImage; the console's VideoPane paints it under the HUD.
     img, frame_id, status = rx.latest()
     rx.stop()
 
-No numpy or Pillow needed - frames are converted to RGB by FFmpeg (inside PyAV)
-and wrapped straight into a QImage. QImage (unlike QPixmap) is safe to build
-outside the GUI thread.
+No numpy or Pillow needed. Each frame is scaled to the size it is shown at and
+converted to Qt's native 32-bit format by FFmpeg (inside PyAV), in this thread, and
+wrapped in a QImage without copying, so the console only has to copy it to the screen.
+QImage (unlike QPixmap) is safe to build outside the GUI thread.
+
+Low latency: the console sets on_frame, which is called (from this thread) as soon as a
+frame is ready, so it is drawn straight away instead of on the next UI timer tick. It
+also calls set_view_size() whenever the video area changes size.
 
 Recording (console REC button):
     rx.start_recording("recordings/ROV-01_2026-11-01_18-40-05.mkv")
@@ -34,12 +39,7 @@ import time
 
 from PySide6.QtGui import QImage
 
-try:
-    import av
-    AV_ERROR = None
-except ImportError as exc:        # e.g. venv built before av was added to py_requirements.txt
-    av = None
-    AV_ERROR = str(exc)
+from command_center_py import avlib       # PyAV, loaded on first use (see avlib.py)
 
 OPEN_TIMEOUT_S = 2.0    # waiting for the stream to start (Pi still booting, camera off)
 READ_TIMEOUT_S = 0.5    # stream stopped mid-way -> reopen and wait again (also bounds stop())
@@ -55,6 +55,8 @@ class VideoReceiver:
         self.status = "waiting for camera stream"
         self.size = None              # (w, h) of the stream once it is decoding
         self.fps = 0.0
+        self.on_frame = None          # called from the receive thread after each new frame
+        self._view = None             # (w, h, dpr) of the video area, in device pixels; None = full size
         self._stop = threading.Event()
         self._thread = None
         # recording (written by the receive thread; requested from the GUI thread)
@@ -71,7 +73,7 @@ class VideoReceiver:
         self._rec_seconds = 0.0
         self._rec_bytes = 0
         self.rec_error = None
-        if av is None:
+        if avlib.get() is None:
             self.status = "PyAV not installed - run: python -m pip install -r py_requirements.txt"
             return
         self._thread = threading.Thread(target=self._run, name="video-rx", daemon=True)
@@ -81,6 +83,12 @@ class VideoReceiver:
         """(QImage or None, frame counter, status text). The counter only changes on a new frame."""
         with self._lock:
             return self._image, self._frame_id, self.status
+
+    def set_view_size(self, width, height, dpr=1.0):
+        """Size of the video area in device pixels (from the GUI thread). Frames are scaled
+        to fit it here, in the receive thread, so drawing them is a straight copy."""
+        with self._lock:
+            self._view = (int(width), int(height), float(dpr)) if width > 1 and height > 1 else None
 
     def stop(self):
         self._stop.set()
@@ -92,7 +100,7 @@ class VideoReceiver:
     def start_recording(self, path):
         """Ask the receive thread to record to path (.mkv). False if already recording / no PyAV."""
         with self._lock:
-            if av is None or self._rec_want is not None:
+            if avlib.get() is None or self._rec_want is not None:
                 return False          # (a just-stopped file still closing is fine: it's closed first)
             self._rec_want, self._rec_path = str(path), str(path)
             self._rec_seconds, self._rec_bytes, self.rec_error = 0.0, 0, None
@@ -138,7 +146,7 @@ class VideoReceiver:
                 if self._rec_out is None:
                     # flush_packets: every packet goes to disk at once; cluster_time_limit: Matroska
                     # finishes a block at least every second. Together a crash loses <= ~1 s.
-                    out = av.open(want, mode="w", format="matroska",
+                    out = avlib.get().open(want, mode="w", format="matroska",
                                   options={"cluster_time_limit": "1000"},
                                   container_options={"flush_packets": "1"})
                     ost = out.add_stream_from_template(stream)
@@ -216,9 +224,12 @@ class VideoReceiver:
                 self._stop.wait(RETRY_DELAY_S)
 
     def _receive(self, url):
-        container = av.open(
+        container = avlib.get().open(
             url, format="mpegts",
-            options={"fflags": "nobuffer", "probesize": "500000", "analyzeduration": "500000"},
+            # analyzeduration 0.1 s (was 0.5 s): the picture appears ~0.4 s sooner after CONNECT
+            # or a dropout. Don't cut probesize as well: with too little probed the stream can
+            # miss its SPS/PPS, and then a recording started from it can't be written.
+            options={"fflags": "nobuffer", "probesize": "500000", "analyzeduration": "100000"},
             timeout=(OPEN_TIMEOUT_S, READ_TIMEOUT_S),
         )
         try:
@@ -235,7 +246,9 @@ class VideoReceiver:
                 frames = packet.decode()
                 self._rec_packet(packet, stream)      # after decode: muxing re-targets the packet
                 for frame in frames:
-                    img = self._to_qimage(frame)
+                    with self._lock:
+                        view = self._view
+                    img = self._to_qimage(frame, view)
                     n += 1
                     now = time.monotonic()
                     with self._lock:
@@ -247,14 +260,25 @@ class VideoReceiver:
                             t0, n = now, 0
                         self.status = (f"live {frame.width}x{frame.height}"
                                        + (f" @ {self.fps:.0f} fps" if self.fps else ""))
+                    cb = self.on_frame
+                    if cb is not None:
+                        cb()                          # console: draw it now, not on the next UI tick
         finally:
             container.close()
 
     @staticmethod
-    def _to_qimage(frame):
-        rgb = frame.reformat(format="rgb24")
-        plane = rgb.planes[0]
-        # bytes() copies out of FFmpeg's buffer; line_size includes any row padding.
-        data = bytes(plane)
-        img = QImage(data, rgb.width, rgb.height, plane.line_size, QImage.Format.Format_RGB888)
-        return img.copy()        # deep copy so the QImage no longer points at `data`
+    def _to_qimage(frame, view=None):
+        """frame -> QImage, scaled to fit view (w, h, dpr in device pixels, aspect kept) and
+        converted to Qt's native 32-bit RGB in one FFmpeg pass. The QImage uses FFmpeg's
+        buffer directly (PySide keeps the plane, and so the frame, alive) - no copies."""
+        fw, fh = frame.width, frame.height
+        w, h, dpr = fw, fh, 1.0
+        if view is not None:
+            vw, vh, dpr = view
+            k = min(vw / fw, vh / fh)
+            w, h = max(2, round(fw * k)), max(2, round(fh * k))
+        out = frame.reformat(width=w, height=h, format="bgra")     # bgra = QImage RGB32 in memory
+        plane = out.planes[0]
+        img = QImage(plane, w, h, plane.line_size, QImage.Format.Format_RGB32)
+        img.setDevicePixelRatio(dpr)
+        return img

@@ -8,11 +8,11 @@ One Gamepad is shared by both screens, so SDL is only started once.
 
 from pathlib import Path
 
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication
 
-from command_center_py import controller_profiles
+from command_center_py import avlib, controller_profiles
 from command_center_py.gamepad import Gamepad
 from command_center_py.link import DemoLink
 from command_center_py.ui.start_window import MainMenu
@@ -58,14 +58,15 @@ class RovApp:
         # One app-wide icon: used by the title bar of every window and dialog
         # (main menu, console, controller map) and by the taskbar.
         QApplication.instance().setWindowIcon(app_icon())
-        self.pad = Gamepad()
-        if self.pad.error:
-            print(f"Controller: {self.pad.error}", flush=True)
+        self.pad = Gamepad()          # starts SDL in its own thread (any error is printed from there)
         self.console = None
         self.menu = MainMenu(self.pad, on_connected=self.open_console, on_demo=self.open_demo)
 
     def start(self):
         self.menu.show()
+        # Load PyAV (FFmpeg) in the background once the menu has been drawn, so it's ready by
+        # the time the console or VIEW RECORDINGS needs it without delaying the menu (avlib.py).
+        QTimer.singleShot(300, avlib.prewarm)
 
     # ---------------- screen switching ----------------
     def open_demo(self):
