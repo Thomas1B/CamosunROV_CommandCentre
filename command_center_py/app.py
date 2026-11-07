@@ -19,11 +19,18 @@ from command_center_py.ui.start_window import MainMenu
 from command_center_py.ui.main_window import ConsoleWindow
 
 
-ICON_SVG = Path(__file__).resolve().parent / "ui" / "assets" / "camosunrov-icon.svg"
+ASSETS = Path(__file__).resolve().parent / "ui" / "assets"
+ICON_ICO = ASSETS / "CamosunROV_Logo.ico"        # the program icon (title bars + taskbar)
+ICON_SVG = ASSETS / "camosunrov-icon.svg"        # fallback if the .ico is missing or unreadable
 
 
 def app_icon():
-    """CamosunROV logo as a window icon, pre-rendered at the sizes Windows asks for."""
+    """The program icon: CamosunROV_Logo.ico. Falls back to the SVG logo, pre-rendered at
+    the sizes Windows asks for, if the .ico can't be loaded."""
+    if ICON_ICO.is_file():
+        icon = QIcon(str(ICON_ICO))
+        if not icon.isNull():
+            return icon
     try:
         from PySide6.QtSvg import QSvgRenderer
     except ImportError:
