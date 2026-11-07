@@ -21,7 +21,7 @@ import re
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QRectF, Qt, QTimer, QUrl
+from PySide6.QtCore import QEvent, QRectF, Qt, QTimer, QUrl
 from PySide6.QtGui import (QBrush, QColor, QDesktopServices, QFont, QPainter, QPen, QPixmap,
                            QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QComboBox, QFrame, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout,
@@ -288,8 +288,9 @@ class ConnectCard(Card):
         "saved":      ('Profile "{name}" saved', ACCENT, ACCENT),
         "loaded":     ('Profile "{name}" loaded', ACCENT, ACCENT),
         "deleted":    ("Profile deleted", LABEL, MUTED),
-        "connecting": ("Connecting to {ip} · cmd {cmd} · {left:.0f} s…", "#ffd479", "#ffd479"),
+        "connecting": ("Connecting to {ip} · cmd {cmd} · {left:.0f} s…  (Esc to stop)", "#ffd479", "#ffd479"),
         "timeout":    ("No answer from {ip} — check tether and power", DANGER, RED_DOT),
+        "cancelled":  ("Connection attempt cancelled", LABEL, MUTED),
         "error":      ("{error}", DANGER, RED_DOT),
     }
 
@@ -377,7 +378,7 @@ class ConnectCard(Card):
         v.addLayout(ports)
 
         # Bar30 reference values: surface pressure, water density, second-order cal
-        self.ref_fields = RefFields(self.SCALE, label_color=BRIGHT, readable_units=True)
+        self.ref_fields = RefFields(self.SCALE, label_color=BRIGHT, readable_units=True, tab_focus=True)
         self.ref_fields.edited.connect(lambda: self._set("idle"))
         v.addWidget(self.ref_fields)
         # under the reference values: which controller profile the console uses
@@ -446,10 +447,43 @@ class ConnectCard(Card):
         self.conn_btn.setGraphicsEffect(self.conn_fx)
         self.foot_lay.addWidget(self.conn_btn)
 
+        # Tab / Shift+Tab go through every control, top to bottom, and wrap round inside
+        # the dialog. Space or Enter presses the focused button (see eventFilter); Enter
+        # anywhere else does nothing, so it only connects when CONNECT has the focus.
+        self.cancel_btn = cancel
+        rf = self.ref_fields
+        self.tab_chain = [self.name_edit, self.profile_box, self.ip_edit, self.cmd_edit, self.tel_edit,
+                          self.vid_edit, rf.surface_edit, rf.unit_box, rf.density_edit, rf.on_btn, rf.off_btn,
+                          self.ctl_box, self.save_btn, self.del_btn, cancel, self.conn_btn, self.close_btn]
+        ring = f"QPushButton:focus {{ border: 1px solid {ACCENT}; }}"
+        for b in (self.save_btn, self.del_btn, cancel, self.conn_btn, self.close_btn):
+            b.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+            b.setAutoDefault(False)
+            b.setStyleSheet(b.styleSheet() + ring)
+            b.installEventFilter(self)
+
         self.profiles = []
         self.reload_profiles()
         self.reload_controller_profiles()
         self._refresh()
+
+    def eventFilter(self, obj, e):
+        """Enter / Return on a focused footer button (or ✕) presses it, like Space."""
+        if (e.type() == QEvent.Type.KeyPress and e.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+                and isinstance(obj, QPushButton) and obj.isEnabled()):
+            obj.click()
+            return True
+        return super().eventFilter(obj, e)
+
+    def focusNextPrevChild(self, nxt):
+        """Tab order inside the dialog (skips anything disabled), wrapping at both ends."""
+        chain = [w for w in self.tab_chain if w.isVisible() and w.isEnabled()]
+        if not chain:
+            return False
+        cur = self.focusWidget()
+        i = chain.index(cur) if cur in chain else (-1 if nxt else 0)
+        chain[(i + (1 if nxt else -1)) % len(chain)].setFocus(Qt.FocusReason.TabFocusReason)
+        return True
 
     # ---------------- state ----------------
     def opened(self):
@@ -653,11 +687,21 @@ class ConnectCard(Card):
         self.abort_attempt()
         self._on_close()
 
+    def stop_attempt(self):
+        """Esc while connecting: stop trying, but keep the dialog open to edit and retry."""
+        self.abort_attempt()
+        self._set("cancelled")
+        self.conn_btn.setFocus(Qt.FocusReason.OtherFocusReason)   # Enter on it tries again
+
     def key(self, e):
-        # Esc cancels. There is deliberately no Enter = CONNECT: connecting starts sending
-        # command packets to the ROV, so it is mouse (CONNECT button) or controller (CROSS) only.
+        # Esc while connecting stops the attempt and keeps the dialog open; otherwise Esc
+        # closes the dialog. Enter only acts on the focused button (eventFilter): there is no
+        # "Enter anywhere = CONNECT", because connecting starts sending command packets to the ROV.
         if e.key() == Qt.Key.Key_Escape:
-            self.cancel()
+            if self.state == "connecting":
+                self.stop_attempt()
+            else:
+                self.cancel()
             return True
         return False
 

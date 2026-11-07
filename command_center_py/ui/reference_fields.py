@@ -6,7 +6,7 @@ File > Reference Values... dialog (ReferenceDialog), so both look and validate t
 
 import re
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel,
                                QLineEdit, QPushButton, QSizePolicy, QVBoxLayout, QWidget)
@@ -37,8 +37,11 @@ class RefFields(QWidget):
 
     edited = Signal()
 
-    def __init__(self, scale=1.0, refs=None, label_color=LABEL, readable_units=False):
+    def __init__(self, scale=1.0, refs=None, label_color=LABEL, readable_units=False, tab_focus=False):
+        """tab_focus=True (CONNECT VEHICLE): the ON / OFF buttons are in the Tab order too
+        (Space or Enter picks the focused one) and show a focus ring."""
         super().__init__()
+        self._tab_focus = tab_focus
         s = self._s = lambda v: round(v * scale)
         self._bad_surface = self._bad_density = False
         self._unit = "hPa"
@@ -97,8 +100,10 @@ class RefFields(QWidget):
             b.setFont(mono(s(11), QFont.Weight.DemiBold))
             b.setFixedHeight(s(28))
             b.setCursor(Qt.CursorShape.PointingHandCursor)
-            b.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            b.setFocusPolicy(Qt.FocusPolicy.TabFocus if tab_focus else Qt.FocusPolicy.NoFocus)
             b.clicked.connect(lambda _=False, x=val: self._set_second(x))
+            if tab_focus:
+                b.installEventFilter(self)          # Enter picks it too (see eventFilter)
         btns = QHBoxLayout()
         btns.setSpacing(0)
         btns.addWidget(self.on_btn)
@@ -130,7 +135,8 @@ class RefFields(QWidget):
                  else "border-top-right-radius: 3px; border-bottom-right-radius: 3px; border-left: none;")
             b.setStyleSheet(f"QPushButton {{ padding: 0 {s(12)}px; border: 1px solid {OK_BORDER if on else GRID}; {r}"
                             f" background: {OK_GREEN if on else HEAD}; color: {ACCENT if on else '#7c8b9c'}; }}"
-                            + ("" if on else f"QPushButton:hover {{ color: {BRIGHT}; }}"))
+                            + ("" if on else f"QPushButton:hover {{ color: {BRIGHT}; }}")
+                            + (f"QPushButton:focus {{ border: 1px solid {ACCENT}; }}" if self._tab_focus else ""))
 
     # ---------------- events ----------------
     def _text_edited(self, *_):
@@ -154,6 +160,14 @@ class RefFields(QWidget):
         self._unit = new
         self.mark_bad(False)
         self.edited.emit()
+
+    def eventFilter(self, obj, e):
+        """Enter / Return on a focused ON or OFF button picks it, like Space."""
+        if (obj in (self.on_btn, self.off_btn) and e.type() == QEvent.Type.KeyPress
+                and e.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)):
+            obj.click()
+            return True
+        return super().eventFilter(obj, e)
 
     def _set_second(self, value):
         self._second = value
