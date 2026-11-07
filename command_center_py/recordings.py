@@ -7,8 +7,8 @@
 """
 
 import csv
-import re
 
+from command_center_py import filenames
 from command_center_py.config import LOGS_DIR, RECORDINGS_DIR
 
 try:
@@ -16,7 +16,6 @@ try:
 except ImportError:             # the page still lists files; playing needs PyAV
     av = None
 
-_NAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})_(\d{2})-(\d{2})-(\d{2})_(.+?)(?:_\d+)?$")
 
 
 def parse_clock(text):
@@ -61,9 +60,7 @@ def probe_length(path):
 class Recording:
     def __init__(self, path):
         self.path = path
-        m = _NAME_RE.match(path.stem)
-        self.started = f"{m.group(1)} {m.group(2)}:{m.group(3)}:{m.group(4)}" if m else path.stem
-        self.vehicle = m.group(5) if m else "?"
+        self.started, self.vehicle, _ = filenames.parse(path.stem)     # new or old file-name layout
         try:
             self.size = path.stat().st_size
         except OSError:
@@ -88,7 +85,7 @@ class Recording:
 def list_recordings():
     if not RECORDINGS_DIR.is_dir():
         return []
-    return [Recording(p) for p in sorted(RECORDINGS_DIR.glob("*.mkv"), key=lambda p: p.name, reverse=True)]
+    return [Recording(p) for p in filenames.newest_first(RECORDINGS_DIR.glob("*.mkv"))]
 
 
 def _mark_summary(r):

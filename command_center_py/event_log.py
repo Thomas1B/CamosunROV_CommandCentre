@@ -1,8 +1,8 @@
 """
 Event log file: every line of the console's EVENT LOG, saved to a CSV file.
 
-One file per console session in LOGS_DIR (config.py), named by the local start time and
-the vehicle, e.g. logs/2026-10-31_23-44-18_DEMO.csv. Opens in Excel (UTF-8 with BOM, so
+One file per console session in LOGS_DIR (config.py), named by the vehicle and then the
+local start time, e.g. logs/DEMO_2026-10-31_23-44-18.csv (see filenames.py). Opens in Excel (UTF-8 with BOM, so
 °, — and · show correctly).
 
 Columns, one row per event, SI units:
@@ -21,9 +21,9 @@ event even if the program or laptop crashes.
 """
 
 import csv
-import re
 from datetime import datetime, timezone
 
+from command_center_py import filenames
 from command_center_py.config import LOGS_DIR
 
 SNAPSHOT_FIELDS = ["depth_m", "rel_depth_m", "pressure_kpa", "water_temp_c", "internal_temp_c",
@@ -65,13 +65,13 @@ class EventLogFile:
         self._f = None
         self._w = None
         start = datetime.now().astimezone()
-        name = re.sub(r"[^A-Za-z0-9_-]+", "_", vehicle or "").strip("_") or "ROV"
         try:
             LOGS_DIR.mkdir(parents=True, exist_ok=True)
-            self.path = LOGS_DIR / f"{start:%Y-%m-%d_%H-%M-%S}_{name}.csv"
+            # vehicle name first, then the start time: logs/ROV-01_2026-11-01_22-36-47.csv
+            self.path = LOGS_DIR / f"{filenames.stem(vehicle, start)}.csv"
             n = 2
             while self.path.exists():   # two consoles opened in the same second
-                self.path = LOGS_DIR / f"{start:%Y-%m-%d_%H-%M-%S}_{name}_{n}.csv"
+                self.path = LOGS_DIR / f"{filenames.stem(vehicle, start, n)}.csv"
                 n += 1
             self._f = open(self.path, "w", newline="", encoding="utf-8-sig")
             self._w = csv.DictWriter(self._f, fieldnames=FIELDS, extrasaction="ignore")
@@ -178,18 +178,13 @@ def export_xlsx(rows, path, vehicle=""):
 # ---------------------------------------------------------------------------------------
 # Saved session logs (main menu > VIEW LOGS)
 # ---------------------------------------------------------------------------------------
-_NAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})_(\d{2})-(\d{2})-(\d{2})_(.+?)(?:_\d+)?$")
-
-
 class SavedLog:
     """One CSV file in LOGS_DIR, read back. Same `rows` / `marks()` / `vehicle` / `path`
     interface as EventLogFile, so the preview table and the exports work on either."""
 
     def __init__(self, path):
         self.path = path
-        m = _NAME_RE.match(path.stem)
-        self.started = f"{m.group(1)} {m.group(2)}:{m.group(3)}:{m.group(4)}" if m else path.stem
-        self.vehicle = m.group(5) if m else "?"
+        self.started, self.vehicle, _ = filenames.parse(path.stem)     # new or old file-name layout
         self.rows = []
         self.error = None
         try:
@@ -231,7 +226,7 @@ class SavedLog:
 
 
 def list_logs():
-    """Every session log in LOGS_DIR, newest first (file names start with the start time)."""
+    """Every session log in LOGS_DIR, newest first (by the start time in the file name)."""
     if not LOGS_DIR.is_dir():
         return []
-    return [SavedLog(p) for p in sorted(LOGS_DIR.glob("*.csv"), key=lambda p: p.name, reverse=True)]
+    return [SavedLog(p) for p in filenames.newest_first(LOGS_DIR.glob("*.csv"))]

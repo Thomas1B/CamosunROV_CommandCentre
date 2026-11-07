@@ -13,7 +13,7 @@ and wrapped straight into a QImage. QImage (unlike QPixmap) is safe to build
 outside the GUI thread.
 
 Recording (console REC button):
-    rx.start_recording("recordings/2026-11-01_18-40-05_ROV-01.mkv")
+    rx.start_recording("recordings/ROV-01_2026-11-01_18-40-05.mkv")
     rx.recording()        # {"state": "off" | "waiting" | "rec", "path", "seconds", "bytes", "error"}
     rx.stop_recording()
 The H.264 packets exactly as they arrive from the Pi are written to a Matroska (.mkv)

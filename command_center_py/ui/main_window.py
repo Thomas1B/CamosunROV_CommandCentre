@@ -7,7 +7,6 @@ main menu - but only once the thrusters are disarmed.
 import html
 import math
 import os
-import re
 import time
 from pathlib import Path
 from datetime import datetime, timezone
@@ -22,6 +21,7 @@ from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S, REQUIRE_LINK_TO_ARM,
                         RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD, RECORDINGS_DIR)
+from command_center_py import filenames
 from command_center_py.controller_profiles import CalibratedPad
 from command_center_py.link import DemoLink
 from command_center_py.demo_pad import DemoPad
@@ -1175,8 +1175,8 @@ class ConsoleWindow(QMainWindow):
             self._stop_recording()
             return
         start = datetime.now()
-        name = re.sub(r"[^A-Za-z0-9_-]+", "_", self.vehicle or "").strip("_") or "ROV"
-        path = RECORDINGS_DIR / f"{start:%Y-%m-%d_%H-%M-%S}_{name}.mkv"
+        # vehicle name first, then the start time: recordings/ROV-01_2026-11-01_22-36-54.mkv
+        path = RECORDINGS_DIR / f"{filenames.stem(self.vehicle, start)}.mkv"
         try:
             RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
         except OSError as e:

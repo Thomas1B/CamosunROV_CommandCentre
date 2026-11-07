@@ -412,7 +412,11 @@ fault, so the console does not disarm for it.
 
 Everything in the EVENT LOG is also saved to a CSV file in the `logs/` folder
 (next to `vehicle_profiles/`), one file per console session, named by the
-local start time and the vehicle, e.g. `logs/2026-10-31_23-44-18_DEMO.csv`.
+vehicle and then the local start time, e.g. `logs/DEMO_2026-10-31_23-44-18.csv`.
+(Files saved by older versions start with the time instead,
+`2026-10-31_23-44-18_DEMO.csv`; VIEW LOGS and VIEW RECORDINGS still read them.)
+Exports and saved video frames are named after the file, so they start with the
+vehicle too.
 The first log line on screen shows the file name. Each row is written to disk
 immediately, so the file is complete even after a crash. The folder is
 git-ignored.
@@ -477,7 +481,7 @@ size until the program closes). Esc, ○ / B, ✕ or CLOSE close the card.
 Click **● REC** in the console toolbar to record the camera stream; click it again
 (**■ REC 02:14**) to stop. Recordings are saved in the `recordings/` folder,
 one file per recording, named like the logs, e.g.
-`recordings/2026-11-01_18-40-05_ROV-01.mkv`. The folder is git-ignored. There's
+`recordings/ROV-01_2026-11-01_18-40-05.mkv`. The folder is git-ignored. There's
 no controller button for it; use the mouse.
 
 - **Full quality, almost no CPU.** The H.264 video the Pi sends is saved exactly
