@@ -10,7 +10,7 @@
     CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
     QUIT .............. closes the program
 
-Navigation: mouse, or arrow keys + Enter / Esc. The game controller does not navigate the
+Navigation: mouse, or arrow keys / Tab (Shift+Tab goes up) + Enter / Esc. The game controller does not navigate the
 menu or its cards; it is only read here by CONTROLLER PROFILES (calibration). It drives
 the console (main window), including demo mode.
 The dialogs are drawn as cards over a dimmed menu, like the design, rather than as
@@ -1779,7 +1779,7 @@ class MainMenu(QWidget):
         # key hints
         hints = QHBoxLayout()
         hints.setSpacing(28)
-        self._hint(hints, "↑↓", "NAVIGATE")
+        self._hint(hints, "↑↓ / TAB", "NAVIGATE")
         self._hint(hints, "ENTER", "SELECT")
         self._hint(hints, "ESC", "BACK")
         hints.addStretch(1)
@@ -1941,6 +1941,14 @@ class MainMenu(QWidget):
             self.launch()
         else:
             super().keyPressEvent(e)
+
+    def focusNextPrevChild(self, nxt):
+        """Tab / Shift+Tab on the menu itself move the selection like Down / Up (wrapping).
+        With a card open, Tab moves between that card's controls as normal."""
+        if self.overlay is None:
+            self.select(self.sel + (1 if nxt else -1))
+            return True
+        return super().focusNextPrevChild(nxt)
 
     # ---------------- controller ----------------
     # The controller does not navigate the menu or its cards (mouse / keyboard only).
