@@ -20,7 +20,8 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWi
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S, REQUIRE_LINK_TO_ARM,
                         RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
-                        THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD, RECORDINGS_DIR)
+                        THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD, RECORDINGS_DIR,
+                        INTERNAL_TEMP_WARN_C, INTERNAL_TEMP_CLEAR_C)
 from command_center_py import filenames
 from command_center_py.controller_profiles import CalibratedPad
 from command_center_py.link import DemoLink
@@ -974,10 +975,10 @@ class ConsoleWindow(QMainWindow):
 
         it = self.tel.get("internal_c")
         if isinstance(it, (int, float)):
-            if it > 45 and not self.temp_warned:
+            if it > INTERNAL_TEMP_WARN_C and not self.temp_warned:
                 self.temp_warned = True
                 self.log("WARN", f"Internal temp high — {it:.1f} °C", WARN)
-            elif it < 43:
+            elif it < INTERNAL_TEMP_CLEAR_C:
                 self.temp_warned = False
         # Leak: the live sensor ("leak") or the STM32's latched leak shutdown (FAULT_LEAK in
         # "faults", held until a recover command). On a new leak the console disarms the
@@ -1033,7 +1034,7 @@ class ConsoleWindow(QMainWindow):
         self.metrics["pressure"].set(f(p, ".1f"), "kPa", f(None if p is None else p * 0.145038, ".1f"), "psi")
         self.metrics["water"].set(f(wt, ".1f"), "°C", f(c2f(wt), ".1f"), "°F")
         self.metrics["internal"].set(f(it, ".1f"), "°C", f(c2f(it), ".1f"), "°F",
-                                     WARN if (it is not None and it > 45) else BRIGHT)
+                                     WARN if (it is not None and it > INTERNAL_TEMP_WARN_C) else BRIGHT)
 
     def _refresh(self, pad, now):
         linked = self.link.up(now)

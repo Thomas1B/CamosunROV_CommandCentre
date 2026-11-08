@@ -64,6 +64,12 @@ RECOVER_TIMEOUT_S = 1.0     # report "refused" if the leak shutdown hasn't clear
                             # sensor can only be told apart by the shutdown staying set after a recover
 REQUIRE_LINK_TO_ARM = True   # set False to bench-test before telemetry exists
 
+# Internal (electronics enclosure) temperature, degC. Above WARN the INTERNAL TEMP card turns
+# amber and the event log warns once; it only warns again after dropping below CLEAR (the gap
+# stops repeat warnings while the reading hovers around the limit).
+INTERNAL_TEMP_WARN_C = 45.0
+INTERNAL_TEMP_CLEAR_C = 43.0
+
 # Thruster mix: (name, role, group, (surge, sway, heave, yaw))
 #   surge = left stick Y, sway = left stick X, heave = R2 - L2, yaw = right stick X
 # Group "H" and "V" are normalised separately so full surge doesn't steal heave.
