@@ -272,7 +272,7 @@ these values and the default reference values).
 | LB / RB | L1 / R1 | Thrust gain down / up (25 - 50 - 75 - 100 %) |
 | A, hold 5 s | CROSS, hold 5 s | Zero depth |
 | A, hold 1 s (while zeroed) | CROSS, hold 1 s (while zeroed) | Clear the depth zero |
-| Y | TRIANGLE | Toggle all telemetry units SI ↔ imperial |
+| Y | TRIANGLE | Toggle all telemetry units between SI and imperial |
 | X | SQUARE | Drop an operator mark in the event log (hold to repeat, one per second) |
 | Keyboard SPACE | Keyboard SPACE | E-STOP (when the console window has focus) |
 
@@ -305,16 +305,16 @@ controller plugged in, press **NEW** (or pick a profile to redo it), then
 Press **OK** once your hands are off the controller, then:
 
 1. **LEFT STICK**
-   - **1a FLICK (×12):** the page shows an arrow (→ ↗ ↑ …, a new random
-     direction each time). Push the stick to the edge that way and **let go**.
+   - **1a FLICK (×12):** the page shows an arrow pointing in a new random
+     direction each time. Push the stick to the edge that way and **let go**.
      Once it has settled, the page records where it stopped (amber dot). Stick
      springs don't return to exactly the same spot every time. The settled
      position depends on which way the stick came back from. So the **centre**
      is the average of the 12 settled points, and the **deadzone** covers the
      furthest one plus the stick's jitter (at least 0.03). However the spring
      leaves the stick, it reads 0.
-   - **1b:** push it to the edge and turn it clockwise ↻ 10 times.
-   - **1c:** turn it counter-clockwise ↺ 10 times.
+   - **1b:** push it to the edge and turn it clockwise 10 times.
+   - **1c:** turn it counter-clockwise 10 times.
 2. **RIGHT STICK:** the same: **2a** flicks, **2b** clockwise, **2c**
    counter-clockwise.
 
@@ -438,7 +438,7 @@ faulted or link down) shows as `--` on screen and is left empty in the file.
 **Leaving the console.** When you exit the console (it must be disarmed), it
 sends its last zero-thrust frames and closes the link.
 
-If you used **● REC** in the session, the **SAVE RECORDING?** pop-up comes
+If you used **REC** in the session, the **SAVE RECORDING?** pop-up comes
 first. It lists each recording made in the session with a tick box (all ticked
 to start). You must pick one; Esc does nothing:
 
@@ -472,13 +472,13 @@ number of events and marks. Pick one (mouse or arrow keys) to see the same
 length and its UTC times. **EXPORT…** saves it as `.xlsx`, `.csv` or `.pdf`.
 **DELETE** removes the file (click twice). **OPEN FOLDER** opens `logs/` in File
 Explorer. Drag the grip in the card's bottom-right corner to resize it (it keeps that
-size until the program closes), or maximise it with the button next to its ✕ (or by
-double-clicking its title bar); click it again to restore. Esc, ✕ or CLOSE close the card.
+size until the program closes), or maximise it with the button next to its close button (or by
+double-clicking its title bar); click it again to restore. Esc, the close button or CLOSE close the card.
 
 ### Recording the camera
 
-Click **● REC** in the console toolbar to record the camera stream; click it again
-(**■ REC 02:14**) to stop. Recordings are saved in the `recordings/` folder,
+Click **REC** in the console toolbar to record the camera stream; click it again
+(it then shows **REC 02:14**) to stop. Recordings are saved in the `recordings/` folder,
 one file per recording, named like the logs, e.g.
 `recordings/ROV-01_2026-11-01_18-40-05.mkv`. The folder is git-ignored. There's
 no controller button for it; use the mouse.
@@ -488,8 +488,8 @@ no controller button for it; use the mouse.
   about 30 MB per minute (1.8 GB per hour).
 - **Starts cleanly.** Recording starts at the next key frame, at most 0.5 s after
   the click, so the file never opens on a broken picture. The button shows
-  **● REC …** until then.
-- **Dropouts.** If the stream drops out (the button shows ⏸ and the log says
+  **REC …** until then.
+- **Dropouts.** If the stream drops out (the button shows it's paused and the log says
   *Camera stream lost*), the same file continues when the video comes back. The
   gap is left out, so the time shown is the length of video in the file.
 - **Crash-safe.** If the program or laptop crashes while recording, everything up
@@ -513,14 +513,13 @@ Packets lost on the tether show as a brief glitch, the same as on screen.
 many events (and operator marks) were logged while it was recording. It plays them with a
 built-in player, so nothing extra has to be installed.
 
-- **Play.** ▶ PLAY / ⏸ PAUSE, ◀◀ 3 s / 3 s ▶▶, ◀ 1 s / 1 s ▶, and a seek bar. Click anywhere
+- **Play.** PLAY / PAUSE, back and forward 3 s, back and forward 1 s, and a seek bar. Click anywhere
   on the bar to jump there, or drag the handle.
 - **Events.** The EVENTS list shows every event-log line from while that file was
   recording (link, alarms, arming, warnings, operator marks, ...) with its video
   time, local time and tag. Operator marks show depth, heading, water temperature
   and leak. Click an event to jump to it. Events are read from the `video_time` /
   `video_file` columns in `logs/*.csv`, so a deleted log takes its events with it.
-  Recordings made before this update only have their operator marks.
 - **OPEN FOLDER** opens `recordings/` in File Explorer.
 - **SAVE FRAME…** pauses and saves the frame on screen as a PNG (default folder
   `Pictures`, named after the recording and the video time).
@@ -535,11 +534,11 @@ built-in player, so nothing extra has to be installed.
     gets *Marks* and *Events* sheets).
 - **DELETE** deletes the selected file. Click it twice; the first click arms it
   for 4 s. This can't be undone.
-- **Keys.** Space play/pause, ← / → 3 s, Shift+← / → 1 s, ↑ / ↓ pick a
-  recording, Esc close.
+- **Keys.** Space play/pause, Left / Right arrow keys 3 s, Shift+Left / Right 1 s,
+  Up / Down arrow keys pick a recording, Esc close.
 
 The window can be resized from the bottom-right corner, or maximised with the
-button next to its ✕ (or by double-clicking its title bar); click it again to restore.
+button next to its close button (or by double-clicking its title bar); click it again to restore.
 
 ### Depth zero
 
