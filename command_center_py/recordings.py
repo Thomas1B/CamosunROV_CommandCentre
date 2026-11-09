@@ -4,9 +4,13 @@
     events_for(recording)    every event logged while that file was recording, from logs/*.csv
                              (the "video_time" / "video_file" columns written by the console)
     marks_for(recording)     just the operator marks (MARK rows) of those
+    event_rows(recording)    the same events as full log rows (all columns), for EXPORT
+    export_mp4(rec, path)    copy the video into an .mp4 (no re-encoding; see below)
+    export_events(rec, path) the recording's events as .csv or .xlsx, with video times
 """
 
 import csv
+from pathlib import Path
 
 from command_center_py import filenames
 from command_center_py.config import LOGS_DIR, RECORDINGS_DIR
@@ -97,6 +101,99 @@ def _mark_summary(r):
     if r.get("leak") == "LEAK":
         bits.append("LEAK")
     return " · ".join(bits) or "operator mark"
+
+
+def event_rows(recording):
+    """Full log rows (dicts with every event-log column) recorded while this file was
+    recording, sorted by video time. Telemetry numbers are converted back to numbers."""
+    from command_center_py.event_log import SNAPSHOT_FIELDS
+    out = []
+    if not LOGS_DIR.is_dir():
+        return out
+    name = recording.path.name
+    for log in LOGS_DIR.glob("*.csv"):
+        try:
+            with open(log, newline="", encoding="utf-8-sig") as f:
+                for n, r in enumerate(csv.DictReader(f)):
+                    if r.get("video_file") != name:
+                        continue
+                    t = parse_clock(r.get("video_time", ""))
+                    if t is None:
+                        continue
+                    for k in SNAPSHOT_FIELDS:
+                        v = r.get(k)
+                        if v not in (None, "") and k not in ("heading_cardinal", "leak", "video_time", "video_file"):
+                            try:
+                                r[k] = float(v)
+                            except ValueError:
+                                pass
+                    out.append((t, r.get("local_time", ""), n, r))
+        except (OSError, csv.Error, UnicodeDecodeError, ValueError):
+            continue
+    out.sort(key=lambda x: x[:3])
+    return [r for *_, r in out]
+
+
+def export_mp4(recording, path, progress=None):
+    """Copy a recording into an .mp4 that plays anywhere (phones, PowerPoint, Teams, browsers).
+    The H.264 packets are copied as they are - no decoding or re-encoding - so it takes
+    seconds and keeps full quality. Written to "<path>.part" first and renamed at the end,
+    so a cancelled or failed export never leaves a half-written .mp4 behind.
+    progress(fraction 0..1) is called as it goes (from the calling thread). Raises on error."""
+    av = avlib.get()
+    if av is None:
+        raise RuntimeError("PyAV not installed — run: python -m pip install -r py_requirements.txt")
+    path = Path(path)
+    tmp = path.with_name(path.name + ".part")
+    length = recording.length or probe_length(recording.path) or 0.0
+    try:
+        with av.open(str(recording.path)) as src:
+            ist = src.streams.video[0]
+            # faststart: the index goes at the front, so the file starts playing before it has
+            # fully downloaded (Teams, browsers, phones)
+            with av.open(str(tmp), mode="w", format="mp4", options={"movflags": "+faststart"}) as dst:
+                ost = dst.add_stream_from_template(ist)
+                last = -1.0
+                for pkt in src.demux(ist):
+                    if pkt.dts is None:            # flush packet at the end of the file
+                        continue
+                    if progress and length and pkt.pts is not None:
+                        f = min(1.0, float(pkt.pts * ist.time_base) / length)
+                        if f - last >= 0.01:
+                            last = f
+                            progress(f)
+                    pkt.stream = ost
+                    dst.mux(pkt)
+        tmp.replace(path)                          # overwrites an existing file of that name
+    except BaseException:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+    if progress:
+        progress(1.0)
+    return path
+
+
+def export_events(recording, path):
+    """The recording's events with their video times, as .csv or .xlsx (by the extension).
+    Same columns as the session log, with VIDEO TIME first. Returns the number of events."""
+    from command_center_py.event_log import FIELDS, MARK_COLS, export_xlsx
+    rows = event_rows(recording)
+    lead = ["video_time"]
+    if str(path).lower().endswith(".xlsx"):
+        export_xlsx(rows, str(path), recording.vehicle,
+                    mark_cols=lead + [c for c in MARK_COLS if c not in ("video_time", "video_file")],
+                    event_cols=lead + ["local_time", "utc_offset", "utc_time", "tag", "message"],
+                    title=f"Camosun ROV recording events {recording.path.name}")
+    else:
+        cols = lead + [c for c in FIELDS if c not in ("video_time", "video_file")]
+        with open(path, "w", newline="", encoding="utf-8-sig") as f:   # BOM: Excel shows ° and — right
+            w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
+            w.writeheader()
+            w.writerows(rows)
+    return len(rows)
 
 
 def events_for(recording):

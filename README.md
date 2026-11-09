@@ -525,6 +525,15 @@ built-in player, so nothing extra has to be installed.
 - **OPEN FOLDER** opens `recordings/` in File Explorer.
 - **SAVE FRAME…** pauses and saves the frame on screen as a PNG (default folder
   `Pictures`, named after the recording and the video time).
+- **EXPORT…** opens a Save dialog (default folder `Videos`); the *Save as type*
+  picks what is saved:
+  - **MP4 video**: the recording as an `.mp4` that plays anywhere (phones,
+    PowerPoint, Teams, browsers). The video is copied, not re-encoded, so it
+    takes seconds and keeps full quality. Progress shows in the footer, and
+    you can keep using the player meanwhile.
+  - **Events — Excel / CSV**: the EVENTS IN THIS RECORDING list, with the
+    video time first, then the same columns as the session-log export (Excel
+    gets *Marks* and *Events* sheets).
 - **DELETE** deletes the selected file. Click it twice; the first click arms it
   for 4 s. This can't be undone.
 - **Keys.** Space play/pause, ← / → 3 s, Shift+← / → 1 s, ↑ / ↓ pick a

@@ -18,6 +18,7 @@ separate windows.
 """
 
 import re
+import threading
 import time
 from pathlib import Path
 
@@ -40,7 +41,7 @@ from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER,
 from command_center_py.ui.controller_page import StickCalView, TriggerCalBar
 from command_center_py.ui.log_dialog import export_session, log_table
 from command_center_py.ui.recordings_page import SeekBar, VideoView
-from command_center_py.recordings import clock, events_for, list_recordings
+from command_center_py.recordings import clock, events_for, export_events, export_mp4, list_recordings
 from command_center_py.video_player import VideoPlayer
 from command_center_py.ui.reference_fields import RefFields
 from command_center_py.ui.widgets import CONTROLLER_MAPS, controller_map_body, key_chip
@@ -1417,7 +1418,8 @@ class RecordingsCard(Card):
     Left: the recordings (start time, vehicle, length, size, marks). Middle: the built-in
     player (PyAV, see video_player.py) with play / pause, -3 / -1 / +1 / +3 s and a seek bar.
     Right: every event logged while that file was recording (from logs/); click one to jump.
-    Footer: OPEN FOLDER, SAVE FRAME... (PNG of the frame on screen), DELETE (click twice), CLOSE.
+    Footer: OPEN FOLDER, SAVE FRAME... (PNG of the frame on screen), EXPORT... (the video as .mp4,
+    or its events as .xlsx / .csv), DELETE (click twice), CLOSE.
     Keys: Space play / pause, Left / Right -3 / +3 s (with Shift -1 / +1 s), Up / Down another
     recording, Esc close. Resizable from the bottom-right corner.
     """
@@ -1497,13 +1499,16 @@ class RecordingsCard(Card):
         right.addWidget(self.marks_hint)
         h.addLayout(right)
 
-        # footer: OPEN FOLDER  SAVE FRAME…  DELETE  status ........ CLOSE
+        # footer: OPEN FOLDER  DELETE  status ........ SAVE FRAME…  EXPORT…  CLOSE
         folder = button("OPEN FOLDER", 11, None, *small)
         folder.clicked.connect(self._open_folder)
         self.foot_lay.addWidget(folder)
         self.frame_btn = button("SAVE FRAME…", 11, None, *small)
         self.frame_btn.clicked.connect(self._save_frame)
-        self.foot_lay.addWidget(self.frame_btn)
+        self.export_btn = button("EXPORT…", 11, None, *small)
+        self.export_btn.setToolTip("Save the video as .mp4 (plays anywhere), or its events as Excel / CSV")
+        self.export_btn.clicked.connect(self._export)
+        self._exp = None                      # running MP4 export: {"name", "frac", "done", "error", "path"}
         self.del_btn = button("DELETE", 11, 190,
                               f"padding: 6px 0; border: 1px solid {RED_BORDER}; border-radius: 3px; background: #2a1416; color: {DANGER};",
                               f"border-color: {DANGER};")
@@ -1512,13 +1517,16 @@ class RecordingsCard(Card):
         self.status = lab("", 11, LABEL)
         self.status.setWordWrap(True)
         self.foot_lay.addWidget(self.status, 1)
+        self.foot_lay.addWidget(self.frame_btn)
+        self.foot_lay.addWidget(self.export_btn)
         close = button("CLOSE", 11, 84,
                        f"padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
                        f"border-color: {ACCENT}; color: {ACCENT};")
         close.clicked.connect(self.close_card)
         self.foot_lay.addWidget(close)
         disabled = f" QPushButton:disabled {{ color: {MUTED}; border-color: {BORDER2}; background: transparent; }}"
-        for b in (self.back_btn, self.back1_btn, self.play_btn, self.fwd1_btn, self.fwd_btn, self.frame_btn, self.del_btn):
+        for b in (self.back_btn, self.back1_btn, self.play_btn, self.fwd1_btn, self.fwd_btn, self.frame_btn,
+                  self.export_btn, self.del_btn):
             b.setStyleSheet(b.styleSheet() + disabled)
 
         self.layout().setStretchFactor(self.body, 1)
@@ -1571,8 +1579,12 @@ class RecordingsCard(Card):
         self.player.close()
         self.marks_list.clear()
         has = r is not None
-        for b in (self.back_btn, self.back1_btn, self.play_btn, self.fwd1_btn, self.fwd_btn, self.frame_btn, self.del_btn):
+        for b in (self.back_btn, self.back1_btn, self.play_btn, self.fwd1_btn, self.fwd_btn, self.frame_btn,
+                  self.export_btn, self.del_btn):
             b.setEnabled(has)
+        if self._exp is not None and not self._exp["done"]:
+            self.export_btn.setEnabled(False)  # one export at a time; and no DELETE while a file is being read
+            self.del_btn.setEnabled(False)
         if not has:
             self.info.setText("")
             self.view.set_image(None, "No recordings yet. Use ● REC in the console to record the camera.")
@@ -1608,6 +1620,7 @@ class RecordingsCard(Card):
             self.player.seek(max(0.0, float(t)))
 
     def _tick(self):
+        self._export_tick()
         img, pos, length, playing = self.player.state()
         if self.current() is None:
             return
@@ -1657,6 +1670,68 @@ class RecordingsCard(Card):
             self._say(ACCENT, f"Saved {Path(path).name} ({clock(pos)})")
         else:
             self._say(DANGER, f"Could not save {Path(path).name}")
+
+    def _export(self):
+        """EXPORT...: one Save dialog; the file type picks what is exported."""
+        r = self.current()
+        if r is None or (self._exp is not None and not self._exp["done"]):
+            return
+        self.player.pause()
+        home = Path.home()
+        start = next((d for d in (home / "Videos", home / "Documents") if d.is_dir()), home)
+        types = {"MP4 video (*.mp4)": ".mp4", "Events — Excel workbook (*.xlsx)": ".xlsx",
+                 "Events — CSV (*.csv)": ".csv"}
+        path, chosen = QFileDialog.getSaveFileName(self.window(), "Export Recording",
+                                                   str(start / (r.path.stem + ".mp4")), ";;".join(types))
+        if not path:
+            return
+        ext = Path(path).suffix.lower()
+        if ext not in types.values():            # no / other extension: use the chosen type's
+            ext = types.get(chosen, ".mp4")
+            path += ext
+        if ext == ".mp4":
+            # copy in the background (big files take a few seconds); progress shows in the footer
+            st = {"name": Path(path).name, "frac": 0.0, "done": False, "error": None}
+            self._exp = st
+
+            def run():
+                try:
+                    export_mp4(r, path, lambda f: st.__setitem__("frac", f))
+                except Exception as e:           # disk full, file open in another program, ...
+                    st["error"] = f"Export failed — {e}"
+                st["done"] = True
+
+            threading.Thread(target=run, name="export-mp4", daemon=True).start()
+            self.export_btn.setEnabled(False)
+            self.del_btn.setEnabled(False)
+            self._say(LABEL, f"Exporting {st['name']}…")
+            return
+        try:
+            n = export_events(r, path)
+        except ImportError:
+            self._say(DANGER, "Excel export needs openpyxl — run: python -m pip install -r py_requirements.txt")
+            return
+        except Exception as e:
+            self._say(DANGER, f"Export failed — {e}")
+            return
+        self._say(ACCENT if n else WARN, f"Exported {Path(path).name} ({n} event{'' if n == 1 else 's'})"
+                  if n else f"Exported {Path(path).name} — no events were logged during this recording")
+
+    def _export_tick(self):
+        st = self._exp
+        if st is None:
+            return
+        if not st["done"]:
+            self._say(LABEL, f"Exporting {st['name']}…  {st['frac'] * 100:.0f} %")
+            return
+        self._exp = None
+        has = self.current() is not None
+        self.export_btn.setEnabled(has)
+        self.del_btn.setEnabled(has)
+        if st["error"]:
+            self._say(DANGER, st["error"])
+        else:
+            self._say(ACCENT, f"Exported {st['name']}")
 
     def _delete(self):
         r = self.current()
