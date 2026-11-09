@@ -3,25 +3,25 @@
   "controller": "Xbox One Elite 2 Controller",
   "axes": {
     "lx": {
-      "center": 0.0002,
-      "deadzone": 0.063,
+      "center": 0.0039,
+      "deadzone": 0.058,
       "min": -1.0,
       "max": 1.0
     },
     "ly": {
-      "center": -0.0003,
-      "deadzone": 0.071,
+      "center": 0.0202,
+      "deadzone": 0.097,
       "min": -1.0,
       "max": 1.0
     },
     "rx": {
-      "center": -0.02,
-      "deadzone": 0.061,
+      "center": -0.0014,
+      "deadzone": 0.103,
       "min": -1.0,
       "max": 1.0
     },
     "ry": {
-      "center": 0.015,
+      "center": 0.0283,
       "deadzone": 0.059,
       "min": -1.0,
       "max": 1.0
@@ -39,5 +39,5 @@
       "deadzone": 0.03
     }
   },
-  "saved": "2026-11-01T17:51:18-07:00"
+  "saved": "2026-11-08T21:38:28-07:00"
 }
