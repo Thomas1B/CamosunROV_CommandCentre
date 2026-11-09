@@ -63,7 +63,7 @@ class RovApp:
         self.menu = MainMenu(self.pad, on_connected=self.open_console, on_demo=self.open_demo)
 
     def start(self):
-        self.menu.show()
+        self.menu.showMaximized()  # or showFullScreen() if you want to hide the taskbar
         # Load PyAV (FFmpeg) in the background once the menu has been drawn, so it's ready by
         # the time the console or VIEW RECORDINGS needs it without delaying the menu (avlib.py).
         QTimer.singleShot(300, avlib.prewarm)
