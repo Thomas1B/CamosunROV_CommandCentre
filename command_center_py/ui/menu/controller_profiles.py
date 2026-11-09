@@ -27,7 +27,7 @@ class ControllerProfilesCard(Card):
     """
 
     MIN_W, MIN_H = 900, 560
-    # the counts use non-breaking spaces (\u00a0) so "3 / 12 flicks" always wraps as one piece
+    # the counts use non-breaking spaces (\u00a0) so "3 / 20 flicks" always wraps as one piece
     STEP_TEXT = {
         "ready": "Hands off both sticks and both triggers, then press OK to start.",
         "left_flick": "LEFT STICK — {flick}   {n}\u00a0/\u00a0{N}\u00a0flicks",
@@ -411,7 +411,7 @@ class ControllerProfilesCard(Card):
         if self.cal is not None:
             if self.cal.name in cp.Calibration.ROTATE:
                 self.trail[self.cal.stick()].append((st.lx, st.ly) if self.cal.stick() == "l" else (st.rx, st.ry))
-            self.cal.feed(st)                    # may move on by itself (12 flicks, 10 turns)
+            self.cal.feed(st)                    # may move on by itself (20 flicks, 10 turns)
             self._show_wizard()                  # flick direction / counts
         e = self.edit
         c = self.cal

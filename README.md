@@ -305,21 +305,23 @@ controller plugged in, press **NEW** (or pick a profile to redo it), then
 Press **OK** once your hands are off the controller, then:
 
 1. **LEFT STICK**
-   - **1a FLICK (×12):** the page shows an arrow pointing in a new random
-     direction each time. Push the stick to the edge that way and **let go**.
+   - **FLICK (20 times):** the page shows an arrow pointing in a new direction
+     each time, in random order. Every 45° direction comes up at least once (the
+     first 8 flicks cover all 8, and each comes up 2 or 3 times in total). Push
+     the stick to the edge that way and **let go**.
      Once it has settled, the page records where it stopped (amber dot). Stick
      springs don't return to exactly the same spot every time. The settled
      position depends on which way the stick came back from. So the **centre**
-     is the average of the 12 settled points, and the **deadzone** covers the
+     is the average of the 20 settled points, and the **deadzone** covers the
      furthest one plus the stick's jitter (at least 0.03). However the spring
      leaves the stick, it reads 0.
-   - **1b:** push it to the edge and turn it clockwise 10 times.
-   - **1c:** turn it counter-clockwise 10 times.
-2. **RIGHT STICK:** the same: **2a** flicks, **2b** clockwise, **2c**
+   - **CLOCKWISE:** push it to the edge and turn it clockwise 10 times.
+   - **COUNTER-CLOCKWISE:** turn it counter-clockwise 10 times.
+2. **RIGHT STICK:** the same: flicks, then clockwise, then
    counter-clockwise.
 
    The turns measure each axis's real **min** / **max**. The page counts flicks
-   and turns ("4 / 12 flicks", "4 / 10 turns") and moves on by itself when a
+   and turns ("4 / 20 flicks", "4 / 10 turns") and moves on by itself when a
    part is done. A flick only counts when it goes past 70 % of the travel within
    45° of the arrow. A turn only counts while the stick is pushed out past half
    its travel, and turning the wrong way takes turns back off (never below 0).

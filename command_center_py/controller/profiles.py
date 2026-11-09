@@ -228,7 +228,7 @@ class CalibratedPad:
 class Calibration:
     """The CALIBRATE wizard, fed raw PadState samples:
         ready      "hands off the controller, then press OK"
-        left_flick 1a  flick the left stick from FLICKS random directions -> centre + deadzone
+        left_flick 1a  flick the left stick FLICKS times, every 45 degrees covered -> centre + deadzone
         left_cw    1b  left stick clockwise, TURNS full turns                -> min / max
         left_ccw   1c  left stick counter-clockwise, TURNS turns
         right_*    2a-2c  the same for the right stick
@@ -237,7 +237,9 @@ class Calibration:
     triggers are untouched then), so there is no separate rest step.
 
     FLICK: the page shows a direction; push the stick out past FLICK_OUT that way (within
-    45 degrees) and let go. Once it is back inside SETTLE_R and has stayed still (spread
+    45 degrees) and let go. The directions are dealt from shuffled rounds of all 8 (every
+    45 degrees): the first 8 flicks cover each direction once, and the 20 flicks are
+    spread evenly (each direction 2 or 3 times), so no side biases the centre. Once it is back inside SETTLE_R and has stayed still (spread
     < STILL over SETTLE_N samples, or SETTLE_MAX_S has passed) the settled position is
     recorded. The centre is the mean of the settled points; the deadzone covers the one
     furthest from it plus the jitter - so wherever the spring leaves the stick, it reads 0.
@@ -252,7 +254,7 @@ class Calibration:
               "right_cw": ("rx", "ry", -1), "right_ccw": ("rx", "ry", 1)}  #  +1 = counter-clockwise, y up)
     FLICK = ("left_flick", "right_flick")
     DIRECTIONS = {0: "→", 45: "↗", 90: "↑", 135: "↖", 180: "←", 225: "↙", 270: "↓", 315: "↘"}
-    FLICKS = 12
+    FLICKS = 20              # per stick; at least one in each of the 8 DIRECTIONS (see _plan_targets)
     TURNS = 10
     EDGE = 0.5
     FLICK_OUT = 0.7          # how far out a flick has to go (raw, from the middle)
@@ -280,12 +282,28 @@ class Calibration:
         self.target = None             # flick: direction in degrees
         self._win = []                 # flick: recent samples while settling
         self._t_back = 0.0
+        self._plan = []                # flick: directions still to come this step
         if self.name in self.FLICK:
+            self._plan = self._plan_targets()
             self._new_target()
 
+    def _plan_targets(self):
+        """FLICKS directions: whole shuffled rounds of all 8, then a random part-round, never
+        the same direction twice in a row. 20 flicks = 8 + 8 + 4, so each direction comes up
+        2 or 3 times and all 8 are covered within the first 8 flicks."""
+        dirs = list(self.DIRECTIONS)
+        plan = []
+        while len(plan) < self.FLICKS:
+            rnd = dirs[:]
+            self.rng.shuffle(rnd)
+            if plan and rnd[0] == plan[-1]:       # don't repeat across the join between rounds
+                rnd[0], rnd[-1] = rnd[-1], rnd[0]
+            plan += rnd[:self.FLICKS - len(plan)]
+        return plan
+
     def _new_target(self):
-        choices = [d for d in self.DIRECTIONS if d != self.target]
-        self.target = self.rng.choice(choices)
+        self.target = self._plan.pop(0) if self._plan else self.rng.choice(
+            [d for d in self.DIRECTIONS if d != self.target])
         self.phase = "push"
 
     @property
