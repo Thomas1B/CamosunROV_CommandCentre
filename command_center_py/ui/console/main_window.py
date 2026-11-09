@@ -14,26 +14,26 @@ from datetime import datetime, timezone
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
-                               QMessageBox, QPushButton, QScrollArea, QTextEdit,
-                               QVBoxLayout, QWidget)
+                               QPushButton, QScrollArea, QTextEdit, QVBoxLayout,
+                               QWidget)
 
 from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_GAIN_INDEX, TILT_MIN,
                         TILT_MAX, TILT_STEP, ARM_HOLD_S, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S, REQUIRE_LINK_TO_ARM,
                         RECOVER_PULSE_S, RECOVER_TIMEOUT_S,
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD, RECORDINGS_DIR,
                         INTERNAL_TEMP_WARN_C, INTERNAL_TEMP_CLEAR_C)
-from command_center_py import filenames
-from command_center_py.controller_profiles import CalibratedPad
-from command_center_py.link import DemoLink
-from command_center_py.demo_pad import DemoPad
-from command_center_py.event_log import EventLogFile
-from command_center_py.ui.log_dialog import ExitLogDialog
-from command_center_py.ui.recording_dialog import ExitRecordingDialog
-from command_center_py.mixer import mix
-from command_center_py.video import VideoReceiver
+from command_center_py.logs import filenames
+from command_center_py.controller.profiles import CalibratedPad
+from command_center_py.vehicle.link import DemoLink
+from command_center_py.controller.demo_pad import DemoPad
+from command_center_py.logs.event_log import EventLogFile
+from command_center_py.ui.console.exit_log_dialog import ExitLogDialog
+from command_center_py.ui.console.exit_recording_dialog import ExitRecordingDialog
+from command_center_py.vehicle.mixer import mix
+from command_center_py.video.receiver import VideoReceiver
 from command_center_py.ui.theme import (BG, PANEL, HEAD, BORDER, BORDER2, TEXT, BRIGHT, MUTED, DIM,
                           LABEL, ACCENT, WARN, DANGER, BLUE, SANS, VALUE_PX, UNIT_PX, fs, mono, lab)
-from command_center_py.ui.reference_fields import ReferenceDialog
+from command_center_py.ui.console.reference_dialog import ReferenceDialog
 from command_center_py.ui.widgets import (BipolarBar, TriggerBar, StickView, VideoPane, LevelBarSOC,
                             SectionHeader, ThrusterRow, Chip, MetricCard, StatusRow,
                             ControllerMapDialog, CONTROLLER_MAPS, LAYOUT)
@@ -112,7 +112,7 @@ class ConsoleWindow(QMainWindow):
         self.stm32_reset_seen = None         # stm32_reset already logged for this STM32 connection
         self.recover_until = 0.0           # send the recover bit until this time
         self.recover_deadline = None         # waiting for the leak shutdown to clear (or None)
-        # Every event-log line is also saved to logs/<start time>_<vehicle>.csv (event_log.py)
+        # Every event-log line is also saved to logs/<vehicle>_<start time>.csv (logs/event_log.py)
         self.log_file = EventLogFile("DEMO" if demo else vehicle)
 
         self._build_ui()
@@ -274,7 +274,7 @@ class ConsoleWindow(QMainWindow):
         self.pad_lbl.setFont(mono(fs(11)))
         h.addWidget(self.pad_lbl)
 
-        # REC: records the camera stream to recordings/<start time>_<vehicle>.mkv (see video.py)
+        # REC: records the camera stream to recordings/<vehicle>_<start time>.mkv (see video/receiver.py)
         self.rec_btn = QPushButton("● REC")
         self.rec_btn.setFont(mono(fs(12), QFont.Weight.Bold))
         self.rec_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -708,7 +708,7 @@ class ConsoleWindow(QMainWindow):
             self.zero_samples.append(d)
         if now - self.zero_hold_start < ZERO_HOLD_S:
             return
-        samples, src = self.zero_samples, self.zero_hold_src
+        samples = self.zero_samples
         self.zero_hold_start, self.zero_hold_src, self.zero_samples = None, None, []
         if not samples:
             self.log("DENY", "Can't zero depth — no depth readings during the hold", WARN)
@@ -1252,7 +1252,7 @@ class ConsoleWindow(QMainWindow):
         style = state if self.video_rx is not None else "disabled"
         if style != self._rec_style:
             self._rec_style = style
-            css = {"off": f"border: 1px solid #3a4653; background: #151b23; color: #c9d3de;",
+            css = {"off": "border: 1px solid #3a4653; background: #151b23; color: #c9d3de;",
                    "disabled": f"border: 1px solid {BORDER2}; background: #121820; color: {MUTED};",
                    "waiting": "border: 1px solid #7f2b2e; background: #1f1214; color: #ffb3b4;",
                    "rec": "border: 1px solid #ff6b6e; background: #3a1416; color: #ff6b6e;"}[style]

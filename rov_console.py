@@ -35,20 +35,38 @@ DUALSHOCK 3 CONTROLS
     Keyboard SPACE .... E-STOP (when this window has focus)
 
 -----------------------------------------------------------------------------
-PROJECT LAYOUT
-    rov_console.py ...................... entry point (this file): venv check, starts the app
-    command_center_py/app.py ............ switches between the main menu and the console
-    command_center_py/config.py ......... tuning constants: network defaults, rates, deadzones, thruster mix
-    command_center_py/profiles.py ....... saved vehicle profiles (vehicle_profiles/*.json)
-    command_center_py/gamepad.py ........ DualShock 3 input via SDL2 (pygame), polled in its own thread
-    command_center_py/mixer.py .......... stick shaping and thruster mixing (pure maths, no UI)
-    command_center_py/link.py ........... UDP command packets out, JSON telemetry in, demo simulator
-    command_center_py/ui/theme.py ....... colours, fonts, label helper
-    command_center_py/ui/widgets.py ..... custom-painted gauges and composite widgets
-    command_center_py/ui/start_window.py  main menu, CONNECT VEHICLE and CONTROLLER MAP dialogs
-    command_center_py/ui/main_window.py . main console window: layout, arming, failsafes, event log
+PROJECT LAYOUT  (all under command_center_py/)
+    app.py ......................... switches between the main menu and the console
+    config.py ...................... tuning constants: network defaults, rates, deadzones, thruster mix
+    vehicle/       talking to the ROV
+        link.py .................... UDP command packets out, JSON telemetry in, demo simulator
+        mixer.py ................... stick shaping and thruster mixing (pure maths, no UI)
+        reference.py ............... Bar30 reference values (surface pressure, density, 2nd-order)
+        profiles.py ................ saved vehicle profiles (vehicle_profiles/*.json)
+    controller/    the game controller
+        gamepad.py ................. controller input via SDL2 (pygame), polled in its own thread
+        profiles.py ................ calibration profiles (controller_profiles/*.json)
+        demo_pad.py ................ simulated controller for demo mode
+    video/         camera
+        receiver.py ................ live H.264 stream from the Pi + REC to recordings/
+        player.py .................. plays a recording (VIEW RECORDINGS)
+        recordings.py .............. lists, exports and deletes recordings/*.mkv
+        avlib.py ................... loads PyAV (FFmpeg) on first use
+    logs/          event logs
+        event_log.py ............... writes logs/*.csv, reads them back, Excel / CSV export
+        filenames.py ............... <vehicle>_<start time> file names for logs and recordings
+    ui/
+        theme.py, widgets.py ....... colours, fonts, label helper; custom-painted gauges
+        menu/      main menu window and its cards
+            main_menu.py ........... the menu itself (opens the cards below)
+            connect.py, logs.py, recordings.py, controller_profiles.py, controller_map.py
+            cards.py ............... shared card parts: Card, Overlay, ResizeGrip, buttons
+        console/   the console (main window) and its dialogs
+            main_window.py ......... layout, arming, failsafes, event log, REC
+            reference_dialog.py .... Reference Values dialog (+ the fields CONNECT VEHICLE uses)
+            exit_recording_dialog.py, exit_log_dialog.py ... the two pop-ups on leaving
 
-    Wire contract (packet layout) is documented in command_center_py/link.py.
+    Wire contract (packet layout) is documented in command_center_py/vehicle/link.py.
 -----------------------------------------------------------------------------
 """
 print("CamosunROV Command Centre Started.")

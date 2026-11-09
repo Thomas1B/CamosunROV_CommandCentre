@@ -12,10 +12,10 @@
 import csv
 from pathlib import Path
 
-from command_center_py import filenames
+from command_center_py.logs import filenames
 from command_center_py.config import LOGS_DIR, RECORDINGS_DIR
 
-from command_center_py import avlib       # PyAV, loaded on first use; without it the page still lists files
+from command_center_py.video import avlib  # PyAV, loaded on first use; without it the page still lists files
 
 
 
@@ -62,7 +62,7 @@ def probe_length(path):
 class Recording:
     def __init__(self, path):
         self.path = path
-        self.started, self.vehicle, _ = filenames.parse(path.stem)     # new or old file-name layout
+        self.started, self.vehicle, _ = filenames.parse(path.stem)
         try:
             self.size = path.stat().st_size
         except OSError:
@@ -106,7 +106,7 @@ def _mark_summary(r):
 def event_rows(recording):
     """Full log rows (dicts with every event-log column) recorded while this file was
     recording, sorted by video time. Telemetry numbers are converted back to numbers."""
-    from command_center_py.event_log import SNAPSHOT_FIELDS
+    from command_center_py.logs.event_log import SNAPSHOT_FIELDS
     out = []
     if not LOGS_DIR.is_dir():
         return out
@@ -179,7 +179,7 @@ def export_mp4(recording, path, progress=None):
 def export_events(recording, path):
     """The recording's events with their video times, as .csv or .xlsx (by the extension).
     Same columns as the session log, with VIDEO TIME first. Returns the number of events."""
-    from command_center_py.event_log import FIELDS, MARK_COLS, export_xlsx
+    from command_center_py.logs.event_log import FIELDS, MARK_COLS, export_xlsx
     rows = event_rows(recording)
     lead = ["video_time"]
     if str(path).lower().endswith(".xlsx"):
@@ -198,8 +198,7 @@ def export_events(recording, path):
 
 def events_for(recording):
     """[(seconds, local_time, tag, text)] for every log row whose video_file is this recording,
-    by video time. MARK rows get a short telemetry summary; other rows their message.
-    (Logs from before this was added only stamped MARK rows, so older recordings show marks only.)"""
+    by video time. MARK rows get a short telemetry summary; other rows their message."""
     out = []
     if not LOGS_DIR.is_dir():
         return out

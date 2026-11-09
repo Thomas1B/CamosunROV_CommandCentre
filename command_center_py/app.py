@@ -12,11 +12,12 @@ from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication
 
-from command_center_py import avlib, controller_profiles
-from command_center_py.gamepad import Gamepad
-from command_center_py.link import DemoLink
-from command_center_py.ui.start_window import MainMenu
-from command_center_py.ui.main_window import ConsoleWindow
+from command_center_py.video import avlib
+from command_center_py.controller import profiles as controller_profiles
+from command_center_py.controller.gamepad import Gamepad
+from command_center_py.vehicle.link import DemoLink
+from command_center_py.ui.menu.main_menu import MainMenu
+from command_center_py.ui.console.main_window import ConsoleWindow
 
 
 ASSETS = Path(__file__).resolve().parent / "ui" / "assets"
@@ -65,7 +66,7 @@ class RovApp:
     def start(self):
         self.menu.showMaximized()  # or showFullScreen() if you want to hide the taskbar
         # Load PyAV (FFmpeg) in the background once the menu has been drawn, so it's ready by
-        # the time the console or VIEW RECORDINGS needs it without delaying the menu (avlib.py).
+        # the time the console or VIEW RECORDINGS needs it without delaying the menu (video/avlib.py).
         QTimer.singleShot(300, avlib.prewarm)
 
     # ---------------- screen switching ----------------

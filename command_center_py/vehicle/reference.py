@@ -2,7 +2,7 @@
 
 Set in the CONNECT VEHICLE dialog (and saved with each vehicle profile), editable
 during a session from the console's File > Reference Values... dialog. The console
-sends them to the Pi (see the reference packet in link.py), which passes them on to
+sends them to the Pi (see the reference packet in vehicle/link.py), which passes them on to
 the STM32 that reads the Bar30.
 
     surface_hpa   surface barometric pressure reference, always held in hPa (= mbar)

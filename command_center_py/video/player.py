@@ -17,7 +17,7 @@ import time
 
 from PySide6.QtGui import QImage
 
-from command_center_py import avlib       # PyAV, loaded on first use (see avlib.py)
+from command_center_py.video import avlib  # PyAV, loaded on first use (see video/avlib.py)
 
 
 def _to_qimage(frame):

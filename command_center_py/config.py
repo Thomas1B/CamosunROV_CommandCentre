@@ -42,12 +42,12 @@ TILT_MIN, TILT_MAX = -45, 45   # camera servo limits in degrees - match SERVO_MI
 TILT_STEP = 5
 ARM_HOLD_S = 1.0
 ZERO_HOLD_S = 5.0        # hold CROSS / A (or the ZERO chip) this long to zero depth - the depth readings
-                         # during the hold are averaged and used as the zero (display only, see main_window.py)
+                         # during the hold are averaged and used as the zero (display only, see ui/console/main_window.py)
 ZERO_CLEAR_HOLD_S = 1.0  # hold CROSS / A this long to clear the zero (a click on REL clears at once)
 MARK_REPEAT_S = 1.0      # SQUARE / X held: one more operator mark every this many seconds
 LINK_TIMEOUT_S = 1.0
 # Bar30 reference values - defaults for the CONNECT dialog (same as the STM32 firmware #defines).
-# The console sends them to the Pi, which passes them to the STM32. See reference.py.
+# The console sends them to the Pi, which passes them to the STM32. See vehicle/reference.py.
 SURFACE_PRESSURE_HPA = 1013.25   # surface barometric pressure reference, hPa (= mbar)
 WATER_DENSITY = 1000.0           # kg/m^3: 1000 fresh water, ~1025 sea water
 SECOND_ORDER_CAL = True          # Bar30 second-order pressure calibration for water below 20 C

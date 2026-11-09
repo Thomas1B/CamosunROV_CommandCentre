@@ -385,7 +385,7 @@ is plugged back in, arm as normal (hold START for 1 s); the ROV never re-arms
 on its own.
 
 On the ROV side, the Pi is expected to zero all thrusters if no valid command
-packet arrives for about 250 ms (see the wire contract in `link.py`).
+packet arrives for about 250 ms (see the wire contract in `command_center_py/vehicle/link.py`).
 
 ### Leak alarm and recovery
 
@@ -413,8 +413,6 @@ fault, so the console does not disarm for it.
 Everything in the EVENT LOG is also saved to a CSV file in the `logs/` folder
 (next to `vehicle_profiles/`), one file per console session, named by the
 vehicle and then the local start time, e.g. `logs/DEMO_2026-10-31_23-44-18.csv`.
-(Files saved by older versions start with the time instead,
-`2026-10-31_23-44-18_DEMO.csv`; VIEW LOGS and VIEW RECORDINGS still read them.)
 Exports and saved video frames are named after the file, so they start with the
 vehicle too.
 The first log line on screen shows the file name. Each row is written to disk

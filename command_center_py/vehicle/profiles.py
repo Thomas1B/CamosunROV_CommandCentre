@@ -2,7 +2,7 @@
 
 File contents, e.g. vehicle_profiles/ROV-01.json:
     {"name": "ROV-01", "ip": "192.168.2.2", "cmd_port": 5600, "telem_port": 5601, "video_port": 5602}
-(video_port is optional; older profiles without it use VIDEO_PORT from config.py)
+(video_port is optional; if it's missing, VIDEO_PORT from config.py is used)
 Bar30 reference values are saved too (optional, defaults from config.py):
     "surface_pressure_hpa": 1013.25, "surface_unit": "hPa", "water_density": 1000.0, "second_order": true
 """
@@ -10,7 +10,7 @@ Bar30 reference values are saved too (optional, defaults from config.py):
 import json
 import re
 
-from command_center_py import reference
+from command_center_py.vehicle import reference
 from command_center_py.config import CMD_PORT, PROFILES_DIR, TELEM_PORT, VIDEO_PORT
 
 

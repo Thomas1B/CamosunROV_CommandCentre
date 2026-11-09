@@ -17,7 +17,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QCheckBox, QDialog, QFrame, QHBoxLayout, QPushButton, QScrollArea,
                                QVBoxLayout, QWidget)
 
-from command_center_py.recordings import Recording, clock
+from command_center_py.video.recordings import Recording, clock
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, DIM, GRID, LABEL, MUTED,
                                         PANEL, WARN, WELL, lab, mono)
 

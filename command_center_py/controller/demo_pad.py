@@ -20,7 +20,7 @@ Script (matches the UI design's simulated input):
 import math
 import time
 
-from command_center_py.gamepad import PAD_BUTTONS, PadState
+from command_center_py.controller.gamepad import PAD_BUTTONS, PadState
 
 
 class DemoPad:

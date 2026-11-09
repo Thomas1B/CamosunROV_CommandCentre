@@ -8,11 +8,11 @@ import re
 
 from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel,
-                               QLineEdit, QPushButton, QSizePolicy, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLineEdit,
+                               QPushButton, QSizePolicy, QVBoxLayout, QWidget)
 
-from command_center_py import reference
-from command_center_py.reference import RefValues
+from command_center_py.vehicle import reference
+from command_center_py.vehicle.reference import RefValues
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD, LABEL,
                                         MUTED, PANEL, WELL, combo_arrow_css, lab, mono)
 
@@ -131,7 +131,7 @@ class RefFields(QWidget):
                 f"QLineEdit:focus {{ border-color: {ACCENT}; }}"
                 f"QLineEdit:disabled {{ color: {LABEL}; }}")
         for b, on, side in ((self.on_btn, self._second, "left"), (self.off_btn, not self._second, "right")):
-            r = (f"border-top-left-radius: 3px; border-bottom-left-radius: 3px;" if side == "left"
+            r = ("border-top-left-radius: 3px; border-bottom-left-radius: 3px;" if side == "left"
                  else "border-top-right-radius: 3px; border-bottom-right-radius: 3px; border-left: none;")
             b.setStyleSheet(f"QPushButton {{ padding: 0 {s(12)}px; border: 1px solid {OK_BORDER if on else GRID}; {r}"
                             f" background: {OK_GREEN if on else HEAD}; color: {ACCENT if on else '#7c8b9c'}; }}"

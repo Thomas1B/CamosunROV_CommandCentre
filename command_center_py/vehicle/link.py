@@ -32,7 +32,7 @@ Reference packet  laptop -> Pi, UDP, CMD_PORT (same port as commands), 16 bytes,
     (its ref_ack no longer matches) the console sends them again automatically.
 
     Leak recovery: after a leak the console sets command flags bit1 (recover) for
-    RECOVER_PULSE_S when the operator holds START / the ARM button (see main_window.py).
+    RECOVER_PULSE_S when the operator holds START / the ARM button (see ui/console/main_window.py).
 
 Telemetry  Pi -> laptop, UDP, TELEM_PORT, JSON object per datagram, any keys optional,
 SI units. A value is null while its sensor is faulted or the STM32 is not answering:
@@ -59,7 +59,7 @@ import time
 
 from command_center_py.config import (DEMO_PACKET_LOSS, LINK_TIMEOUT_S, RATE_HZ, REF_RESEND_S, TILT_MAX,
                                       TILT_MIN, VIDEO_PORT)
-from command_center_py.reference import RefValues
+from command_center_py.vehicle.reference import RefValues
 
 
 CMD_STRUCT = struct.Struct("<2sBBH6bbx")   # 14 bytes, + 2-byte CRC = 16

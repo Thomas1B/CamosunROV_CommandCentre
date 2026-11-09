@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QDialog, QFileDialog, QFrame, 
                                QHeaderView, QPushButton, QTableWidget, QTableWidgetItem, QTabWidget,
                                QVBoxLayout, QWidget)
 
-from command_center_py.event_log import (EVENT_COLS, LABELS, MARK_COLS, SNAPSHOT_FIELDS, export_csv,
+from command_center_py.logs.event_log import (EVENT_COLS, LABELS, MARK_COLS, SNAPSHOT_FIELDS, export_csv,
                                          export_xlsx)
 from command_center_py.ui.theme import (ACCENT, BLUE, BORDER, BORDER2, BRIGHT, DANGER, DIM, GRID, HEAD,
                                         LABEL, MUTED, PANEL, TEXT, WARN, WELL, lab, mono)

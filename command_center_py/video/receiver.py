@@ -39,7 +39,7 @@ import time
 
 from PySide6.QtGui import QImage
 
-from command_center_py import avlib       # PyAV, loaded on first use (see avlib.py)
+from command_center_py.video import avlib  # PyAV, loaded on first use (see video/avlib.py)
 
 OPEN_TIMEOUT_S = 2.0    # waiting for the stream to start (Pi still booting, camera off)
 READ_TIMEOUT_S = 0.5    # stream stopped mid-way -> reopen and wait again (also bounds stop())
