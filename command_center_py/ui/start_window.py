@@ -1182,8 +1182,8 @@ class ControllerProfilesCard(Card):
         wh = QHBoxLayout(wiz)
         wh.setContentsMargins(12, 8, 8, 8)
         wh.setSpacing(8)
-        self.step_lbl = lab("Calibrate: measures drift, deadzone and full range for this controller in three short steps.",
-                            12, SOFT)
+        self.step_lbl = lab("Calibration measures drift, deadzone and full range for this controller in three short steps.",
+                            15, SOFT)   # 25 % larger than the 12 px body text, so the instructions stand out
         self.step_lbl.setWordWrap(True)
         wh.addWidget(self.step_lbl, 1)
         self.cal_btn = button("CALIBRATE", 11, 130,
@@ -1434,7 +1434,7 @@ class ControllerProfilesCard(Card):
         self.cal_btn.setText({None: "CALIBRATE", "ready": "OK", "triggers": "FINISH"}.get(step, "NEXT"))
         self.cal_btn.setToolTip("Skip the rest of this step" if (self.cal is not None and self.cal.stick()) else "")
         if step is None:
-            self.step_lbl.setText("Calibrate: measures drift, deadzone and full range for this controller in three short steps.")
+            self.step_lbl.setText("Calibration measures drift, deadzone and full range for this controller in three short steps.")
         elif step in cp.Calibration.FLICK:
             c = self.cal
             flick = (f"flick it {c.arrow()} to the edge and let go" if c.phase == "push"
