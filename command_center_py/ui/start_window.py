@@ -22,7 +22,7 @@ import threading
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QRectF, Qt, QTimer, QUrl
+from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, QUrl
 from PySide6.QtGui import (QBrush, QColor, QDesktopServices, QFont, QPainter, QPen, QPixmap,
                            QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QComboBox, QFrame, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout,
@@ -92,6 +92,41 @@ def close_x(size):
     x.setStyleSheet(f"QPushButton {{ border: none; border-radius: 2px; color: {LABEL}; background: transparent; }}"
                     f"QPushButton:hover {{ background: {BORDER}; color: {BRIGHT}; }}")
     return x
+
+
+class MaxButton(QPushButton):
+    """Title-bar maximise / restore button, drawn like the Windows one: one square
+    (maximise) or two overlapping squares (restore). Same size and hover as the ✕."""
+
+    def __init__(self, size):
+        super().__init__()
+        self.maximized = False
+        self.setFixedSize(size, size)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setStyleSheet(f"QPushButton {{ border: none; border-radius: 2px; background: transparent; }}"
+                           f"QPushButton:hover {{ background: {BORDER}; }}")
+        self.set_maximized(False)
+
+    def set_maximized(self, on):
+        self.maximized = on
+        self.setToolTip("Restore size (or double-click the title bar)" if on
+                        else "Maximise (or double-click the title bar)")
+        self.update()
+
+    def paintEvent(self, e):
+        super().paintEvent(e)
+        p = QPainter(self)
+        p.setPen(QPen(QColor(BRIGHT if self.underMouse() else LABEL), 1))
+        c, a = self.width() / 2, max(4.0, round(self.width() * 0.2))   # centre, half the square's side
+        if self.maximized:
+            o = round(a * 0.5)                                          # back square: up and right
+            p.drawRect(QRectF(c - a + 0.5, c - a + o + 0.5, 2 * a - o, 2 * a - o))
+            p.drawPolyline([QPointF(c - a + o + 0.5, c - a + o + 0.5), QPointF(c - a + o + 0.5, c - a + 0.5),
+                            QPointF(c + a + 0.5, c - a + 0.5), QPointF(c + a + 0.5, c + a - o + 0.5),
+                            QPointF(c + a - o + 0.5, c + a - o + 0.5)])
+        else:
+            p.drawRect(QRectF(c - a + 0.5, c - a + 0.5, 2 * a, 2 * a))
 
 
 # ============================================================================
@@ -211,6 +246,8 @@ class Card(QFrame):
         hh = QHBoxLayout(head)
         hh.setContentsMargins(s(16), s(12), s(12), s(12))
         hh.addWidget(slab(title, s(14), BRIGHT, QFont.Weight.Bold, s(14) * 0.06), 1)
+        self._head, self._hh, self._s = head, hh, s
+        self.max_btn = None
         self.close_btn = close_x(s(24))
         hh.addWidget(self.close_btn)
         root.addWidget(head)
@@ -226,6 +263,50 @@ class Card(QFrame):
         self.foot_lay.setContentsMargins(s(16), s(10), s(16), s(10))
         self.foot_lay.setSpacing(s(8))
         root.addWidget(self.foot)
+
+    # ---------------- maximise (resizable cards: VIEW LOGS, VIEW RECORDINGS) ----------------
+    def add_maximize(self, grip):
+        """Adds the maximise / restore button left of the ✕ (double-clicking the title bar
+        does the same). Maximised = the whole menu window minus the usual 24 px margin, and it
+        follows the window if that is resized. Dragging the corner grip ends maximised."""
+        self.grip = grip
+        self._restore = None                     # size to go back to, while maximised
+        self.max_btn = MaxButton(self._s(24))
+        self.max_btn.clicked.connect(self.toggle_maximize)
+        self._hh.insertWidget(self._hh.count() - 1, self.max_btn)
+        self._hh.insertSpacing(self._hh.count() - 1, self._s(4))
+        self._head.installEventFilter(self)
+        grip.pressed_hook = self._grip_pressed
+
+    def toggle_maximize(self):
+        if self._restore is None:
+            self._restore = (self.width(), self.height())
+            self.setFixedSize(*self.grip.clamp(10 ** 6, 10 ** 6))
+            self.max_btn.set_maximized(True)
+        else:
+            self.setFixedSize(*self.grip.clamp(*self._restore))
+            self._restore = None
+            self.max_btn.set_maximized(False)
+
+    def refit(self):
+        """Menu window resized: a maximised card follows it; others just stay inside it."""
+        if self.max_btn is None:
+            return
+        if self._restore is not None:
+            self.setFixedSize(*self.grip.clamp(10 ** 6, 10 ** 6))
+        else:
+            self.setFixedSize(*self.grip.clamp(self.width(), self.height()))
+
+    def _grip_pressed(self):
+        if self._restore is not None:            # resizing by hand: no longer "maximised"
+            self._restore = None
+            self.max_btn.set_maximized(False)
+
+    def eventFilter(self, obj, e):
+        if obj is getattr(self, "_head", None) and e.type() == QEvent.Type.MouseButtonDblClick:
+            self.toggle_maximize()
+            return True
+        return super().eventFilter(obj, e)
 
 
 class ControllerMapCard(Card):
@@ -721,6 +802,7 @@ class ResizeGrip(QWidget):
         self.setCursor(Qt.CursorShape.SizeFDiagCursor)
         self.setToolTip("Drag to resize")
         self._start = None
+        self.pressed_hook = None      # set by Card.add_maximize: dragging ends "maximised"
 
     def paintEvent(self, e):
         p = QPainter(self)
@@ -738,6 +820,8 @@ class ResizeGrip(QWidget):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
+            if self.pressed_hook is not None:
+                self.pressed_hook()
             self._start = (e.globalPosition().toPoint(), self.card.width(), self.card.height())
 
     def mouseMoveEvent(self, e):
@@ -814,6 +898,7 @@ class LogsCard(Card):
         self.layout().setStretchFactor(self.body, 1)      # extra height goes to the tables
         self.setFixedSize(1040, 600)
         self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
+        self.add_maximize(self.grip)           # maximise button next to the ✕ (or double-click the title)
 
         # footer: OPEN FOLDER  DELETE  status ........ EXPORT...  CLOSE
         folder = button("OPEN FOLDER", 11, None,
@@ -1532,6 +1617,7 @@ class RecordingsCard(Card):
         self.layout().setStretchFactor(self.body, 1)
         self.setFixedSize(1180, 700)
         self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
+        self.add_maximize(self.grip)           # maximise button next to the ✕ (or double-click the title)
         self.timer = QTimer(self)
         self.timer.setInterval(33)                # ~30 fps display refresh while open
         self.timer.timeout.connect(self._tick)
@@ -1985,6 +2071,8 @@ class MainMenu(QWidget):
         super().resizeEvent(e)
         for ov in (self.connect_ov, self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov):
             ov.setGeometry(self.rect())
+        for card in (self.logs_card, self.rec_card):
+            card.refit()                         # maximised cards follow the window
 
     def keyPressEvent(self, e):
         k = e.key()

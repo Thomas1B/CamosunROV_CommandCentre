@@ -474,7 +474,8 @@ number of events and marks. Pick one (mouse or arrow keys) to see the same
 length and its UTC times. **EXPORT…** saves it as `.xlsx`, `.csv` or `.pdf`.
 **DELETE** removes the file (click twice). **OPEN FOLDER** opens `logs/` in File
 Explorer. Drag the grip in the card's bottom-right corner to resize it (it keeps that
-size until the program closes). Esc, ○ / B, ✕ or CLOSE close the card.
+size until the program closes), or maximise it with the button next to its ✕ (or by
+double-clicking its title bar); click it again to restore. Esc, ✕ or CLOSE close the card.
 
 ### Recording the camera
 
@@ -539,7 +540,8 @@ built-in player, so nothing extra has to be installed.
 - **Keys.** Space play/pause, ← / → 3 s, Shift+← / → 1 s, ↑ / ↓ pick a
   recording, Esc close.
 
-The window can be resized from the bottom-right corner.
+The window can be resized from the bottom-right corner, or maximised with the
+button next to its ✕ (or by double-clicking its title bar); click it again to restore.
 
 ### Depth zero
 
