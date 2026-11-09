@@ -27,15 +27,16 @@ class ControllerProfilesCard(Card):
     """
 
     MIN_W, MIN_H = 900, 560
+    # the counts use non-breaking spaces (\u00a0) so "3 / 12 flicks" always wraps as one piece
     STEP_TEXT = {
         "ready": "Hands off both sticks and both triggers, then press OK to start.",
-        "left_flick": "1a / 3  LEFT STICK — {flick}   {n} / {N} flicks",
-        "left_cw": "1b / 3  LEFT STICK — push it to the edge and rotate CLOCKWISE ↻   {n} / {N} turns",
-        "left_ccw": "1c / 3  LEFT STICK — now rotate COUNTER-CLOCKWISE ↺   {n} / {N} turns",
-        "right_flick": "2a / 3  RIGHT STICK — {flick}   {n} / {N} flicks",
-        "right_cw": "2b / 3  RIGHT STICK — push it to the edge and rotate CLOCKWISE ↻   {n} / {N} turns",
-        "right_ccw": "2c / 3  RIGHT STICK — now rotate COUNTER-CLOCKWISE ↺   {n} / {N} turns",
-        "triggers": "3 / 3  TRIGGERS — press L2 and R2 (LT / RT) all the way down, release, then press FINISH.",
+        "left_flick": "LEFT STICK — {flick}   {n}\u00a0/\u00a0{N}\u00a0flicks",
+        "left_cw": "LEFT STICK — push it to the edge and rotate CLOCKWISE.   {n}\u00a0/\u00a0{N}\u00a0turns",
+        "left_ccw": "LEFT STICK — now rotate COUNTER-CLOCKWISE.   {n}\u00a0/\u00a0{N}\u00a0turns",
+        "right_flick": "RIGHT STICK — {flick}   {n}\u00a0/\u00a0{N}\u00a0flicks",
+        "right_cw": "RIGHT STICK — push it to the edge and rotate CLOCKWISE.   {n}\u00a0/\u00a0{N}\u00a0turns",
+        "right_ccw": "RIGHT STICK — now rotate COUNTER-CLOCKWISE.   {n}\u00a0/\u00a0{N}\u00a0turns",
+        "triggers": "TRIGGERS — press L2 and R2 (LT / RT) all the way down, release, then press FINISH.",
     }
 
     def __init__(self, on_close):
@@ -134,11 +135,12 @@ class ControllerProfilesCard(Card):
         wiz.setObjectName("wiz")
         wiz.setStyleSheet(f"QFrame#wiz {{ background: {HEAD}; border: 1px solid {BORDER}; border-radius: 3px; }}")
         wh = QHBoxLayout(wiz)
-        wh.setContentsMargins(12, 8, 8, 8)
+        wh.setContentsMargins(12, 14, 8, 14)   # 14 px top/bottom: the bar is 25 % taller than with 8 px (59 vs 47 px)
         wh.setSpacing(8)
         self.step_lbl = lab("Calibration measures drift, deadzone and full range for this controller in three short steps.",
                             15, SOFT)   # 25 % larger than the 12 px body text, so the instructions stand out
         self.step_lbl.setWordWrap(True)
+        self.step_lbl.setContentsMargins(0, 0, 32, 0)   # wrap 40 px before the buttons (32 + the 8 px spacing)
         wh.addWidget(self.step_lbl, 1)
         self.cal_btn = button("CALIBRATE", 11, 130,
                               f"padding: 7px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
@@ -391,7 +393,7 @@ class ControllerProfilesCard(Card):
             self.step_lbl.setText("Calibration measures drift, deadzone and full range for this controller in three short steps.")
         elif step in cp.Calibration.FLICK:
             c = self.cal
-            flick = (f"flick it {c.arrow()} to the edge and let go" if c.phase == "push"
+            flick = (f"flick it {c.arrow()} to the edge and let go." if c.phase == "push"
                      else "let go — waiting for it to settle…")
             self.step_lbl.setText(self.STEP_TEXT[step].format(flick=flick, n=c.flicks(), N=cp.Calibration.FLICKS))
         else:
