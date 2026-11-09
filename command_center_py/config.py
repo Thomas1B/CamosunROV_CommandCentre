@@ -72,19 +72,22 @@ INTERNAL_TEMP_CLEAR_C = 43.0
 
 # Thruster mix: (name, role, group, (surge, sway, heave, yaw))
 #   surge = left stick Y, sway = left stick X, heave = R2 - L2, yaw = right stick X
+#   surge + is forward, sway + is right (starboard), heave + is up, yaw + is nose-right
 # Group "H" and "V" are normalised separately so full surge doesn't steal heave.
-# !! VERIFY SIGNS ON THE BENCH WITH PROPS OFF - flip a coefficient's sign
-# !! (or the whole row, for a reversed prop) until each stick does the right thing.
 #
-# How to work out each value. For each thruster and each motion, ask: 
-#   if this thruster pushes positive, does that help the motion (+1), 
-#   work against it (−1), or not affect it (0)? Here’s what each column needs, 
-#   assuming surge + is forward, sway + is right, yaw + is nose-right, heave + is up:
+# Matches ROV_Thruster_Layout.pdf. At positive thrust each thruster pushes the ROV:
+#   T1 front left .. back and to port         T2 front right .. back and to starboard
+#   T4 back left ... back and to starboard    T3 back right ... back and to port
+#   T5 front, T6 back (vertical) .. up
+# Each value is +1 if positive thrust from that thruster helps the motion, -1 if it
+# works against it. All four horizontals push backwards, so surge is -1 on all of them.
+# !! VERIFY ON THE BENCH WITH PROPS OFF. If a thruster pushes the wrong way, fix it in
+# !! hardware (swap any 2 of its 3 motor wires) rather than here, so this keeps matching the PDF.
 THRUSTERS = [
-    ("T1", "Front Left",  "H", (1,  1, 0,  1)),
-    ("T2", "Front Right",  "H", (1, -1, 0, -1)),
-    ("T3", "Back Right",  "H", (1, -1, 0,  1)),
-    ("T4", "Back Left",  "H", (1,  1, 0, -1)),
-    ("T5", "Front Vertical", "V", (0,  0, 1,  0)),
-    ("T6", "Back Vertical", "V", (0,  0, 1,  0)),
+    ("T1", "Front Left",     "H", (-1, -1, 0, -1)),
+    ("T2", "Front Right",    "H", (-1,  1, 0,  1)),
+    ("T3", "Back Right",     "H", (-1, -1, 0,  1)),
+    ("T4", "Back Left",      "H", (-1,  1, 0, -1)),
+    ("T5", "Front Vertical", "V", ( 0,  0, 1,  0)),
+    ("T6", "Back Vertical",  "V", ( 0,  0, 1,  0)),
 ]
