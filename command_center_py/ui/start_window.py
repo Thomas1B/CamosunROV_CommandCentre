@@ -1877,7 +1877,7 @@ class MainMenu(QWidget):
         super().__init__()
         self.pad = pad
         self._on_connected, self._on_demo = on_connected, on_demo
-        self.setWindowTitle("CamosunROV — Command Centre")
+        self.setWindowTitle("Camosun ROV — Command Centre")
         self.setMinimumSize(1100, 720)
         self.resize(1440, 900)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -1911,7 +1911,7 @@ class MainMenu(QWidget):
         tcol = QVBoxLayout()
         tcol.setSpacing(6)
         tcol.addStretch(1)
-        title = QLabel(f'<span style="font-size:60px">CamosunROV</span> - Command Centre')
+        title = QLabel('<span style="font-size:60px">Camosun ROV</span> - Command Centre')
         title.setFont(spaced(mono(44, QFont.Weight.Bold), 0.9))
         title.setStyleSheet(f"color: {BRIGHT}; background: transparent;")
         tcol.addWidget(title)
