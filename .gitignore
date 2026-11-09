@@ -1,11 +1,15 @@
 __pycache__/
 *.pyc
-vehicle_profiles/
-controller_profiles/
+
+# The leading / matches only the folders at the top of the repo. Without it, "logs/"
+# would also ignore the code folder command_center_py/logs/.
+# Saved profiles (each person keeps their own)
+/vehicle_profiles/
+/controller_profiles/
 
 # Virtual environment - each collaborator builds their own (see README)
 .venv/
 # Event log files written by the console (one CSV per session)
-logs/
+/logs/
 # Camera recordings (console REC button)
-recordings/
+/recordings/
