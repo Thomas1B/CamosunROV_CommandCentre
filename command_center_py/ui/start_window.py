@@ -1915,7 +1915,7 @@ class MainMenu(QWidget):
         title.setFont(spaced(mono(44, QFont.Weight.Bold), 0.9))
         title.setStyleSheet(f"color: {BRIGHT}; background: transparent;")
         tcol.addWidget(title)
-        tcol.addWidget(lab(f"v{APP_VERSION} · build {APP_BUILD}", 14, MUTED))
+        tcol.addWidget(lab(f"v{APP_VERSION} · {APP_BUILD}", 14, MUTED))
         tcol.addStretch(1)
         top.addLayout(tcol)
         top.addStretch(1)

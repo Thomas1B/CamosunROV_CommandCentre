@@ -3,8 +3,8 @@
 import sys
 from pathlib import Path
 
-APP_VERSION = "0.5.0"
-APP_BUILD = "2026.10"
+APP_VERSION = "1.0.0"
+APP_BUILD = "2026-12"   # year-month, shown on the main menu (December 2026 = end of the project)
 
 # Defaults shown in the main menu's CONNECT VEHICLE dialog
 DEFAULT_VEHICLE_NAME = "ROV-01"
