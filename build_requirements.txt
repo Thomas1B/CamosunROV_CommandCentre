@@ -1,0 +1,11 @@
+# Camosun ROV Command Centre - build dependencies
+# Only needed by whoever builds the Windows .exe / installer.
+# Everyone else just uses py_requirements.txt.
+#
+# Install (with the venv activated):  python -m pip install -r build_requirements.txt
+#
+# To change a version: edit it here, reinstall, rebuild, test the .exe, then commit.
+
+-r py_requirements.txt       # everything the app itself needs to run
+
+pyinstaller==6.21.0          # bundles the app into dist/CamosunROV/ (folder build)
