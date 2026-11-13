@@ -13,3 +13,7 @@ __pycache__/
 /logs/
 # Camera recordings (console REC button)
 /recordings/
+
+# PyInstaller build output (pyinstaller --noconfirm CamosunROV.spec)
+/build/
+/dist/
