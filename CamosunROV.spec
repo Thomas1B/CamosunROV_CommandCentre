@@ -11,6 +11,7 @@ Output: dist/CamosunROV/
     _internal/       - Python, Qt, FFmpeg, SDL2, our code (don't touch)
     *_profiles/      - only the profiles in SHIP_PROFILES
     logs/, recordings/ - empty folders from SHIP_EMPTY_FOLDERS
+    install.bat, uninstall.bat - from SHIP_SCRIPTS
 
 --noconfirm wipes dist/CamosunROV/ on every build.
 """
@@ -38,6 +39,9 @@ SHIP_EMPTY_FOLDERS = [
     "logs",
     "recordings",
 ]
+
+# Repo files copied next to the .exe (by file name only). Add/remove lines, then rebuild.
+SHIP_SCRIPTS = []
 
 # ===========================================================================
 # BUILD STEPS: Analysis -> PYZ -> EXE -> COLLECT
@@ -78,7 +82,7 @@ coll = COLLECT(
 )
 
 # ===========================================================================
-# AFTER THE BUILD - copy SHIP_PROFILES and create SHIP_EMPTY_FOLDERS next to the .exe
+# AFTER THE BUILD - copy SHIP_PROFILES and SHIP_SCRIPTS, create SHIP_EMPTY_FOLDERS next to the .exe
 # (config.py looks there when frozen, not in _internal/)
 # ===========================================================================
 
@@ -97,3 +101,10 @@ for rel in SHIP_PROFILES:
 for folder in SHIP_EMPTY_FOLDERS:
     (out_dir / folder).mkdir(parents=True, exist_ok=True)   # create dist/CamosunROV/<folder>/
     print(f"Shipped empty folder: {folder}")
+
+for rel in SHIP_SCRIPTS:
+    src = ROOT / rel
+    if not src.is_file():
+        raise SystemExit(f"SHIP_SCRIPTS: {rel} not found in the repo")
+    shutil.copy2(src, out_dir / src.name)   # installer/install.bat -> dist/CamosunROV/install.bat
+    print(f"Shipped script: {src.name}")
