@@ -52,7 +52,6 @@ ICON = ROOT / "command_center_py" / "ui" / "assets" / "CamosunROV_Logo.ico"
 # ---------------------------------------------------------------------------
 SHIP_PROFILES = [
     "vehicle_profiles/ROV-01.json",
-    "controller_profiles/CamosunROV.json",
 ]
 
 # ===========================================================================
