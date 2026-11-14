@@ -1,125 +1,89 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
 PyInstaller build recipe for the Camosun ROV Command Centre.
+Builds a exe program of the command centre.
 
-A .spec file is a normal Python script that PyInstaller runs. It replaces a long
-"pyinstaller ..." command line, so every build uses the same settings.
-
-Build (venv activated, from the repo root - the folder this file is in):
+Build (venv activated, from the repo root):
     pyinstaller --noconfirm CamosunROV.spec
 
-Output:
-    dist/CamosunROV/CamosunROV.exe          <- double-click this to test
-    dist/CamosunROV/_internal/              <- Python, Qt, FFmpeg, SDL2, our code (don't touch)
-    dist/CamosunROV/vehicle_profiles/       <- only the profiles listed in SHIP_PROFILES below
-    dist/CamosunROV/controller_profiles/    <- only the profiles listed in SHIP_PROFILES below
+Output: dist/CamosunROV/
+    CamosunROV.exe   - run this
+    _internal/       - Python, Qt, FFmpeg, SDL2, our code (don't touch)
+    *_profiles/      - only the profiles in SHIP_PROFILES
 
-logs/ and recordings/ are NOT shipped: the program creates them next to the .exe
-the first time it saves a log or recording.
-
---noconfirm wipes dist/CamosunROV/ on every build, including any logs, recordings or
-profiles you saved while testing the built .exe.
-
-PyInstaller also makes a build/ folder (temporary working files). It can be deleted
-at any time; both build/ and dist/ are in .gitignore.
+logs/ and recordings/ are created by the app when first used.
+--noconfirm wipes dist/CamosunROV/ on every build.
 """
 
-import shutil              # file copying (used for the shipped profiles at the bottom)
-from pathlib import Path   # path handling that works with / on Windows too
+import shutil
+from pathlib import Path
 
 # ===========================================================================
-# SETTINGS - the parts you are likely to change
+# SETTINGS
 # ===========================================================================
 
-# Name of the .exe and of its folder in dist/  ->  i.e: dist/CamosunROV/CamosunROV.exe
-APP_NAME = "CamosunROV"
+APP_NAME = "CamosunROV"   # .exe and folder name; keep it without spaces
+ROOT = Path(SPECPATH)     # repo root (SPECPATH = this file's folder, set by PyInstaller)
 
-# SPECPATH is provided by PyInstaller: the folder this .spec file is in (the repo root).
-# Every path below is built from ROOT, so the build works no matter which folder
-# the terminal is in.
-ROOT = Path(SPECPATH)
-
-# Program icon for the .exe file itself (Explorer, desktop shortcut).
-# Must be the same file app.py loads for the window/taskbar icon (ICON_ICO in app.py).
+# .exe icon - must match ICON_ICO in app.py
 ICON = ROOT / "command_center_py" / "ui" / "assets" / "CamosunROV_Logo.ico"
 
-# ---------------------------------------------------------------------------
-# PROFILES SHIPPED WITH THE BUILD
-# Each line is a profile file in this repo, copied to the same place next to
-# CamosunROV.exe. To add one: save it from the app, then add its line here.
-# To remove one: delete (or # comment out) its line. Ship none: SHIP_PROFILES = []
-# Rebuild after any change.
-# ---------------------------------------------------------------------------
+# Profiles copied next to the .exe. Add/remove lines, then rebuild. None: []
 SHIP_PROFILES = [
     "vehicle_profiles/ROV-01.json",
 ]
 
 # ===========================================================================
-# BUILD STEPS - PyInstaller runs these four in order:
-#   Analysis -> PYZ -> EXE -> COLLECT
+# BUILD STEPS: Analysis -> PYZ -> EXE -> COLLECT
 # ===========================================================================
 
-# 1: Analysis: start at rov_console.py and follow every import (our command_center_py
-#    package, PySide6, pygame, av, openpyxl, ...) to find every Python module and
-#    DLL the program needs.
+# 1: Analysis - follow imports from rov_console.py to find every module and DLL
 a = Analysis(
-    [str(ROOT / "rov_console.py")],   # the entry script - the same file you run with "py rov_console.py"
-    pathex=[str(ROOT)],               # extra folder to search for imports (so command_center_py is found)
-    # Non-Python files the code loads at run time. Analysis only follows imports, so it
-    # can't find these on its own. Format: (source folder, folder inside _internal/).
-    # The destination matches the source path so app.py, theme.py and main_menu.py,
-    # which find assets relative to their own file, still find them in the build.
+    [str(ROOT / "rov_console.py")],   # entry script
+    pathex=[str(ROOT)],               # so command_center_py is found
+    # non-Python files: (source, destination inside _internal/)
     datas=[(str(ROOT / "command_center_py" / "ui" / "assets"), "command_center_py/ui/assets")],
-    hiddenimports=[],   # modules PyInstaller misses (imported by string, etc.) - add here if
-                        # the built .exe says "ModuleNotFoundError: No module named ..."
-    excludes=[],        # modules to leave out on purpose (to shrink the build) - none for now
+    hiddenimports=[],   # add a module here if the .exe says ModuleNotFoundError
+    excludes=[],
 )
 
-# 2: PYZ: pack all the pure-Python modules Analysis found (our code + libraries)
-#    into one compressed archive inside _internal/.
+# 2: PYZ - pack the Python modules into one archive
 pyz = PYZ(a.pure)
 
-# 3: EXE: build CamosunROV.exe - a small launcher that starts Python and runs
-#    rov_console.py from the PYZ archive.
+# 3: EXE - the launcher
 exe = EXE(
-    pyz,
-    a.scripts,
-    [],
+    pyz,                     # the archive of our Python code + libraries (step 2)
+    a.scripts,               # the entry script (rov_console.py) the launcher runs first
+    [],                      # Python run-time options passed at start-up - none
     exclude_binaries=True,   # folder build: DLLs go in _internal/, not inside the .exe
-    name=APP_NAME,
-    icon=str(ICON),
-    console=True,            # keep the terminal window for debug prints; False hides it
-    upx=False,               # UPX compression triggers antivirus false positives
+    name=APP_NAME,           # file name of the launcher -> CamosunROV.exe
+    icon=str(ICON),          # icon shown on the .exe in Explorer and on shortcuts
+    console=False,            # show terminal for debug; False hides it
+    upx=False,               # UPX triggers antivirus false positives
 )
 
-# 4: COLLECT: put the .exe, the DLLs (Qt, FFmpeg, SDL2, Python) and the data files
-#    together in dist/CamosunROV/ - this folder is the finished program.
+# 4: COLLECT - gather everything into dist/CamosunROV/
 coll = COLLECT(
-    exe,
-    a.binaries,   # DLLs / .pyd files found by Analysis
-    a.datas,      # the assets folder from datas= above (plus data files libraries need)
-    name=APP_NAME,
-    upx=False,    # same reason as in EXE
+    exe,            # the launcher from step 3 -> CamosunROV.exe
+    a.binaries,     # DLLs and .pyd files (Python, Qt, FFmpeg, SDL2) -> _internal/
+    a.datas,        # data files (our UI assets + files libraries need) -> _internal/
+    name=APP_NAME,  # output folder name -> dist/CamosunROV/
+    upx=False,      # no UPX compression on the DLLs either (antivirus)
 )
 
 # ===========================================================================
-# AFTER THE BUILD - copy the shipped profiles next to the .exe
+# AFTER THE BUILD - copy SHIP_PROFILES next to the .exe
+# (config.py looks there when frozen, not in _internal/)
 # ===========================================================================
-# config.py looks for vehicle_profiles/ and controller_profiles/ next to the .exe
-# when frozen (TOP_DIR), not inside _internal/. datas= above would put them in
-# _internal/, so they are copied here by hand instead.
 
-# DISTPATH is provided by PyInstaller: the dist/ folder.
-out_dir = Path(DISTPATH) / APP_NAME   # dist/CamosunROV/
+out_dir = Path(DISTPATH) / APP_NAME   # dist/CamosunROV/ (DISTPATH set by PyInstaller)
 
 for rel in SHIP_PROFILES:
-    src = ROOT / rel                  # e.g. <repo>/vehicle_profiles/ROV-01.json
-    # Stop the build with a clear message if a listed profile doesn't exist
-    # (the profile folders are in .gitignore, so a fresh clone won't have them).
-    if not src.is_file():
+    src = ROOT / rel
+    if not src.is_file():   # profile folders are gitignored, so a fresh clone may lack them
         raise SystemExit(f"SHIP_PROFILES: {rel} not found in the repo - "
                          f"save it from the app first, or remove its line from CamosunROV.spec")
-    dst = out_dir / rel               # e.g. dist/CamosunROV/vehicle_profiles/ROV-01.json
-    dst.parent.mkdir(parents=True, exist_ok=True)   # create vehicle_profiles/ etc. if needed
-    shutil.copy2(src, dst)            # copy the file (copy2 also keeps its modified date)
+    dst = out_dir / rel
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dst)
     print(f"Shipped profile: {rel}")
