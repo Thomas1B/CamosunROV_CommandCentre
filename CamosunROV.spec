@@ -63,4 +63,37 @@ exe = EXE(
     [],                      # Python run-time options passed at start-up - none
     exclude_binaries=True,   # folder build: DLLs go in _internal/, not inside the .exe
     name=APP_NAME,           # file name of the launcher -> CamosunROV.exe
-    icon=str(ICON),          # icon shown on the .exe in Explorer
+    icon=str(ICON),          # icon shown on the .exe in Explorer and on shortcuts
+    console=False,           # show terminal for debug; False hides it
+    upx=False,               # UPX triggers antivirus false positives
+)
+
+# 4: COLLECT - gather everything into dist/CamosunROV/
+coll = COLLECT(
+    exe,            # the launcher from step 3 -> CamosunROV.exe
+    a.binaries,     # DLLs and .pyd files (Python, Qt, FFmpeg, SDL2) -> _internal/
+    a.datas,        # data files (our UI assets + files libraries need) -> _internal/
+    name=APP_NAME,  # output folder name -> dist/CamosunROV/
+    upx=False,      # no UPX compression on the DLLs either (antivirus)
+)
+
+# ===========================================================================
+# AFTER THE BUILD - copy SHIP_PROFILES and create SHIP_EMPTY_FOLDERS next to the .exe
+# (config.py looks there when frozen, not in _internal/)
+# ===========================================================================
+
+out_dir = Path(DISTPATH) / APP_NAME   # dist/CamosunROV/ (DISTPATH set by PyInstaller)
+
+for rel in SHIP_PROFILES:
+    src = ROOT / rel
+    if not src.is_file():   # profile folders are gitignored, so a fresh clone may lack them
+        raise SystemExit(f"SHIP_PROFILES: {rel} not found in the repo - "
+                         f"save it from the app first, or remove its line from CamosunROV.spec")
+    dst = out_dir / rel
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dst)
+    print(f"Shipped profile: {rel}")
+
+for folder in SHIP_EMPTY_FOLDERS:
+    (out_dir / folder).mkdir(parents=True, exist_ok=True)   # create dist/CamosunROV/<folder>/
+    print(f"Shipped empty folder: {folder}")
