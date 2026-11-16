@@ -201,8 +201,8 @@ reference values).
 | X | SQUARE | Operator mark (hold: one per second) |
 | SPACE | SPACE | E-STOP (console window focused) |
 
-Help > Dualshock3 Map / Xbox Map shows both layouts, and Help > Keyboard Map lists
-the keyboard keys and on-screen buttons.
+Help > Controller Maps shows the DualShock 3, Xbox and keyboard maps, one tab each
+(Left / Right switch tabs), like CONTROLLER MAP on the main menu.
 
 > **Keyboard:** SPACE is the only key that acts on the ROV. Arming, CONNECT,
 > reference values and the demo leak toggle use the controller or mouse; the

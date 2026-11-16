@@ -6,7 +6,7 @@
     DEMO MODE ......... opens the console with a simulated vehicle (nothing transmitted)
     VIEW LOGS ......... saved console session logs (logs/): preview, export, delete
     VIEW RECORDINGS ... camera recordings (recordings/): built-in player, marks, open folder
-    CONTROLLER MAP .... DualShock 3 and Xbox button maps side by side
+    CONTROLLER MAP .... DualShock 3, Xbox and keyboard maps, one tab each
     CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
     QUIT .............. closes the program
 
@@ -288,6 +288,7 @@ class MainMenu(QWidget):
         elif item == "DEMO MODE":
             self._on_demo()
         elif item == "CONTROLLER MAP":
+            self.map_card.opened()
             self.open_overlay(self.map_ov)
         elif item == "CONTROLLER PROFILES":
             self.open_overlay(self.ctl_ov)
@@ -338,6 +339,8 @@ class MainMenu(QWidget):
         if self.overlay is self.map_ov:
             if k in (Qt.Key.Key_Escape, Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 self.close_overlay()
+            elif k in (Qt.Key.Key_Left, Qt.Key.Key_Right):
+                self.map_card.step(-1 if k == Qt.Key.Key_Left else 1)
             return
         if self.overlay is self.rec_ov:
             if not self.rec_card.key(e):

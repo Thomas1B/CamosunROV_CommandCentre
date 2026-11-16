@@ -222,9 +222,7 @@ class ConsoleWindow(QMainWindow):
             m = mb.addMenu("Demo")
             m.addAction("Toggle Simulated Leak", self._demo_toggle_leak)
         m = mb.addMenu("Help")
-        m.addAction("Dualshock3 Map", lambda: self.show_controller_map("ds3"))
-        m.addAction("Xbox Map", lambda: self.show_controller_map("xbox"))
-        m.addAction("Keyboard Map", lambda: self.show_controller_map("keyboard"))
+        m.addAction("Controller Maps", self.show_controller_map)      # DUALSHOCK 3 / XBOX / KEYBOARD tabs
 
     def _build_toolbar(self):
         bar = QFrame()
@@ -783,7 +781,8 @@ class ConsoleWindow(QMainWindow):
             self._refs_ack_logged = False
             self.log("CFG", f"Reference values — {dlg.result_refs.summary()} (sending to Pi)", ACCENT)
 
-    def show_controller_map(self, kind="ds3"):
+    def show_controller_map(self, kind=None):
+        """Help > Controller Maps, on the tab for the layout in use (or `kind`)."""
         ControllerMapDialog(self, kind, ARM_HOLD_S, scale=fs(100) / 100).exec()
 
     # ---------------- control loop ----------------

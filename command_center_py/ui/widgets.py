@@ -6,10 +6,10 @@ from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import (QColor, QFont, QLinearGradient, QPainter, QPainterPath,
                            QPen, QPixmap, QRadialGradient)
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
-                               QVBoxLayout, QWidget)
+                               QTabWidget, QVBoxLayout, QWidget)
 
 from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, FROZEN, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S
-from command_center_py.ui.theme import (PANEL, HEAD, WELL, BORDER, BORDER2, GRID, TEXT, BRIGHT,
+from command_center_py.ui.theme import (MONO, PANEL, HEAD, WELL, BORDER, BORDER2, GRID, TEXT, BRIGHT,
                           MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, VALUE_PX, UNIT_PX, fs, mono, lab)
 
 
@@ -512,7 +512,7 @@ class StatusRow(QFrame):
 
 # ============================================================================
 # CONTROLLER MAPS  (console Help > ... Map, and the main menu's CONTROLLER MAP card)
-# and the KEYBOARD MAP (console Help > Keyboard Map)
+# and the KEYBOARD MAP: one tab each in both (map_tabs)
 # ============================================================================
 # Button names per controller. SDL reports both pads with the same layout, so
 # each Xbox button sits where the matching DualShock 3 button is.
@@ -570,13 +570,15 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
 
 
 def keyboard_map_body(arm_hold_s, scale=1.0):
-    """KEYBOARD / MOUSE list for the console's Help > Keyboard Map. Driving is controller-only;
+    """KEYBOARD / MOUSE list: the KEYBOARD tab of the console's Help > Controller Maps and the
+    main menu's CONTROLLER MAP card. Driving is controller-only;
     the keyboard has E-STOP and the dialog keys, and the rest is done with the mouse."""
     sections = [
         ("KEYBOARD", [
             (["SPACE"], "E-STOP: disarm and zero all thrusters", DANGER),
-            (["ESC"], "Close a Help map, or cancel Reference Values", None),
-            (["ENTER"], "OK on a Help map", None),
+            (["LEFT", "RIGHT"], "Switch tabs in Controller Maps", None),
+            (["ESC"], "Close Controller Maps, or cancel Reference Values", None),
+            (["ENTER"], "OK in Controller Maps", None),
         ] + ([] if FROZEN else [      # the .exe has no terminal, so Ctrl+C only applies to "py rov_console.py"
             (["CTRL", "C"], "In the terminal: disarm, send zero thrust and exit", None),
         ])),
@@ -621,16 +623,69 @@ def _map_body(sections, scale, chip_w=124):
     return body
 
 
+MAP_TABS = (("ds3", "DUALSHOCK 3"), ("xbox", "XBOX"), ("keyboard", "KEYBOARD"))
+
+
+def map_tabs(arm_hold_s, scale=1.0, margins=(16, 4, 16, 18)):
+    """DUALSHOCK 3 / XBOX / KEYBOARD tabs, one map each. Shared by the main menu's CONTROLLER
+    MAP card and the console's Help > Controller Maps. The tab bar takes no focus, so the
+    window's Left / Right keys can switch tabs (map_tab_step)."""
+    z = lambda v: round(v * scale)
+    tabs = QTabWidget()
+    tabs.setDocumentMode(True)
+    tabs.tabBar().setDrawBase(False)
+    tabs.tabBar().setFont(mono(z(11), QFont.Weight.DemiBold))
+    tabs.tabBar().setFocusPolicy(Qt.FocusPolicy.NoFocus)
+    tabs.setStyleSheet(                                            # same tabs as VIEW LOGS
+        f"QTabWidget::pane {{ border: none; background: {PANEL}; }}"
+        f"QTabBar::tab {{ background: {PANEL}; color: {LABEL}; padding: {z(8)}px {z(14)}px;"
+        f" font-family: {', '.join(repr(f) if ' ' in f else f for f in MONO)}; font-size: {z(11)}px; font-weight: 600;"
+        f" border: none; border-bottom: 2px solid transparent; }}"
+        f"QTabBar::tab:selected {{ color: {BRIGHT}; border-bottom: 2px solid {ACCENT}; }}"
+        f"QTabBar::tab:hover {{ color: {BRIGHT}; }}")
+    for kind, name in MAP_TABS:
+        page = QFrame()
+        page.setObjectName("mapPage")
+        page.setStyleSheet(f"QFrame#mapPage {{ background: {PANEL}; }}")
+        pv = QVBoxLayout(page)
+        pv.setContentsMargins(*margins)
+        pv.setSpacing(0)
+        pv.addWidget(keyboard_map_body(arm_hold_s, scale) if kind == "keyboard"
+                     else controller_map_body(kind, arm_hold_s, scale))
+        pv.addStretch(1)
+        tabs.addTab(page, name)
+    return tabs
+
+
+def map_tab_show(tabs, kind):
+    """Show one tab: "ds3", "xbox" or "keyboard" (anything else: the layout in use)."""
+    kinds = [k for k, _ in MAP_TABS]
+    kind = kind if kind in kinds else LAYOUT["kind"]
+    tabs.setCurrentIndex(kinds.index(kind) if kind in kinds else 0)
+
+
+def map_tab_step(tabs, d):
+    """Left / Right: previous / next tab (wraps)."""
+    tabs.setCurrentIndex((tabs.currentIndex() + d) % tabs.count())
+
+
+def map_tabs_hint(foot_lay, px, soft=TEXT, label=LABEL):
+    """Footer hint: LEFT / RIGHT switch tabs · ESC to close."""
+    foot_lay.addWidget(lab("LEFT / RIGHT", px, soft))
+    foot_lay.addWidget(lab("switch tabs ·", px, label))
+    foot_lay.addWidget(lab("ESC", px, soft))
+    foot_lay.addWidget(lab("to close", px, label))
+
+
 class ControllerMapDialog(QDialog):
-    """Modal card listing what each button does. Esc, ✕ or OK closes it.
-    kind: "ds3" or "xbox" (controller map), or "keyboard" (Keyboard Map)."""
+    """Console Help > Controller Maps: the DUALSHOCK 3 / XBOX / KEYBOARD tabs (same as the main
+    menu's CONTROLLER MAP card). Opens on `kind`, or on the layout in use when kind is None.
+    Left / Right switch tabs; Esc, the close button or OK closes it."""
 
     def __init__(self, parent, kind, arm_hold_s, scale=1.0):
         super().__init__(parent)
-        keyboard = kind == "keyboard"
-        title = "Keyboard Map" if keyboard else CONTROLLER_MAPS[kind]["title"]
         z = lambda v: round(v * scale)
-        self.setWindowTitle(title)
+        self.setWindowTitle("Controller Maps")
         self.setModal(True)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setStyleSheet(f"QDialog {{ background: {PANEL}; border: 1px solid {BORDER2}; }}")
@@ -645,21 +700,22 @@ class ControllerMapDialog(QDialog):
         head.setStyleSheet(f"QFrame#mapHead {{ background: {HEAD}; border-bottom: 1px solid {BORDER}; }}")
         hh = QHBoxLayout(head)
         hh.setContentsMargins(14, 8, 8, 8)
-        hh.addWidget(lab(title, z(13), "#c9d3de", QFont.Weight.Bold), 1)
+        hh.addWidget(lab("Controller Maps", z(13), "#c9d3de", QFont.Weight.Bold), 1)
         x = QPushButton("✕")
         x.setFixedSize(z(22), z(22))
         x.setFont(mono(z(12)))
         x.setCursor(Qt.CursorShape.PointingHandCursor)
+        x.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         x.setStyleSheet(f"QPushButton {{ border: none; border-radius: 2px; color: {LABEL}; background: transparent; }}"
                         f"QPushButton:hover {{ background: {BORDER}; color: {BRIGHT}; }}")
         x.clicked.connect(self.accept)
         hh.addWidget(x)
         root.addWidget(head)
 
-        # body: DRIVE / VEHICLE / CONSOLE sections (or KEYBOARD / MOUSE)
-        body = keyboard_map_body(arm_hold_s, scale) if keyboard else controller_map_body(kind, arm_hold_s, scale)
-        body.layout().setContentsMargins(14, 6, 14, 4)
-        root.addWidget(body)
+        # body: the three tabs
+        self.tabs = map_tabs(arm_hold_s, scale, margins=(14, 4, 14, 4))
+        map_tab_show(self.tabs, kind)
+        root.addWidget(self.tabs)
 
         # footer
         foot = QFrame()
@@ -667,10 +723,7 @@ class ControllerMapDialog(QDialog):
         foot.setStyleSheet(f"QFrame#mapFoot {{ background: #0a0e13; border-top: 1px solid {BORDER}; }}")
         fh = QHBoxLayout(foot)
         fh.setContentsMargins(14, 10, 14, 10)
-        if not keyboard:     # the Keyboard Map lists SPACE itself
-            fh.addWidget(lab("Keyboard", z(10), LABEL))
-            fh.addWidget(key_chip("SPACE", DANGER, "#7f2b2e", z(10)))
-            fh.addWidget(lab("— E-STOP", z(10), LABEL))
+        map_tabs_hint(fh, z(10))
         fh.addStretch(1)
         ok = QPushButton("OK")
         ok.setFixedWidth(z(72))
@@ -686,6 +739,12 @@ class ControllerMapDialog(QDialog):
         root.addWidget(foot)
         # Widen to fit the longest line in the installed font (no wrapping, nothing cut off).
         self.setFixedWidth(max(z(440), self.sizeHint().width() + z(8)))
+
+    def keyPressEvent(self, e):
+        if e.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right):
+            map_tab_step(self.tabs, -1 if e.key() == Qt.Key.Key_Left else 1)
+        else:
+            super().keyPressEvent(e)     # Esc closes, Enter presses OK
 
     def showEvent(self, e):
         super().showEvent(e)

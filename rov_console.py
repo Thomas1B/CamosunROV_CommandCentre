@@ -14,7 +14,7 @@ MAIN MENU
                         after 5 s with no answer the dialog stays open so you can retry.
                         Profiles are saved in vehicle_profiles/ (one JSON file each).
     DEMO MODE ......... simulated vehicle and telemetry, nothing transmitted
-    CONTROLLER MAP .... DualShock 3 and Xbox button maps
+    CONTROLLER MAP .... DualShock 3, Xbox and keyboard maps (tabs)
     QUIT .............. exit
     Closing the console window returns to the main menu - only allowed while DISARMED.
     Ctrl+C in this terminal disarms, sends zero-thrust frames and exits from anywhere.
