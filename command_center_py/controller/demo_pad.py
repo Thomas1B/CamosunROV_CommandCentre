@@ -13,8 +13,11 @@ Script (matches the UI design's simulated input):
                        SQUARE at 17 s (operator mark)
                        TRIANGLE at 31 s and 35 s (units on / off)
                        CROSS held 5-10.5 s (zero depth, 5 s averaged), again 36-37.5 s (clear)
-    when disarmed .... (E-STOP, START tap, menu) centre the sticks, wait 2 s,
-                       hold START to re-arm
+    when disarmed .... for any reason (E-STOP, ARM button, menu, a failsafe such as a leak):
+                       sticks stay centred and it never re-arms by itself. It carries on once
+                       the operator re-arms (a controller's START or the ARM button, held 1 s),
+                       or starts over after Demo > Reset Demo (reset()).
+                       (Until its first arm it retries every 4 s, in case that arm was refused.)
 """
 
 import math
@@ -32,6 +35,7 @@ class DemoPad:
         self.error = None            # the real pad's errors are reported by the menu, not here
         self.t0 = time.monotonic()
         self._disarmed_at = None
+        self.has_armed = False       # armed at least once since the start / last reset
 
     def snapshot(self) -> PadState:
         real = self.real.snapshot()
@@ -43,6 +47,7 @@ class DemoPad:
         """Demo > Reset Demo: start the script again from 0 s (centre, hold START to arm, ...)."""
         self.t0 = time.monotonic()
         self._disarmed_at = None
+        self.has_armed = False
 
     def close(self):
         pass                         # the real Gamepad is owned and closed by the app
@@ -54,10 +59,12 @@ class DemoPad:
         def tap(p, at):
             return at <= p < at + 0.15
 
-        if t < 3.0:
+        if self.has_armed and not self.is_armed():
+            pass                                              # disarmed: hold still, never re-arm
+        elif t < 3.0:
             b["start"] = 1.2 <= t < 2.6                       # hold START -> ARM
         elif not self.is_armed():
-            # disarmed: centre the sticks, wait 2 s, hold START to re-arm (retry every 4 s)
+            # first arm refused: centre the sticks, wait 2 s, hold START again (retry every 4 s)
             if self._disarmed_at is None:
                 self._disarmed_at = t
             d = t - self._disarmed_at
@@ -66,6 +73,7 @@ class DemoPad:
                 self._disarmed_at = t
         else:
             self._disarmed_at = None
+            self.has_armed = True                             # armed (by the script or the operator)
             w = t - 3.0
             p = w % 40.0
             ease = min(1.0, w / 2.0)                          # sticks ease in after arming

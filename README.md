@@ -402,6 +402,9 @@ no camera.
 
 - With no controller plugged in, a simulated controller arms and runs through
   the controls on a 40 s loop. A real controller takes over immediately.
+  Once disarmed (E-STOP, disarm or a failsafe such as a simulated leak), it
+  never re-arms by itself: re-arm by holding ARM (or a controller's START)
+  for 1 s, or choose **Demo > Reset Demo**.
 - The simulated link drops a burst of command packets every 6–15 s to exercise
   the packet-loss display.
 - **Demo > Reset Demo** disarms and starts the demo over: the simulated vehicle

@@ -680,6 +680,15 @@ class ConsoleWindow(QMainWindow):
             self.armed = False
             # the log says what happened, not where it came from; failsafe disarms keep their cause
             self.log(tag, "Thrusters disarmed" + ("" if tag == "ARM" else f" — {reason}"), color)
+            if tag != "DEMO":                # not Demo > Reset Demo (which starts the script over)
+                self._demo_hold()
+
+    def _demo_hold(self):
+        """Demo mode: after any disarm or E-STOP the simulated controller stays disarmed (it never
+        re-arms by itself, see controller/demo_pad.py) - say how to carry on."""
+        if isinstance(self.pad, DemoPad) and self.pad.has_armed and not self.pad.real.snapshot().connected:
+            self.log("DEMO", f"Simulated controller stopped — hold ARM {ARM_HOLD_S:.0f} s to re-arm, "
+                             "or Demo > Reset Demo", MUTED)
 
     def estop(self, source):
         was = self.armed
@@ -689,6 +698,8 @@ class ConsoleWindow(QMainWindow):
         self.throttles = [0] * 6
         self.link.send(False, self.throttles, self.tilt)   # send zero frame immediately
         self.log("ESTOP", "E-STOP" + ("" if was else " (already disarmed)"), DANGER)
+        if was:
+            self._demo_hold()
 
     def toggle_arm_click(self):
         """Vehicle ▸ Arm / Disarm: disarms; arming needs a 1 s hold (ARM button or START)."""
