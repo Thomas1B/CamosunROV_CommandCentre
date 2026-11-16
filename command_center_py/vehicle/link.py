@@ -278,6 +278,18 @@ class DemoLink(Link):
         self.leak_latched = False     # simulated STM32 FAULT_LEAK, cleared only by a dry recover
         self._last_recover = False
 
+    def reset(self):
+        """Demo > Reset Demo: put the simulated vehicle back where it started (depth, heading,
+        temperature, leak sensor dry and no latched leak). Packet counters and the reference
+        values the simulated Pi is using are kept."""
+        self.depth = 12.4
+        self.heading = 214.0
+        self.t0 = time.monotonic()
+        self.temp = 39.5
+        self.leak_wet = False
+        self.leak_latched = False
+        self._last_recover = False
+
     def toggle_leak(self):
         """Demo only: make the simulated leak sensor wet / dry."""
         self.leak_wet = not self.leak_wet

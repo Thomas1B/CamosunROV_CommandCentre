@@ -39,6 +39,11 @@ class DemoPad:
             return real
         return self._simulate(time.monotonic() - self.t0)
 
+    def reset(self):
+        """Demo > Reset Demo: start the script again from 0 s (centre, hold START to arm, ...)."""
+        self.t0 = time.monotonic()
+        self._disarmed_at = None
+
     def close(self):
         pass                         # the real Gamepad is owned and closed by the app
 

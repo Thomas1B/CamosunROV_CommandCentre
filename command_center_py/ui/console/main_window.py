@@ -220,6 +220,7 @@ class ConsoleWindow(QMainWindow):
         m.addAction(a)
         if hasattr(self.link, "toggle_leak"):  # demo only: make the simulated leak sensor wet / dry
             m = mb.addMenu("Demo")
+            m.addAction("Reset Demo", self._demo_reset)
             m.addAction("Toggle Simulated Leak", self._demo_toggle_leak)
         m = mb.addMenu("Help")
         m.addAction("Controller Maps", self.show_controller_map)      # DUALSHOCK 3 / XBOX / KEYBOARD tabs
@@ -597,6 +598,31 @@ class ConsoleWindow(QMainWindow):
         self.log_view.append(f'<span style="color:#4d5d6d">{t}</span>&nbsp;&nbsp;'
                              f'<span style="color:{color}; font-weight:600">{tagp}</span>&nbsp;'
                              f'<span style="color:{DIM}">{html.escape(msg)}</span>')
+
+    def _demo_reset(self):
+        """Demo > Reset Demo: disarm and start the demo over in place - simulated vehicle back to its
+        start (depth, heading, leak dry), simulated controller script from the beginning, and camera
+        tilt, thrust gain, depth zero and units back to their defaults. The event log carries on."""
+        self.disarm("demo reset", "DEMO", MUTED)      # logs only if it was armed
+        self.throttles = [0] * 6
+        self.arm_hold_start = self.btn_hold_start = None
+        self.link.reset()
+        if isinstance(self.pad, DemoPad):
+            self.pad.reset()
+        self.tilt = 0
+        self.gain_idx = DEFAULT_GAIN_INDEX
+        self.tare = None
+        self.zero_hold_start, self.zero_hold_src, self.zero_samples = None, None, []
+        self.clear_hold_start = None
+        self.repeat_at = {}
+        self.leak_alarmed = False
+        self._tilt_lock_logged = False
+        self.recover_until, self.recover_deadline = 0.0, None
+        for c in self.metrics.values():
+            c.set_imperial(False)
+        self._update_metrics()
+        self.log("DEMO", "Demo reset — simulated vehicle, controller script, tilt, gain, depth zero and units "
+                         "back to the start", MUTED)
 
     def _demo_toggle_leak(self):
         wet = self.link.toggle_leak()

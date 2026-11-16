@@ -404,6 +404,10 @@ no camera.
   the controls on a 40 s loop. A real controller takes over immediately.
 - The simulated link drops a burst of command packets every 6–15 s to exercise
   the packet-loss display.
+- **Demo > Reset Demo** disarms and starts the demo over: the simulated vehicle
+  (depth, heading, leak sensor dry) and controller script go back to the start,
+  and camera tilt, thrust gain, depth zero and units to their defaults. The
+  event log carries on.
 - **Demo > Toggle Simulated Leak** toggles the leak sensor to practise
   recovery.
 
