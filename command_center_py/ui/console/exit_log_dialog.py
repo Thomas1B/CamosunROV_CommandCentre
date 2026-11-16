@@ -211,10 +211,30 @@ class ExitLogDialog(QDialog):
             self.move(g.center().x() - self.width() // 2, g.center().y() - self.height() // 2)
 
 
+class _LogTable(QTableWidget):
+    """QTableWidget whose MESSAGE column is as wide as its longest line (so long lines scroll
+    sideways, like OPERATOR MARKS, instead of being cut off) but never narrower than the
+    space left, so short logs still fill the table."""
+
+    fill_col = None          # column index that fills the leftover width
+    fill_need = 0            # px its longest line needs
+
+    def fit_fill(self):
+        if self.fill_col is None:
+            return
+        h = self.horizontalHeader()
+        others = sum(h.sectionSize(i) for i in range(self.columnCount()) if i != self.fill_col)
+        h.resizeSection(self.fill_col, max(self.fill_need, self.viewport().width() - others))
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self.fit_fill()
+
+
 def log_table(rows, cols, s=lambda v: v):
     """Read-only, dark-themed table of log rows. s scales px sizes. Shared by the exit
     dialog and the main menu's VIEW LOGS browser."""
-    t = QTableWidget(len(rows), len(cols))
+    t = _LogTable(len(rows), len(cols))
     t.setHorizontalHeaderLabels([LABELS[c] for c in cols])
     t.verticalHeader().setVisible(False)
     t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -253,7 +273,12 @@ def log_table(rows, cols, s=lambda v: v):
     h = t.horizontalHeader()
     h.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
     if "message" in cols:
-        h.setSectionResizeMode(cols.index("message"), QHeaderView.ResizeMode.Stretch)
+        # ALL EVENTS: the message column is as wide as its longest line (long operator-mark
+        # lines scroll sideways, like OPERATOR MARKS), and fills the table when lines are short.
+        t.fill_col = cols.index("message")
+        t.fill_need = max(t.sizeHintForColumn(t.fill_col), h.sectionSizeHint(t.fill_col))
+        h.setSectionResizeMode(t.fill_col, QHeaderView.ResizeMode.Fixed)
+        t.fit_fill()
     t.verticalHeader().setDefaultSectionSize(s(22))
     t.scrollToBottom()
     return t
