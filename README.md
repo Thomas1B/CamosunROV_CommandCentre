@@ -161,7 +161,7 @@ ping 192.168.2.2
 
 `ssh pirov@192.168.2.2` also works over the tether. Then run the console,
 choose **CONNECT VEHICLE** and enter IP `192.168.2.2`, ports `5600` / `5601` /
-`5602` (or load the saved `DEMO` profile, which has these and the default
+`5602` (or load the saved `ROV-01` profile, which has these and the default
 reference values).
 
 ### Troubleshooting
@@ -201,7 +201,8 @@ reference values).
 | X | SQUARE | Operator mark (hold: one per second) |
 | SPACE | SPACE | E-STOP (console window focused) |
 
-Help > Dualshock3 Map / Xbox Map shows both layouts.
+Help > Dualshock3 Map / Xbox Map shows both layouts, and Help > Keyboard Map lists
+the keyboard keys and on-screen buttons.
 
 > **Keyboard:** SPACE is the only key that acts on the ROV. Arming, CONNECT,
 > reference values and the demo leak toggle use the controller or mouse; the

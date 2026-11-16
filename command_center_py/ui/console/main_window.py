@@ -224,6 +224,7 @@ class ConsoleWindow(QMainWindow):
         m = mb.addMenu("Help")
         m.addAction("Dualshock3 Map", lambda: self.show_controller_map("ds3"))
         m.addAction("Xbox Map", lambda: self.show_controller_map("xbox"))
+        m.addAction("Keyboard Map", lambda: self.show_controller_map("keyboard"))
 
     def _build_toolbar(self):
         bar = QFrame()

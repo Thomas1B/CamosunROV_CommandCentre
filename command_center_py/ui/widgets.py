@@ -8,7 +8,7 @@ from PySide6.QtGui import (QColor, QFont, QLinearGradient, QPainter, QPainterPat
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QVBoxLayout, QWidget)
 
-from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S
+from command_center_py.config import CONTROLLER_LAYOUT, DEADZONE, FROZEN, ZERO_HOLD_S, ZERO_CLEAR_HOLD_S, MARK_REPEAT_S
 from command_center_py.ui.theme import (PANEL, HEAD, WELL, BORDER, BORDER2, GRID, TEXT, BRIGHT,
                           MUTED, DIM, LABEL, ACCENT, WARN, DANGER, OFF, VALUE_PX, UNIT_PX, fs, mono, lab)
 
@@ -511,7 +511,8 @@ class StatusRow(QFrame):
 
 
 # ============================================================================
-# CONTROLLER MAPS  (console Help ▸ ... Map, and the main menu's CONTROLLER MAP card)
+# CONTROLLER MAPS  (console Help > ... Map, and the main menu's CONTROLLER MAP card)
+# and the KEYBOARD MAP (console Help > Keyboard Map)
 # ============================================================================
 # Button names per controller. SDL reports both pads with the same layout, so
 # each Xbox button sits where the matching DualShock 3 button is.
@@ -546,12 +547,7 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
     Shared by the console's Help dialog and the main menu's CONTROLLER MAP card.
     scale enlarges the text (the console uses its bigger font scale, the menu 1.0).
     """
-    z = lambda v: round(v * scale)
     m = CONTROLLER_MAPS[kind]
-    body = QWidget()
-    bv = QVBoxLayout(body)
-    bv.setContentsMargins(0, 0, 0, 0)
-    bv.setSpacing(0)
     sections = [
         ("DRIVE", [
             (["L STICK"], "Forward / back + side to side", None),
@@ -570,6 +566,39 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
             ([m["cross"]], f"Hold {ZERO_HOLD_S:.0f} s to zero depth (averaged) · {ZERO_CLEAR_HOLD_S:.0f} s to clear", None),
         ]),
     ]
+    return _map_body(sections, scale)
+
+
+def keyboard_map_body(arm_hold_s, scale=1.0):
+    """KEYBOARD / MOUSE list for the console's Help > Keyboard Map. Driving is controller-only;
+    the keyboard has E-STOP and the dialog keys, and the rest is done with the mouse."""
+    sections = [
+        ("KEYBOARD", [
+            (["SPACE"], "E-STOP: disarm and zero all thrusters", DANGER),
+            (["ESC"], "Close a Help map, or cancel Reference Values", None),
+            (["ENTER"], "OK on a Help map", None),
+        ] + ([] if FROZEN else [      # the .exe has no terminal, so Ctrl+C only applies to "py rov_console.py"
+            (["CTRL", "C"], "In the terminal: disarm, send zero thrust and exit", None),
+        ])),
+        ("MOUSE (ON-SCREEN BUTTONS)", [
+            (["ARM"], f"Hold {arm_hold_s:.0f} s to arm · click to disarm", None),
+            (["E-STOP"], "E-STOP", DANGER),
+            (["REC"], "Click to start / stop recording the camera", None),
+            (["ZERO"], f"Hold {ZERO_HOLD_S:.0f} s to zero depth (averaged) · click REL to clear", None),
+            (["SI", "IMP"], "Click a telemetry card's chip to switch its units", None),
+            (["DUALSHOCK 3", "XBOX"], "Which button names the console shows", None),
+        ]),
+    ]
+    return _map_body(sections, scale, chip_w=152)    # wider key column for DUALSHOCK 3 + XBOX
+
+
+def _map_body(sections, scale, chip_w=124):
+    """Section heading + rows of [key chips]  description, as used by the maps above."""
+    z = lambda v: round(v * scale)
+    body = QWidget()
+    bv = QVBoxLayout(body)
+    bv.setContentsMargins(0, 0, 0, 0)
+    bv.setSpacing(0)
     for i, (name, rows) in enumerate(sections):
         head_lbl = lab(name, z(9), MUTED)
         head_lbl.setContentsMargins(0, 10 if i == 0 else 16, 0, 6)
@@ -578,7 +607,7 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
             r = QHBoxLayout()
             r.setSpacing(4)
             chips = QWidget()
-            chips.setFixedWidth(z(124))
+            chips.setFixedWidth(z(chip_w))
             ch = QHBoxLayout(chips)
             ch.setContentsMargins(0, 0, 0, 0)
             ch.setSpacing(4)
@@ -593,13 +622,15 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
 
 
 class ControllerMapDialog(QDialog):
-    """Modal card listing what each button does. Esc, ✕ or OK closes it."""
+    """Modal card listing what each button does. Esc, ✕ or OK closes it.
+    kind: "ds3" or "xbox" (controller map), or "keyboard" (Keyboard Map)."""
 
     def __init__(self, parent, kind, arm_hold_s, scale=1.0):
         super().__init__(parent)
-        m = CONTROLLER_MAPS[kind]
+        keyboard = kind == "keyboard"
+        title = "Keyboard Map" if keyboard else CONTROLLER_MAPS[kind]["title"]
         z = lambda v: round(v * scale)
-        self.setWindowTitle(m["title"])
+        self.setWindowTitle(title)
         self.setModal(True)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setStyleSheet(f"QDialog {{ background: {PANEL}; border: 1px solid {BORDER2}; }}")
@@ -614,7 +645,7 @@ class ControllerMapDialog(QDialog):
         head.setStyleSheet(f"QFrame#mapHead {{ background: {HEAD}; border-bottom: 1px solid {BORDER}; }}")
         hh = QHBoxLayout(head)
         hh.setContentsMargins(14, 8, 8, 8)
-        hh.addWidget(lab(m["title"], z(13), "#c9d3de", QFont.Weight.Bold), 1)
+        hh.addWidget(lab(title, z(13), "#c9d3de", QFont.Weight.Bold), 1)
         x = QPushButton("✕")
         x.setFixedSize(z(22), z(22))
         x.setFont(mono(z(12)))
@@ -625,8 +656,8 @@ class ControllerMapDialog(QDialog):
         hh.addWidget(x)
         root.addWidget(head)
 
-        # body: DRIVE / VEHICLE / CONSOLE sections
-        body = controller_map_body(kind, arm_hold_s, scale)
+        # body: DRIVE / VEHICLE / CONSOLE sections (or KEYBOARD / MOUSE)
+        body = keyboard_map_body(arm_hold_s, scale) if keyboard else controller_map_body(kind, arm_hold_s, scale)
         body.layout().setContentsMargins(14, 6, 14, 4)
         root.addWidget(body)
 
@@ -636,9 +667,10 @@ class ControllerMapDialog(QDialog):
         foot.setStyleSheet(f"QFrame#mapFoot {{ background: #0a0e13; border-top: 1px solid {BORDER}; }}")
         fh = QHBoxLayout(foot)
         fh.setContentsMargins(14, 10, 14, 10)
-        fh.addWidget(lab("Keyboard", z(10), LABEL))
-        fh.addWidget(key_chip("SPACE", DANGER, "#7f2b2e", z(10)))
-        fh.addWidget(lab("— E-STOP", z(10), LABEL))
+        if not keyboard:     # the Keyboard Map lists SPACE itself
+            fh.addWidget(lab("Keyboard", z(10), LABEL))
+            fh.addWidget(key_chip("SPACE", DANGER, "#7f2b2e", z(10)))
+            fh.addWidget(lab("— E-STOP", z(10), LABEL))
         fh.addStretch(1)
         ok = QPushButton("OK")
         ok.setFixedWidth(z(72))

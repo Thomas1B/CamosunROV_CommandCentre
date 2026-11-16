@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 APP_VERSION = "1.0.0"
-APP_BUILD = "2026-11-13"   # year-month-day, shown on the main menu
+APP_BUILD = "2026-11-16"   # year-month, shown on the main menu (December 2026 = end of the project)
 
 # Defaults shown in the main menu's CONNECT VEHICLE dialog
 DEFAULT_VEHICLE_NAME = "ROV-01"
@@ -16,9 +16,13 @@ VIDEO_STALE_S = 1.5      # no new video frame for this long -> show "VIDEO LOST"
 RATE_HZ = 50
 CONNECT_TIMEOUT_S = 5.0  # CONNECT waits this long for telemetry from the Pi before giving up
 
+# True when running as the packaged .exe (PyInstaller sets sys.frozen), False when run with
+# "py rov_console.py" from a terminal. The .exe has no terminal window.
+FROZEN = getattr(sys, "frozen", False)
+
 # Top directory of the program (the repo root, or the .exe's folder once packaged).
 # Saved vehicle profiles live in <top>/vehicle_profiles/, one JSON file per vehicle.
-TOP_DIR = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
+TOP_DIR = (Path(sys.executable).resolve().parent if FROZEN
            else Path(__file__).resolve().parent.parent)
 PROFILES_DIR = TOP_DIR / "vehicle_profiles"
 # The console's event log is saved in <top>/logs/, one CSV file per console session.
