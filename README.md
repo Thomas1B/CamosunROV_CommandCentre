@@ -13,7 +13,7 @@ leak sensor, STM32 reset reason, and link quality (round-trip time, packet loss)
 ## Quick Start (Windows, no Python needed)
 
 Download `CamosunROV.zip` from the
-[v1.0.0 release](https://github.com/Thomas1B/CamosunROV_CommandCentre/releases/latest)
+[latest release](https://github.com/Thomas1B/CamosunROV_CommandCentre/releases/latest)
 and follow the instructions there. Then set up the tether once:
 [Tether Network Setup](#tether-network-setup).
 
