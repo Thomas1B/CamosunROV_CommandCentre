@@ -26,7 +26,7 @@ from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER,
 from command_center_py.vehicle import profiles
 from command_center_py.vehicle.link import DemoLink, Link, check_ipv4, check_port
 
-DEMO_CONNECT_AT_S = 2.5   # demo mode: the simulated vehicle "answers" when the countdown reaches this
+DEMO_CONNECT_AT_S = 4.0   # demo mode: the simulated vehicle "answers" when the countdown reaches 4 s
 DEMO_BLOCKED = "Not available in demo mode"
 
 

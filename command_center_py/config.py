@@ -6,6 +6,9 @@ from pathlib import Path
 APP_VERSION = "1.0.0"
 APP_BUILD = "2026-11-16"   # year-month, shown on the main menu (December 2026 = end of the project)
 
+# Main menu ABOUT card
+REPO_URL = "https://github.com/Thomas1B/CamosunROV_CommandCentre"
+
 # Defaults shown in the main menu's CONNECT VEHICLE dialog
 DEFAULT_VEHICLE_NAME = "ROV-01"
 PI_HOST = "192.168.2.2"

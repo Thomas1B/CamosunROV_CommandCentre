@@ -31,7 +31,8 @@ Features:
 - Bar30 reference values sent to and confirmed by the Pi/STM32
 - Event log with operator marks
 - Main menu: vehicle profiles, demo mode, controller maps, controller profiles
-  (drift/deadzone/range calibration), saved session logs and recordings
+  (drift/deadzone/range calibration), saved session logs and recordings, and
+  ABOUT (version, system overview, software, links and licence)
 - Demo mode with simulated vehicle, controller and packet loss
 
 ---

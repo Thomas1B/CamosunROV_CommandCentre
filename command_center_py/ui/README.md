@@ -21,6 +21,7 @@ The PySide6 windows. Everything you see on screen is built here.
 | `recordings.py` | VIEW RECORDINGS card, with its video view and seek bar. |
 | `controller_map.py` | CONTROLLER MAP card. |
 | `controller_profiles.py` | CONTROLLER PROFILES card (calibration), with its stick and trigger gauges. |
+| `about.py` | ABOUT card (version, system, software, links, licence). |
 
 ## console/
 

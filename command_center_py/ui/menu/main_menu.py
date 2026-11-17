@@ -9,6 +9,7 @@
     VIEW RECORDINGS ... camera recordings (recordings/): built-in player, marks, open folder
     CONTROLLER MAP .... DualShock 3, Xbox and keyboard maps, one tab each
     CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
+    ABOUT ............. version, system overview, software, links and licence
     QUIT .............. closes the program
 
 Navigation: mouse, or arrow keys / Tab (Shift+Tab goes up) + Enter / Esc. The game controller does not navigate the
@@ -19,7 +20,8 @@ separate windows. Each card has its own file next to this one (ui/menu/):
 
     connect.py ............. CONNECT VEHICLE        logs.py ......... VIEW LOGS
     recordings.py .......... VIEW RECORDINGS        controller_map.py  CONTROLLER MAP
-    controller_profiles.py . CONTROLLER PROFILES    cards.py ........ Card, Overlay, ResizeGrip, buttons
+    controller_profiles.py . CONTROLLER PROFILES    about.py ........ ABOUT
+    cards.py ............... Card, Overlay, ResizeGrip, buttons
 """
 
 from pathlib import Path
@@ -31,6 +33,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLay
 
 from command_center_py.config import APP_BUILD, APP_VERSION
 from command_center_py.controller import profiles as cp
+from command_center_py.ui.menu.about import AboutCard
 from command_center_py.ui.menu.cards import OK_BORDER, Overlay, RED_BORDER, SOFT, slab, spaced
 from command_center_py.ui.menu.connect import ConnectCard
 from command_center_py.ui.menu.controller_map import ControllerMapCard
@@ -127,7 +130,7 @@ class MenuRow(QFrame):
 # MAIN MENU WINDOW
 # ============================================================================
 class MainMenu(QWidget):
-    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "VIEW LOGS", "VIEW RECORDINGS", "CONTROLLER MAP", "CONTROLLER PROFILES", "QUIT")
+    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "VIEW LOGS", "VIEW RECORDINGS", "CONTROLLER MAP", "CONTROLLER PROFILES", "ABOUT", "QUIT")
 
     def __init__(self, pad, on_connected, on_demo):
         super().__init__()
@@ -214,6 +217,8 @@ class MainMenu(QWidget):
         self.rec_ov = Overlay(self, self.rec_card, self.rec_card.close_card)
         self.ctl_card = ControllerProfilesCard(self.close_overlay)
         self.ctl_ov = Overlay(self, self.ctl_card, self.ctl_card.close_card)
+        self.about_card = AboutCard(self.close_overlay)
+        self.about_ov = Overlay(self, self.about_card, self.close_overlay)
         self.overlay = None
 
         self.select(0)
@@ -302,6 +307,8 @@ class MainMenu(QWidget):
         elif item == "VIEW LOGS":
             self.open_overlay(self.logs_ov)
             self.logs_card.opened()
+        elif item == "ABOUT":
+            self.open_overlay(self.about_ov)
         elif item == "QUIT":
             self.close()
 
@@ -312,7 +319,7 @@ class MainMenu(QWidget):
         ov.setGeometry(self.rect())
         ov.show()
         ov.raise_()
-        if ov in (self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov):
+        if ov in (self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov, self.about_ov):
             self.setFocus()
 
     def close_overlay(self):
@@ -327,7 +334,7 @@ class MainMenu(QWidget):
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
-        for ov in (self.connect_ov, self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov):
+        for ov in (self.connect_ov, self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov, self.about_ov):
             ov.setGeometry(self.rect())
         for card in (self.logs_card, self.rec_card):
             card.refit()                         # maximised cards follow the window
@@ -337,6 +344,10 @@ class MainMenu(QWidget):
         if self.overlay is self.connect_ov:
             if not self.connect_card.key(e):
                 super().keyPressEvent(e)
+            return
+        if self.overlay is self.about_ov:
+            if k in (Qt.Key.Key_Escape, Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                self.close_overlay()
             return
         if self.overlay is self.map_ov:
             if k in (Qt.Key.Key_Escape, Qt.Key.Key_Return, Qt.Key.Key_Enter):
