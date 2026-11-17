@@ -411,6 +411,21 @@ restarts.
 Runs against a simulated vehicle; nothing is sent over the network and there is
 no camera.
 
+**DEMO MODE** opens the same window as CONNECT VEHICLE, titled **CONNECT VEHICLE -
+DEMO**, with the same checks and the same *Connecting to … · 5 s…* countdown;
+the simulated vehicle answers at 4 s and the console opens. The demo uses:
+
+- the **vehicle name**, in the console's title and the log file name
+  (`logs/ROV-01-DEMO_<start time>.csv`);
+- the **reference values**, sent to the simulated Pi;
+- the **controller profile**: its calibration and button labels. With no
+  controller plugged in, the simulated controller stands in for that profile's
+  controller type (e.g. *Simulated PS3 controller*).
+
+IP address and ports are checked but not used. **SAVE PROFILE** and **DELETE**
+are shown but not available in demo mode (a pop-up says so), so the demo
+never changes `vehicle_profiles/`.
+
 - With no controller plugged in, a simulated controller arms and runs through
   the controls on a 40 s loop. A real controller takes over immediately.
   Once disarmed (E-STOP, disarm or a failsafe such as a simulated leak), it

@@ -23,7 +23,7 @@ from command_center_py.config import (APP_VERSION, RATE_HZ, GAIN_STEPS, DEFAULT_
                         THRUSTERS, LOSS_PRINT_S, VIDEO_PORT, VIDEO_STALE_S, DEMO_SIM_PAD, RECORDINGS_DIR,
                         INTERNAL_TEMP_WARN_C, INTERNAL_TEMP_CLEAR_C)
 from command_center_py.logs import filenames
-from command_center_py.controller.profiles import CalibratedPad
+from command_center_py.controller.profiles import NONE as cp_NONE, CalibratedPad, load_all as cp_load_all
 from command_center_py.vehicle.link import DemoLink
 from command_center_py.controller.demo_pad import DemoPad
 from command_center_py.logs.event_log import EventLogFile
@@ -71,7 +71,8 @@ class ConsoleWindow(QMainWindow):
         # Never run demo mode on a real link: the simulated controller would arm and drive the ROV.
         demo = bool(demo) and isinstance(link, DemoLink)
         self.setWindowTitle("Camosun ROV — Control Console"
-                            + (" — DEMO" if demo else (f" — {vehicle}" if vehicle else "")))
+                            + (" — DEMO" + (f" · {vehicle}" if vehicle and vehicle != "DEMO" else "") if demo
+                               else (f" — {vehicle}" if vehicle else "")))
         self.resize(1440, 900)
         self.setMinimumSize(1200, 760)
 
@@ -79,7 +80,13 @@ class ConsoleWindow(QMainWindow):
         self.vehicle = vehicle
         self.link = link
         # demo mode: a simulated controller drives the vehicle until a real one is plugged in
-        self.pad = DemoPad(pad, lambda: self.armed) if (demo and DEMO_SIM_PAD) else pad
+        # (no controller plugged in: it stands in for the controller type of the chosen profile)
+        sim_type = None
+        if isinstance(pad, CalibratedPad) and pad.choice != cp_NONE:
+            prof = next((p for p in cp_load_all() if p.name == pad.choice), None)
+            sim_type = prof.controller if prof is not None and prof.controller else None
+        sim_name = f"Simulated {sim_type} controller (demo)" if sim_type else "Simulated controller (demo)"
+        self.pad = DemoPad(pad, lambda: self.armed, sim_name) if (demo and DEMO_SIM_PAD) else pad
         self.cal_pad = pad if isinstance(pad, CalibratedPad) else None   # controller profile in use
         self._force_close = False
         self._done = False
@@ -113,7 +120,8 @@ class ConsoleWindow(QMainWindow):
         self.recover_until = 0.0           # send the recover bit until this time
         self.recover_deadline = None         # waiting for the leak shutdown to clear (or None)
         # Every event-log line is also saved to logs/<vehicle>_<start time>.csv (logs/event_log.py)
-        self.log_file = EventLogFile("DEMO" if demo else vehicle)
+        # demo: <vehicle name>-DEMO_<time>.csv (DEMO_<time>.csv when no name), so demo logs stand out
+        self.log_file = EventLogFile((f"{vehicle}-DEMO" if vehicle and vehicle != "DEMO" else "DEMO") if demo else vehicle)
 
         self._build_ui()
         # Button labels: the controller profile's BUTTON LABELS choice if it has one, else the
@@ -140,7 +148,7 @@ class ConsoleWindow(QMainWindow):
             self.video.on_view_size = self.video_rx.set_view_size
             self.video._view = None
             self.video._report_view()
-        self.log("SYS", f"Console v{APP_VERSION} started" + (" in DEMO mode" if self.demo
+        self.log("SYS", f"Console v{APP_VERSION} started" + ((" in DEMO mode" + (f" — {self.vehicle}" if self.vehicle and self.vehicle != "DEMO" else "")) if self.demo
                                                              else f" — {self.vehicle} @ {self.link.label}"), BLUE)
         if self.log_file.error:
             self.log("WARN", self.log_file.error, WARN)

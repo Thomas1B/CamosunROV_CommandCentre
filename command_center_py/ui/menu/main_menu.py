@@ -3,7 +3,8 @@
     CONNECT VEHICLE ... dialog: vehicle name / saved profile, Pi IP, ports. CONNECT
                         listens for telemetry for CONNECT_TIMEOUT_S; the console only
                         opens once the Pi answers, otherwise the dialog stays open.
-    DEMO MODE ......... opens the console with a simulated vehicle (nothing transmitted)
+    DEMO MODE ......... the CONNECT VEHICLE dialog titled "- DEMO", then the console with a
+                        simulated vehicle (nothing transmitted)
     VIEW LOGS ......... saved console session logs (logs/): preview, export, delete
     VIEW RECORDINGS ... camera recordings (recordings/): built-in player, marks, open folder
     CONTROLLER MAP .... DualShock 3, Xbox and keyboard maps, one tab each
@@ -285,8 +286,9 @@ class MainMenu(QWidget):
         if item == "CONNECT VEHICLE":
             self.open_overlay(self.connect_ov)
             self.connect_card.opened()
-        elif item == "DEMO MODE":
-            self._on_demo()
+        elif item == "DEMO MODE":            # same dialog as CONNECT VEHICLE, on a simulated vehicle
+            self.open_overlay(self.connect_ov)
+            self.connect_card.opened(demo=True)
         elif item == "CONTROLLER MAP":
             self.map_card.opened()
             self.open_overlay(self.map_ov)

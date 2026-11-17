@@ -140,7 +140,8 @@ class Card(QFrame):
                            f" border-top-left-radius: 3px; border-top-right-radius: 3px; }}")
         hh = QHBoxLayout(head)
         hh.setContentsMargins(s(16), s(12), s(12), s(12))
-        hh.addWidget(slab(title, s(14), BRIGHT, QFont.Weight.Bold, s(14) * 0.06), 1)
+        self.title_lbl = slab(title, s(14), BRIGHT, QFont.Weight.Bold, s(14) * 0.06)
+        hh.addWidget(self.title_lbl, 1)
         self._head, self._hh, self._s = head, hh, s
         self.max_btn = None
         self.close_btn = close_x(s(24))

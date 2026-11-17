@@ -1,12 +1,19 @@
 """CONNECT VEHICLE card: vehicle name / saved profile, Pi IP, ports, reference values,
-controller profile; CONNECT waits for the Pi to answer before opening the console."""
+controller profile; CONNECT waits for the Pi to answer before opening the console.
+
+DEMO MODE opens the same card titled "CONNECT VEHICLE - DEMO": the same checks and the same
+"Connecting... 5 s" countdown (nothing is sent); the simulated vehicle answers at 4 s and the
+console opens on it
+(DemoLink) with the vehicle name, reference values and controller profile from the card.
+SAVE PROFILE / DELETE stay visible but don't change vehicle_profiles/ in demo mode."""
 
 import re
 import time
 
 from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (QComboBox, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QLabel,
-                               QLineEdit, QPushButton, QSizePolicy, QVBoxLayout, QWidget)
+                               QLineEdit, QPushButton, QSizePolicy, QToolTip, QVBoxLayout, QWidget)
 
 from command_center_py.config import (CMD_PORT, CONNECT_TIMEOUT_S, DEFAULT_VEHICLE_NAME, PI_HOST,
                                       RATE_HZ, TELEM_PORT, VIDEO_PORT)
@@ -17,7 +24,10 @@ from command_center_py.ui.menu.cards import (Card, OK_BORDER, OK_GREEN, OK_TEXT,
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD, LABEL,
                                         MUTED, WELL, combo_arrow_css, lab, mono)
 from command_center_py.vehicle import profiles
-from command_center_py.vehicle.link import Link, check_ipv4, check_port
+from command_center_py.vehicle.link import DemoLink, Link, check_ipv4, check_port
+
+DEMO_CONNECT_AT_S = 2.5   # demo mode: the simulated vehicle "answers" when the countdown reaches this
+DEMO_BLOCKED = "Not available in demo mode"
 
 
 class ConnectCard(Card):
@@ -44,6 +54,7 @@ class ConnectCard(Card):
         "loaded":     ('Profile "{name}" loaded', ACCENT, ACCENT),
         "deleted":    ("Profile deleted", LABEL, MUTED),
         "connecting": ("Connecting to {ip} · cmd {cmd} · {left:.0f} s…  (Esc to stop)", "#ffd479", "#ffd479"),
+        "democonnecting": ("Connecting to {ip} · cmd {cmd} · {left:.0f} s…  (Esc to stop)", "#ffd479", "#ffd479"),   # same as real
         "timeout":    ("No answer from {ip} — check tether and power", DANGER, RED_DOT),
         "cancelled":  ("Connection attempt cancelled", LABEL, MUTED),
         "error":      ("{error}", DANGER, RED_DOT),
@@ -58,6 +69,7 @@ class ConnectCard(Card):
         self.state = "idle"
         self.error = ""
         self.link = None
+        self.demo = False             # opened from DEMO MODE (see opened())
         self.deadline = 0.0
         self.attempt = QTimer(self)
         self.attempt.setTimerType(Qt.TimerType.PreciseTimer)
@@ -241,8 +253,13 @@ class ConnectCard(Card):
         return True
 
     # ---------------- state ----------------
-    def opened(self):
-        """Called each time the dialog is shown."""
+    def opened(self, demo=False):
+        """Called each time the dialog is shown. demo=True: DEMO MODE (title "- DEMO", a
+        simulated vehicle instead of the Pi, vehicle profiles read-only)."""
+        self.demo = demo
+        self.title_lbl.setText("CONNECT VEHICLE - DEMO" if demo else "CONNECT VEHICLE")
+        for b in (self.save_btn, self.del_btn):  # hover: say why they do nothing in demo mode
+            b.setToolTip(DEMO_BLOCKED if demo else "")
         self.state = "idle"
         self.reload_profiles()
         self.reload_controller_profiles()
@@ -300,7 +317,7 @@ class ConnectCard(Card):
     def _refresh(self, *_):
         s = self._s
         name, ip, cmd, _, _ = self._values()
-        busy = self.state == "connecting"
+        busy = self.state in ("connecting", "democonnecting")
         text, color, dot = self.MSG[self.state]
         left = max(0.0, self.deadline - time.monotonic())
         self.msg_lbl.setText(text.format(name=name, ip=ip, cmd=cmd, left=left + 0.5, error=self.error))
@@ -366,6 +383,9 @@ class ConnectCard(Card):
             self._set("loaded")
 
     def save_profile(self):
+        if self.demo:                        # demo mode: the button is there, but doesn't save
+            self._demo_blocked(self.save_btn)
+            return
         name = self.name_edit.text().strip()
         if not name:
             self._set("noname")
@@ -382,18 +402,33 @@ class ConnectCard(Card):
         self._set("saved")
 
     def delete_profile(self):
+        if self.demo:
+            self._demo_blocked(self.del_btn)
+            return
         profiles.delete_profile(self.name_edit.text().strip())
         self.reload_profiles()
         self._set("deleted")
 
+    def _demo_blocked(self, btn):
+        """Clicked SAVE PROFILE / DELETE in demo mode: just a pop-up by the button."""
+        QToolTip.showText(QCursor.pos(), DEMO_BLOCKED, btn)
+
     # ---------------- connecting ----------------
     def connect_vehicle(self):
-        if self.state == "connecting":
+        if self.state in ("connecting", "democonnecting"):
             return
         vals = self._validate()
         if vals is None:
             return
         ip, cmd, tel, vid, refs = vals
+        if self.demo:                        # simulated vehicle: same checks, nothing sent
+            link = DemoLink()
+            link.refs = refs                 # the simulated Pi gets these reference values
+            self.link = link
+            self.deadline = time.monotonic() + CONNECT_TIMEOUT_S        # same countdown as a real attempt
+            self._set("democonnecting")
+            self.attempt.start(int(1000 / RATE_HZ))
+            return
         link = Link(ip, cmd, tel, vid, refs)
         if link.error:                       # e.g. telemetry port already in use
             link.close()
@@ -408,6 +443,17 @@ class ConnectCard(Card):
         link, now = self.link, time.monotonic()
         if link is None:
             self.attempt.stop()
+            return
+        if self.state == "democonnecting":
+            if self.deadline - now <= DEMO_CONNECT_AT_S:                # the simulated vehicle answers
+                self.attempt.stop()
+                self.link = None
+                name = self.name_edit.text().strip() or "DEMO"
+                self.state = "idle"
+                self._refresh()
+                self._on_connected(link, name, controller_profile=self.controller_choice())
+            else:
+                self._refresh()              # countdown in the message line
             return
         link.send(False, [0] * 6, 0)         # disarmed, zero thrust - just asks the Pi to answer
         link.poll()
@@ -435,7 +481,7 @@ class ConnectCard(Card):
         if self.link is not None:
             self.link.close()
             self.link = None
-        if self.state == "connecting":
+        if self.state in ("connecting", "democonnecting"):
             self.state = "idle"
 
     def cancel(self):
@@ -453,7 +499,7 @@ class ConnectCard(Card):
         # closes the dialog. Enter only acts on the focused button (eventFilter): there is no
         # "Enter anywhere = CONNECT", because connecting starts sending command packets to the ROV.
         if e.key() == Qt.Key.Key_Escape:
-            if self.state == "connecting":
+            if self.state in ("connecting", "democonnecting"):
                 self.stop_attempt()
             else:
                 self.cancel()
