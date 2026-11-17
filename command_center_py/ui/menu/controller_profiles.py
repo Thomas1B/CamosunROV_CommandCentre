@@ -6,14 +6,23 @@ import math
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
-from PySide6.QtWidgets import (QDoubleSpinBox, QFrame, QGridLayout, QHBoxLayout, QLineEdit,
+from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QHBoxLayout, QLineEdit,
                                QListWidget, QListWidgetItem, QSizePolicy, QVBoxLayout, QWidget)
 
 from command_center_py.controller import profiles as cp
 from command_center_py.ui.menu.cards import (Card, EDIT_CSS, LIST_CSS, OK_BORDER, OK_GREEN,
                                              OK_TEXT, ResizeGrip, SOFT, SPIN_CSS, button, slab)
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, DIM, GRID, HEAD,
-                                        LABEL, MUTED, WARN, WELL, lab, mono)
+                                        LABEL, MUTED, WARN, WELL, combo_arrow_css, lab, mono)
+from command_center_py.ui.widgets import LAYOUT
+
+LAYOUT_NAMES = cp.LAYOUT_NAMES
+
+
+COMBO_CSS = (f"QComboBox {{ padding: 0 9px; border: 1px solid {GRID}; border-radius: 3px; background: {WELL}; color: {BRIGHT}; }}"
+             f"QComboBox:focus {{ border-color: {ACCENT}; }}" + combo_arrow_css(26) +
+             f"QComboBox QAbstractItemView {{ background: {HEAD}; color: {BRIGHT}; border: 1px solid {BORDER2};"
+             f" selection-background-color: {BORDER}; selection-color: {BRIGHT}; outline: none; }}")
 
 
 class ControllerProfilesCard(Card):
@@ -88,25 +97,29 @@ class ControllerProfilesCard(Card):
         top.setHorizontalSpacing(10)
         top.setVerticalSpacing(4)
         top.addWidget(slab("PROFILE NAME", 9, BRIGHT, spacing=0.9), 0, 0)
-        top.addWidget(slab("CONTROLLER · NOTE OF WHICH ONE IT'S FOR", 9, BRIGHT, spacing=0.9), 0, 1, 1, 2)
+        top.addWidget(slab("CONTROLLER", 9, BRIGHT, spacing=0.9), 0, 1)
+        top.addWidget(slab("BUTTON LABELS", 9, BRIGHT, spacing=0.9), 0, 2)
         self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText("e.g. Josh DS3")
         self.name_edit.textEdited.connect(self._edited)
-        self.ctrl_edit = QLineEdit()
-        self.ctrl_edit.setPlaceholderText("connected controller's name")
-        self.ctrl_edit.textEdited.connect(self._edited)
-        for e in (self.name_edit, self.ctrl_edit):
-            e.setFont(mono(13))
-            e.setStyleSheet(EDIT_CSS)
+        self.name_edit.setFont(mono(13))
+        self.name_edit.setStyleSheet(EDIT_CSS)
         top.addWidget(self.name_edit, 1, 0)
-        top.addWidget(self.ctrl_edit, 1, 1)
-        self.use_btn = button("USE CONNECTED", 11, None,
-                              f"padding: 7px 10px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
-                              f"border-color: {ACCENT}; color: {ACCENT};")
-        self.use_btn.clicked.connect(self._use_connected)
-        top.addWidget(self.use_btn, 1, 2)
+        # CONTROLLER: the tested controller types (controller/profiles.py CONTROLLER_TYPES).
+        # The type decides the BUTTON LABELS - never guessed from the name the controller reports.
+        self.type_box = QComboBox()
+        self.type_box.setFont(mono(13))
+        self.type_box.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.type_box.setMinimumHeight(34)
+        self.type_box.setStyleSheet(COMBO_CSS)
+        self.type_box.activated.connect(self._pick_type)
+        top.addWidget(self.type_box, 1, 1)
+        self.labels_lbl = lab("", 12, SOFT, QFont.Weight.DemiBold)
+        self.labels_lbl.setMinimumWidth(110)
+        top.addWidget(self.labels_lbl, 1, 2)
         top.setColumnStretch(0, 2)
         top.setColumnStretch(1, 3)
+
         self.pad_lbl = lab("", 11, LABEL)
         top.addWidget(self.pad_lbl, 2, 0, 1, 3)
         right.addLayout(top)
@@ -225,8 +238,12 @@ class ControllerProfilesCard(Card):
         self.profiles = cp.load_all()
         self.list.blockSignals(True)
         self.list.clear()
+        types = cp.load_types()
         for p in self.profiles:
-            self.list.addItem(QListWidgetItem(f"{p.name}\n{p.controller or '(no controller noted)'}"))
+            ty = cp.find_type(p.controller, types)
+            lay = p.layout or (ty["layout"] if ty is not None else "")
+            self.list.addItem(QListWidgetItem(f"{p.name}\n{p.controller or '(no controller type)'}"
+                                              f"{'  ·  ' + LAYOUT_NAMES[lay] if lay else ''}"))
         self.list.blockSignals(False)
         if select is not None:
             names = [p.name for p in self.profiles]
@@ -269,7 +286,8 @@ class ControllerProfilesCard(Card):
         self.list.clearSelection()
         self.list.setCurrentRow(-1)
         self.list.blockSignals(False)
-        self._load(cp.ControllerProfile("", self.pad_name), dirty=False)
+        first = next((ty for ty in cp.load_types() if ty["layout"] == LAYOUT["kind"]), cp.CONTROLLER_TYPES[0])
+        self._load(cp.ControllerProfile("", first["name"], layout=first["layout"]), dirty=False)   # labels in use now
         self._say(LABEL, "New profile — press CALIBRATE with the controller connected, then SAVE.")
 
     def _delete(self):
@@ -298,7 +316,10 @@ class ControllerProfilesCard(Card):
         self._loading = True
         self.edit = prof
         self.name_edit.setText(prof.name)
-        self.ctrl_edit.setText(prof.controller)
+        if not prof.layout:                          # older profile: labels from its controller type
+            ty = cp.find_type(prof.controller)
+            prof.layout = ty["layout"] if ty is not None else ""
+        self._fill_types()
         for (k, f), sb in self.fields.items():
             src = prof.axes[k] if k in cp.AXES else prof.triggers[k]
             sb.setValue(src[f])
@@ -316,16 +337,45 @@ class ControllerProfilesCard(Card):
         (self.edit.axes[k] if k in cp.AXES else self.edit.triggers[k])[f] = v
         self._edited()
 
-    def _use_connected(self):
-        if not self.pad_name:
-            self._say(WARN, "No controller connected.")
+    # ---------------- controller type ----------------
+    def _fill_types(self):
+        """Rebuild the CONTROLLER drop-down and select the profile's type. A profile whose
+        controller isn't in the list (older profiles kept a free-text note) keeps it as an
+        extra entry, so nothing is lost until another type is picked."""
+        types = cp.load_types()
+        self.type_box.blockSignals(True)
+        self.type_box.clear()
+        for ty in types:
+            self.type_box.addItem(ty["name"], ty["name"])
+        cur = self.edit.controller
+        if cur and cp.find_type(cur, types) is None:
+            self.type_box.addItem(f"{cur} (not in list)", cur)
+        i = self.type_box.findData(cp.find_type(cur, types)["name"] if cp.find_type(cur, types) else cur)
+        self.type_box.setCurrentIndex(max(0, i) if cur else -1)
+        self.type_box.blockSignals(False)
+        self._show_labels()
+
+    def _show_labels(self):
+        """BUTTON LABELS read-out: the profile's labels (from its controller type)."""
+        lay = self.edit.layout
+        self.labels_lbl.setText(LAYOUT_NAMES.get(lay, "— not set"))
+        self.labels_lbl.setStyleSheet(f"color: {ACCENT if lay else WARN}; background: transparent;")
+        self.labels_lbl.setToolTip("Button names the console shows with this profile, set by the controller type")
+
+    def _pick_type(self, i):
+        data = self.type_box.itemData(i)
+        ty = cp.find_type(data)
+        if data == self.edit.controller and (ty is None or ty["layout"] == self.edit.layout):
             return
-        self.ctrl_edit.setText(self.pad_name)
+        self.edit.controller = data
+        if ty is not None:
+            self.edit.layout = ty["layout"]
+        self._show_labels()
         self._edited()
 
     def _reset_values(self):
         self._cancel_cal()
-        p = cp.ControllerProfile(self.name_edit.text().strip(), self.ctrl_edit.text().strip())
+        p = cp.ControllerProfile(self.name_edit.text().strip(), self.edit.controller, layout=self.edit.layout)
         self._load(p, dirty=True)
         self._say(LABEL, "Values reset to the defaults — SAVE to keep.")
 
@@ -337,7 +387,6 @@ class ControllerProfilesCard(Card):
             return
         self._cancel_cal()
         self.edit.name = name
-        self.edit.controller = self.ctrl_edit.text().strip()
         replaced = any(p.name == name for p in self.profiles)
         try:
             cp.save(self.edit)
@@ -366,9 +415,6 @@ class ControllerProfilesCard(Card):
             self.cal.next()
             warn = self.cal.warnings()
             self._load(self.cal.result(self.edit), dirty=True)
-            if not self.edit.controller and self.pad_name:
-                self.ctrl_edit.setText(self.pad_name)
-                self.edit.controller = self.pad_name
             self.cal = None
             if warn:
                 self._say(WARN, "Calibrated, but: " + "; ".join(warn) + ". Kept the old range there — "

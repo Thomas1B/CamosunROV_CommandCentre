@@ -236,6 +236,17 @@ with your hands off the controller, then:
 3. **Triggers:** press L2 and R2 (LT/RT) fully, release, then **FINISH**. This
    measures **max**; rest and jitter were measured during the flicks.
 
+**Controller type and button labels:** each profile has a **CONTROLLER** type,
+picked from a drop-down of the controllers tested with the ROV: **Xbox** and
+**PS3**. To support another controller, test it first (buttons, sticks,
+triggers, ARM and E-STOP), then add it to `CONTROLLER_TYPES` in
+`command_center_py/controller/profiles.py`. The type sets the profile's
+**BUTTON LABELS**: when the profile is picked in CONNECT VEHICLE, the console
+opens with those button names. Labels are never guessed from the name the
+controller reports, because a DualShock 3 in DsHidMini's XInput mode reports
+itself as an Xbox 360 controller. With no profile, the console's DUALSHOCK 3 /
+XBOX toggle stays as it was; the toggle can always change it during a session.
+
 ### Arming
 
 Hold START (or the ARM button) for 1 s. Arming is refused, with the reason

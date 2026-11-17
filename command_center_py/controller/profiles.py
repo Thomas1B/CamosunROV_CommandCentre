@@ -2,11 +2,17 @@
 
 One JSON file per profile in <top dir>/controller_profiles/ (config.CONTROLLER_PROFILES_DIR).
 Made and edited on the main menu's CONTROLLER PROFILES page; chosen in CONNECT VEHICLE
-(default: none, i.e. the config.py defaults). "controller" is only a note of which
-controller the profile was made for (filled in from the connected one when calibrating).
+(default: none, i.e. the config.py defaults). "controller" is the controller type the
+profile is for, picked from a fixed list on the CONTROLLER PROFILES page: only controllers
+that have been tested with the ROV (CONTROLLER_TYPES below). Each type has button labels
+("ds3" = DUALSHOCK 3 or "xbox"); the profile stores them as "layout" and the console shows
+them with this profile.
+Labels are never guessed from the name the controller reports (a DualShock 3 on DsHidMini's
+XInput mode reports itself as an Xbox 360 controller). Older profiles without a known type
+leave the console's DUALSHOCK 3 / XBOX toggle as it is.
 
 File contents, e.g. controller_profiles/Josh_DS3.json (raw SDL axis values, -1..1 / 0..1):
-    {"name": "Josh DS3", "controller": "PS3 Controller",
+    {"name": "Josh DS3", "controller": "PS3", "layout": "ds3",
      "axes": {"lx": {"center": 0.031, "deadzone": 0.08, "min": -0.97, "max": 0.99},
               "ly": {...}, "rx": {...}, "ry": {...}},
      "triggers": {"l2": {"rest": 0.0, "max": 1.0, "deadzone": 0.04}, "r2": {...}},
@@ -37,6 +43,8 @@ TRIGGERS = ("l2", "r2")
 AXIS_NAMES = {"lx": "Left X", "ly": "Left Y", "rx": "Right X", "ry": "Right Y", "l2": "L2 / LT", "r2": "R2 / RT"}
 
 NONE = "none"                    # picker choice for "no profile"; anything else is a profile name
+LAYOUTS = ("ds3", "xbox")        # button-label layouts a controller type can have
+LAYOUT_NAMES = {"ds3": "DUALSHOCK 3", "xbox": "XBOX"}
 
 # Calibration wizard rules
 MIN_DEADZONE = 0.03              # never below this, even for a perfectly quiet stick
@@ -62,9 +70,10 @@ def _num(v, lo, hi, fallback):
 
 
 class ControllerProfile:
-    def __init__(self, name="", controller="", axes=None, triggers=None, saved=""):
+    def __init__(self, name="", controller="", axes=None, triggers=None, saved="", layout=""):
         self.name = name
         self.controller = controller
+        self.layout = layout if layout in LAYOUTS else ""      # "" = not set (older profiles)
         self.axes = {k: default_axis() for k in AXES}
         self.triggers = {k: default_trigger() for k in TRIGGERS}
         self.saved = saved
@@ -115,7 +124,7 @@ class ControllerProfile:
     # ---- JSON ----
     def to_dict(self):
         r = lambda v: round(v, 4)
-        return {"name": self.name, "controller": self.controller,
+        return {"name": self.name, "controller": self.controller, "layout": self.layout,
                 "axes": {k: {f: r(v) for f, v in a.items()} for k, a in self.axes.items()},
                 "triggers": {k: {f: r(v) for f, v in t.items()} for k, t in self.triggers.items()},
                 "saved": self.saved}
@@ -123,7 +132,7 @@ class ControllerProfile:
     @classmethod
     def from_dict(cls, d):
         return cls(str(d.get("name", "")).strip(), str(d.get("controller", "")).strip(),
-                   d.get("axes"), d.get("triggers"), str(d.get("saved", "")))
+                   d.get("axes"), d.get("triggers"), str(d.get("saved", "")), str(d.get("layout", "")))
 
 
 def default_deadzones():
@@ -168,6 +177,25 @@ def delete(name):
         pass
 
 
+# ---------------------------------------------------------------------------------------
+# Controller types (the CONTROLLER drop-down on the CONTROLLER PROFILES page)
+# ---------------------------------------------------------------------------------------
+# Only controllers tested with the ROV. To support another one, test it first (buttons,
+# sticks, triggers, E-STOP and ARM in demo mode and on the ROV), then add it here.
+CONTROLLER_TYPES = [{"name": "Xbox", "layout": "xbox"}, {"name": "PS3", "layout": "ds3"}]
+
+
+def load_types():
+    """[{"name", "layout"}]: the tested controller types."""
+    return [dict(t) for t in CONTROLLER_TYPES]
+
+
+def find_type(name, types=None):
+    """The type called `name` (case-insensitive), or None."""
+    key = (name or "").strip().lower()
+    return next((t for t in (types if types is not None else CONTROLLER_TYPES) if t["name"].lower() == key), None)
+
+
 def describe(choice):
     return "Defaults (no calibration)" if choice == NONE else choice
 
@@ -206,6 +234,17 @@ class CalibratedPad:
             self.profile = self._resolve(st.name) if st.connected else self.profile
         return self.profile.apply(st) if (self.profile is not None and st.connected) else st
 
+    def layout(self):
+        """Button labels the chosen profile asks for ("ds3" / "xbox"), or None (no profile, or
+        an older profile without the setting)."""
+        p = self._resolve(None)
+        if p is None:
+            return None
+        if p.layout:
+            return p.layout
+        t = find_type(p.controller)                  # older profile: its controller type's labels
+        return t["layout"] if t is not None else None
+
     def deadzones(self):
         """Per-axis deadzones for the mixer: the profile's while its controller is connected,
         else config.py defaults (e.g. demo mode's simulated pad)."""
@@ -219,7 +258,8 @@ class CalibratedPad:
             if self.missing:
                 return f'Controller profile "{self.choice}" not found — using defaults'
             return "No controller profile — using default deadzones"
-        return f'Controller profile "{self.profile.name}"'
+        labels = LAYOUT_NAMES.get(self.layout() or "")
+        return f'Controller profile "{self.profile.name}"' + (f" · button labels {labels}" if labels else "")
 
 
 # ---------------------------------------------------------------------------------------

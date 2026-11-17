@@ -116,6 +116,11 @@ class ConsoleWindow(QMainWindow):
         self.log_file = EventLogFile("DEMO" if demo else vehicle)
 
         self._build_ui()
+        # Button labels: the controller profile's BUTTON LABELS choice if it has one, else the
+        # toggle's last setting. The toggle above STICK INPUT can still change it.
+        profile_kind = self.cal_pad.layout() if self.cal_pad is not None else None
+        if profile_kind:
+            LAYOUT["kind"] = profile_kind
         self._apply_kind(LAYOUT["kind"])
 
         # Live camera (not in demo mode - there is no camera to listen to).
