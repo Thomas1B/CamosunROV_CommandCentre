@@ -4,6 +4,7 @@ folder, links, then the licence.
 The repository link is REPO_URL in config.py.
 """
 
+import html
 import platform
 from importlib import metadata
 
@@ -124,7 +125,8 @@ class AboutCard(Card):
         v.addWidget(title)
         v.addWidget(lab(f"Version {APP_VERSION} · build {APP_BUILD}" + ("  ·  Windows .exe" if FROZEN else ""),
                         z(11), ACCENT))
-        overview = lab(OVERVIEW, z(11), SOFT)
+        overview = lab(f'<p style="line-height: 130%">{html.escape(OVERVIEW)}</p>', z(11), SOFT)
+        overview.setTextFormat(Qt.TextFormat.RichText)          # rich text for the line spacing
         overview.setWordWrap(True)
         overview.setContentsMargins(0, z(10), 0, 0)
         v.addWidget(overview)
@@ -192,7 +194,7 @@ class AboutCard(Card):
         box.setFont(mono(z(10)))
         box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         box.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
-        box.setFixedHeight(z(120))                          # scrolls; the full text is 21 lines
+        box.setFixedHeight(z(275))                          # scrolls; the full text is 21 lines
         box.setStyleSheet(f"QPlainTextEdit {{ background: {WELL}; color: {SOFT}; border: 1px solid {BORDER};"
                           f" border-radius: 3px; padding: {z(6)}px; }}"
                           f"QScrollBar {{ background: {PANEL}; border: none; width: {z(10)}px; }}"
