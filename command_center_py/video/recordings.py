@@ -3,7 +3,6 @@
     list_recordings()        every recordings/*.mkv, newest first (start time, vehicle, size, length)
     events_for(recording)    every event logged while that file was recording, from logs/*.csv
                              (the "video_time" / "video_file" columns written by the console)
-    marks_for(recording)     just the operator marks (MARK rows) of those
     event_rows(recording)    the same events as full log rows (all columns), for EXPORT
     export_mp4(rec, path)    copy the video into an .mp4 (no re-encoding; see below)
     export_events(rec, path) the recording's events as .csv or .xlsx, with video times
@@ -220,7 +219,3 @@ def events_for(recording):
     out.sort()                                  # by video time, then log time, then file order
     return [(t, local[11:19], tag, text) for t, local, _, tag, text in out]
 
-
-def marks_for(recording):
-    """[(seconds, local_time, summary)] for the MARK rows of events_for(recording)."""
-    return [(t, local, text) for t, local, tag, text in events_for(recording) if tag == "MARK"]

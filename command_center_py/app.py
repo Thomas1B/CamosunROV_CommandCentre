@@ -12,9 +12,11 @@ from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication
 
+from command_center_py.config import APP_VERSION
 from command_center_py.video import avlib
 from command_center_py.controller import profiles as controller_profiles
 from command_center_py.controller.gamepad import Gamepad
+from command_center_py.vehicle import profiles as vehicle_profiles
 from command_center_py.vehicle.link import DemoLink
 from command_center_py.ui.menu.main_menu import MainMenu
 from command_center_py.ui.console.main_window import ConsoleWindow
@@ -59,9 +61,10 @@ class RovApp:
         # One app-wide icon: used by the title bar of every window and dialog
         # (main menu, console, controller map) and by the taskbar.
         QApplication.instance().setWindowIcon(app_icon())
+        vehicle_profiles.install_defaults(APP_VERSION)   # add the default vehicle profiles (once per version)
         self.pad = Gamepad()          # starts SDL in its own thread (any error is printed from there)
         self.console = None
-        self.menu = MainMenu(self.pad, on_connected=self.open_console, on_demo=self.open_demo)
+        self.menu = MainMenu(self.pad, on_connected=self.open_console)
 
     def start(self):
         self.menu.showMaximized()  # or showFullScreen() if you want to hide the taskbar
@@ -70,9 +73,6 @@ class RovApp:
         QTimer.singleShot(300, avlib.prewarm)
 
     # ---------------- screen switching ----------------
-    def open_demo(self):
-        self.open_console(DemoLink(), "DEMO")
-
     def open_console(self, link, vehicle, controller_profile=controller_profiles.NONE):
         """link: a connected Link (CONNECT VEHICLE) or a DemoLink (DEMO MODE).
         controller_profile: NONE (config.py defaults) or a saved profile's name (CONNECT VEHICLE).

@@ -13,4 +13,4 @@ The camera: the live feed from the ROV, REC, and playing recordings back.
 
 **Related settings in `config.py`:** `VIDEO_PORT`, `VIDEO_STALE_S`, `RECORDINGS_DIR`.
 
-This folder holds code only. The recordings go in the `recordings/` folder at the top of the repo.
+This folder holds code only. The recordings go in `recordings/` in the data folder (`DATA_DIR` in `config.py`).

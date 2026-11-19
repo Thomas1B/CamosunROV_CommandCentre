@@ -1,10 +1,11 @@
 """Tuning constants for the topside console - adjust these on the bench."""
 
+import os
 import sys
 from pathlib import Path
 
-APP_VERSION = "1.0.0"
-APP_BUILD = "2026-11-16"   # year-month, shown on the main menu (December 2026 = end of the project)
+APP_VERSION = "2.0.0"
+APP_BUILD = "2026-11-16"   # build date, YYYY-MM-DD, shown on the main menu and ABOUT
 
 # Main menu ABOUT card
 REPO_URL = "https://github.com/Thomas1B/CamosunROV_CommandCentre"
@@ -23,17 +24,15 @@ CONNECT_TIMEOUT_S = 5.0  # CONNECT waits this long for telemetry from the Pi bef
 # "py rov_console.py" from a terminal. The .exe has no terminal window.
 FROZEN = getattr(sys, "frozen", False)
 
-# Top directory of the program (the repo root, or the .exe's folder once packaged).
-# Saved vehicle profiles live in <top>/vehicle_profiles/, one JSON file per vehicle.
-TOP_DIR = (Path(sys.executable).resolve().parent if FROZEN
-           else Path(__file__).resolve().parent.parent)
-PROFILES_DIR = TOP_DIR / "vehicle_profiles"
-# The console's event log is saved in <top>/logs/, one CSV file per console session.
-LOGS_DIR = TOP_DIR / "logs"
-# Camera recordings (console REC button), one .mkv per recording.
-RECORDINGS_DIR = TOP_DIR / "recordings"
-# Controller calibration profiles (main menu > CONTROLLER PROFILES), one JSON file each.
-CONTROLLER_PROFILES_DIR = TOP_DIR / "controller_profiles"
+# Program files (LICENSE, default profiles): the repo root, or _internal\ in the .exe.
+APP_DIR = Path(__file__).resolve().parent.parent
+# User data, for the .exe and from source alike: Public Documents, shared by everyone on the
+# laptop and kept when the program folder is replaced by a new release.
+DATA_DIR = Path(os.environ.get("PUBLIC") or r"C:\Users\Public") / "Documents" / "CamosunROV_Data"
+PROFILES_DIR = DATA_DIR / "vehicle_profiles"                 # one JSON file per vehicle
+LOGS_DIR = DATA_DIR / "logs"                                 # one CSV file per console session
+RECORDINGS_DIR = DATA_DIR / "recordings"                     # one .mkv per REC recording
+CONTROLLER_PROFILES_DIR = DATA_DIR / "controller_profiles"   # one JSON file per calibration
 
 # Button labels the console and menu start with: "ds3" or "xbox". The pilot can switch with
 # the DUALSHOCK 3 / XBOX toggle above STICK INPUT in the console. (Not auto-detected: with the

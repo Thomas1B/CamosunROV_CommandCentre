@@ -1,6 +1,6 @@
 """Controller profiles: per-controller stick and trigger calibration.
 
-One JSON file per profile in <top dir>/controller_profiles/ (config.CONTROLLER_PROFILES_DIR).
+One JSON file per profile in config.CONTROLLER_PROFILES_DIR (controller_profiles/ in the data folder).
 Made and edited on the main menu's CONTROLLER PROFILES page; chosen in CONNECT VEHICLE
 (default: none, i.e. the config.py defaults). "controller" is the controller type the
 profile is for, picked from a fixed list on the CONTROLLER PROFILES page: only controllers

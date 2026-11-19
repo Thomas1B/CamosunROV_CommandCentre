@@ -8,10 +8,12 @@ Build (venv activated, from the repo root):
 
 Output: dist/CamosunROV/
     CamosunROV.exe   - run this
-    _internal/       - Python, Qt, FFmpeg, SDL2, our code (don't touch)
-    *_profiles/      - only the profiles in SHIP_PROFILES
-    logs/, recordings/ - empty folders from SHIP_EMPTY_FOLDERS
+    _internal/       - Python, Qt, FFmpeg, SDL2, our code, LICENSE, default vehicle profiles (don't touch)
     install.bat, uninstall.bat - from SHIP_SCRIPTS
+
+User data (profiles, logs, recordings) is not in the build: the program uses
+C:/Users/Public/Documents/CamosunROV_Data (config.py DATA_DIR) and copies the default
+vehicle profiles there on its first start of each version.
 
 --noconfirm wipes dist/CamosunROV/ on every build.
 """
@@ -29,16 +31,8 @@ ROOT = Path(SPECPATH)     # repo root (SPECPATH = this file's folder, set by PyI
 # .exe icon - must match ICON_ICO in app.py
 ICON = ROOT / "command_center_py" / "ui" / "assets" / "CamosunROV_Logo.ico"
 
-# Profiles copied next to the .exe. Add/remove lines, then rebuild. None: []
-SHIP_PROFILES = [
-    "vehicle_profiles/ROV-01.json",
-]
-
-# Empty folders created next to the .exe. Add/remove names, then rebuild. None: []
-SHIP_EMPTY_FOLDERS = [
-    "logs",
-    "recordings",
-]
+# Default vehicle profiles: every .json in command_center_py/defaults/vehicle_profiles/ is
+# bundled. Add or remove files there, then rebuild.
 
 # Repo files copied next to the .exe (by file name only). Add/remove lines, then rebuild.
 SHIP_SCRIPTS = []
@@ -52,7 +46,11 @@ a = Analysis(
     [str(ROOT / "rov_console.py")],   # entry script
     pathex=[str(ROOT)],               # so command_center_py is found
     # non-Python files: (source, destination inside _internal/)
-    datas=[(str(ROOT / "command_center_py" / "ui" / "assets"), "command_center_py/ui/assets")],
+    datas=[
+        (str(ROOT / "command_center_py" / "ui" / "assets"), "command_center_py/ui/assets"),
+        (str(ROOT / "command_center_py" / "defaults"), "command_center_py/defaults"),   # default profiles
+        (str(ROOT / "LICENSE"), "."),                                                  # ABOUT shows it
+    ],
     hiddenimports=[],   # add a module here if the .exe says ModuleNotFoundError
     excludes=[],
 )
@@ -82,25 +80,10 @@ coll = COLLECT(
 )
 
 # ===========================================================================
-# AFTER THE BUILD - copy SHIP_PROFILES and SHIP_SCRIPTS, create SHIP_EMPTY_FOLDERS next to the .exe
-# (config.py looks there when frozen, not in _internal/)
+# AFTER THE BUILD - copy SHIP_SCRIPTS next to the .exe
 # ===========================================================================
 
 out_dir = Path(DISTPATH) / APP_NAME   # dist/CamosunROV/ (DISTPATH set by PyInstaller)
-
-for rel in SHIP_PROFILES:
-    src = ROOT / rel
-    if not src.is_file():   # profile folders are gitignored, so a fresh clone may lack them
-        raise SystemExit(f"SHIP_PROFILES: {rel} not found in the repo - "
-                         f"save it from the app first, or remove its line from CamosunROV.spec")
-    dst = out_dir / rel
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(src, dst)
-    print(f"Shipped profile: {rel}")
-
-for folder in SHIP_EMPTY_FOLDERS:
-    (out_dir / folder).mkdir(parents=True, exist_ok=True)   # create dist/CamosunROV/<folder>/
-    print(f"Shipped empty folder: {folder}")
 
 for rel in SHIP_SCRIPTS:
     src = ROOT / rel

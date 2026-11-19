@@ -11,4 +11,4 @@ The session event log: writing it to disk, reading saved logs back, and exportin
 
 **Related settings in `config.py`:** `LOGS_DIR`.
 
-This folder holds code only. The saved log files go in the `logs/` folder at the top of the repo.
+This folder holds code only. The saved log files go in `logs/` in the data folder (`DATA_DIR` in `config.py`).

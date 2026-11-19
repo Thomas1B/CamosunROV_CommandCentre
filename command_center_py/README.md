@@ -38,14 +38,14 @@ rov_console.py
                           send commands to the Pi        (RATE_HZ, 50 times a second)
                           and receive telemetry
             video/        show the camera feed and record it
-            logs/         save every event-log line to logs/
+            logs/         save every event-log line to logs/ in the data folder
 ```
 
 Closing the console (only allowed while disarmed) returns to the main menu.
 
 ## Saved files
 
-The program reads and writes these folders at the top of the repo, next to `rov_console.py`, not inside `command_center_py`. They are all git-ignored.
+The program reads and writes these folders in the data folder, `C:\Users\Public\Documents\CamosunROV_Data` (`DATA_DIR` in `config.py`), whether it runs from source or as the .exe.
 
 | Folder | Contents | Code |
 |---|---|---|
@@ -53,6 +53,10 @@ The program reads and writes these folders at the top of the repo, next to `rov_
 | `controller_profiles/` | One JSON file per controller calibration | `controller/profiles.py` |
 | `logs/` | One CSV file per console session | `logs/event_log.py` |
 | `recordings/` | One MKV file per REC recording | `video/receiver.py` (writes), `video/recordings.py` (reads) |
+
+`defaults/vehicle_profiles/` (tracked in git) holds the vehicle profiles shipped with the .exe. `vehicle/profiles.py` `install_defaults()` copies any missing one into the data folder on the first start of each version.
+
+The repo's own `vehicle_profiles/`, `controller_profiles/`, `logs/` and `recordings/` folders (git-ignored) are no longer used since v2.0.0.
 
 ## Where to change things
 

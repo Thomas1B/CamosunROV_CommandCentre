@@ -1,17 +1,24 @@
-"""Saved vehicle profiles: one JSON file per vehicle in <top dir>/vehicle_profiles/.
+"""Saved vehicle profiles: one JSON file per vehicle in PROFILES_DIR (config.py).
 
 File contents, e.g. vehicle_profiles/ROV-01.json:
     {"name": "ROV-01", "ip": "192.168.2.2", "cmd_port": 5600, "telem_port": 5601, "video_port": 5602}
 (video_port is optional; if it's missing, VIDEO_PORT from config.py is used)
 Bar30 reference values are saved too (optional, defaults from config.py):
     "surface_pressure_hpa": 1013.25, "surface_unit": "hPa", "water_density": 1000.0, "second_order": true
+
+The default profiles shipped with the program are in command_center_py/defaults/vehicle_profiles/
+(install_defaults copies them into PROFILES_DIR).
 """
 
 import json
 import re
+import shutil
 
 from command_center_py.vehicle import reference
-from command_center_py.config import CMD_PORT, PROFILES_DIR, TELEM_PORT, VIDEO_PORT
+from command_center_py.config import APP_DIR, CMD_PORT, PROFILES_DIR, TELEM_PORT, VIDEO_PORT
+
+DEFAULTS_DIR = APP_DIR / "command_center_py" / "defaults" / "vehicle_profiles"
+DEFAULTS_MARKER = PROFILES_DIR / ".defaults_version"   # last program version that added the defaults
 
 
 def _file_for(name):
@@ -57,6 +64,27 @@ def save_profile(name, ip, cmd_port, telem_port, video_port=VIDEO_PORT, refs=Non
             "video_port": int(video_port)}
     data.update((refs or reference.RefValues()).to_profile())
     _file_for(name).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def install_defaults(version):
+    """Once per program version: copy any missing default profile into PROFILES_DIR. Never
+    overwrites, so edits are kept; a deleted default comes back with the next version only.
+    Errors are printed, never raised."""
+    try:
+        if DEFAULTS_MARKER.read_text(encoding="utf-8").strip() == version:
+            return
+    except OSError:
+        pass                                   # no marker yet: first run of this version
+    try:
+        PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+        for src in sorted(DEFAULTS_DIR.glob("*.json")):
+            dst = PROFILES_DIR / src.name
+            if not dst.exists():
+                shutil.copyfile(src, dst)
+                print(f"Added default vehicle profile {src.name}", flush=True)
+        DEFAULTS_MARKER.write_text(version + "\n", encoding="utf-8")
+    except OSError as e:
+        print(f"Could not add the default vehicle profiles to {PROFILES_DIR}: {e}", flush=True)
 
 
 def delete_profile(name):

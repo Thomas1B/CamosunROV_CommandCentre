@@ -132,10 +132,10 @@ class MenuRow(QFrame):
 class MainMenu(QWidget):
     ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "VIEW LOGS", "VIEW RECORDINGS", "CONTROLLER MAP", "CONTROLLER PROFILES", "ABOUT", "QUIT")
 
-    def __init__(self, pad, on_connected, on_demo):
+    def __init__(self, pad, on_connected):
         super().__init__()
         self.pad = pad
-        self._on_connected, self._on_demo = on_connected, on_demo
+        self._on_connected = on_connected
         self.setWindowTitle("Camosun ROV — Command Centre")
         self.setMinimumSize(1100, 720)
         self.resize(1440, 900)

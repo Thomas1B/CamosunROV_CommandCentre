@@ -9,11 +9,15 @@ All build settings live in `CamosunROV.spec` in the repo root, so every build co
 ```
 dist/CamosunROV/
 ├── CamosunROV.exe       <- double-click to run
-├── _internal/           <- Python, Qt, FFmpeg, SDL2, our code (don't touch)
-├── vehicle_profiles/    <- profiles listed in SHIP_PROFILES
-├── logs/                <- empty; the app saves session logs here
-└── recordings/          <- empty; the app saves camera recordings here
+└── _internal/           <- Python, Qt, FFmpeg, SDL2, our code, LICENSE,
+                            default vehicle profiles (don't touch)
 ```
+
+User data is not in the build. The .exe, like `py rov_console.py`, saves profiles, logs
+and recordings in `C:\Users\Public\Documents\CamosunROV_Data` (`DATA_DIR` in `config.py`).
+On the first start of each version it copies the default vehicle profiles there, skipping
+any that already exist. The defaults are every `.json` in `command_center_py/defaults/vehicle_profiles/`
+(tracked in git); add or remove files there, then rebuild.
 
 The build also creates a temporary `build/` folder. Both `build/` and `dist/` are in `.gitignore`.
 
@@ -57,7 +61,7 @@ Once per computer, on Windows.
    pyinstaller --noconfirm CamosunROV.spec
    ```
 
-   It should end with `Shipped profile: ...` and `Shipped empty folder: ...` lines, then `Build complete!`
+   It should end with `Build complete!`
 
    Remove `--noconfirm` if you want PyInstaller to ask before deleting the old build.
 3. In File Explorer, open the repo's `dist\CamosunROV\` folder and double-click **CamosunROV.exe**.

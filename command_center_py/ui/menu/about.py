@@ -1,4 +1,5 @@
-"""ABOUT card: version and build, a short overview, the system, the software used, links, then the licence.
+"""ABOUT card: version and build, a short overview, the system, the software used, the data
+folder, links, then the licence.
 
 The repository link is REPO_URL in config.py.
 """
@@ -6,15 +7,15 @@ The repository link is REPO_URL in config.py.
 import platform
 from importlib import metadata
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (QFrame, QGridLayout, QLabel, QPlainTextEdit, QScrollArea, QVBoxLayout,
-                               QWidget)
+from PySide6.QtCore import QSize, Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QFont
+from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPlainTextEdit, QScrollArea,
+                               QVBoxLayout, QWidget)
 
-from command_center_py.config import APP_BUILD, APP_VERSION, FROZEN, RATE_HZ, REPO_URL, TOP_DIR
+from command_center_py.config import APP_BUILD, APP_DIR, APP_VERSION, DATA_DIR, FROZEN, RATE_HZ, REPO_URL
 from command_center_py.ui.menu.cards import Card, SOFT, button
-from command_center_py.ui.theme import (ACCENT, BORDER, BRIGHT, CONSOLE_FONT_SCALE, GRID, LABEL, MUTED, PANEL,
-                                        WELL, lab, mono)
+from command_center_py.ui.theme import (ACCENT, BORDER, BRIGHT, CONSOLE_FONT_SCALE, DANGER, GRID, HEAD, LABEL,
+                                        MUTED, PANEL, WELL, lab, mono)
 
 # Short overview shown under the version line.
 OVERVIEW = ("Topside control software for the Camosun ROV. It reads a game controller (Xbox or PS3): "
@@ -44,36 +45,12 @@ LIBRARIES = [
 ]
 
 
-# The repo's LICENSE, word for word. Shown from the LICENSE file when it's there (running from
-# the repo); this copy is for the .exe, which doesn't ship the file. Keep the two the same.
-LICENSE_TEXT = """MIT License
-
-Copyright (c) 2026 Thomas Bourgeois
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE."""
-
-
 def license_text():
+    """The repo's LICENSE (bundled into the .exe by CamosunROV.spec)."""
     try:
-        return (TOP_DIR / "LICENSE").read_text(encoding="utf-8").strip()
+        return (APP_DIR / "LICENSE").read_text(encoding="utf-8").strip()
     except OSError:
-        return LICENSE_TEXT
+        return f"MIT License. The full text is in LICENSE at {REPO_URL}"
 
 
 def _version(package):
@@ -174,6 +151,26 @@ class AboutCard(Card):
         libs = [(name, f"{_version(pkg) or '—'}  ·  {lic}") for name, pkg, lic in LIBRARIES]
         section("SOFTWARE AND LICENCES", [("Python", platform.python_version())] + libs)
 
+        # data folder: where profiles, logs and recordings are saved
+        head = lab("DATA FOLDER", z(9), MUTED)
+        head.setContentsMargins(0, z(12), 0, z(2))
+        v.addWidget(head)
+        row = QHBoxLayout()
+        row.setSpacing(z(12))
+        path = lab(str(DATA_DIR), z(11), SOFT)
+        path.setWordWrap(True)
+        path.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)   # can be copied
+        row.addWidget(path, 1)
+        folder = button("OPEN DATA FOLDER", z(11), None,
+                        f"padding: 6px 12px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
+                        f"border-color: {ACCENT}; color: {ACCENT};")
+        folder.clicked.connect(self._open_data_folder)
+        row.addWidget(folder, 0, Qt.AlignmentFlag.AlignTop)
+        v.addLayout(row)
+        self.data_note = lab("Vehicle and controller profiles, logs and recordings", z(10), LABEL)
+        self.data_note.setWordWrap(True)
+        v.addWidget(self.data_note)
+
         # links, then the licence
         head = lab("LINKS", z(9), MUTED)
         head.setContentsMargins(0, z(12), 0, z(2))
@@ -212,3 +209,12 @@ class AboutCard(Card):
         ok.clicked.connect(on_close)
         self.foot_lay.addWidget(ok)
         self.setFixedWidth(max(self.width(), self.sizeHint().width() + 8))
+
+    def _open_data_folder(self):
+        try:
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            self.data_note.setStyleSheet(f"color: {DANGER}; background: transparent;")
+            self.data_note.setText(f"Can't open the data folder — {e}")
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(DATA_DIR)))

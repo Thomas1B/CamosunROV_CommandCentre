@@ -55,6 +55,31 @@ Features:
 
 ---
 
+## Where Files Are Saved
+
+Profiles, logs and recordings go in one data folder, kept apart from the program
+so a new release never replaces them:
+
+```
+C:\Users\Public\Documents\CamosunROV_Data
+```
+
+The .exe and `py rov_console.py` both use it, and it's shared by everyone on the
+laptop. It holds `vehicle_profiles/`, `controller_profiles/`, `logs/` and `recordings/`;
+those folder names in this README are inside it. **ABOUT** on the main menu
+shows the folder and has **OPEN DATA FOLDER**.
+
+The program comes with the `ROV-01` vehicle profile (the Pi's IP and ports).
+The first start of each new version adds it if it's missing and never
+overwrites it, so a deleted `ROV-01` stays deleted until the next update.
+
+**Coming from v1.x** (data was next to `CamosunROV.exe`, or in the repo's top
+directory when run from source): close the program and move the old
+`vehicle_profiles`, `controller_profiles`, `logs` and `recordings` folders into
+the data folder. See the v2.0.0 release notes.
+
+---
+
 ## Developer Setup
 
 The app runs on **Python 3.14** in a `.venv` in the repo's top directory. The
@@ -292,7 +317,7 @@ disarm.
 ### Event log and operator marks
 
 Each session's event log is also written to `logs/<vehicle>_<local start
-time>.csv` (e.g. `logs/DEMO_2026-10-31_23-44-18.csv`; git-ignored). The first
+time>.csv` (e.g. `logs/DEMO_2026-10-31_23-44-18.csv`). The first
 on-screen line shows the file name. Rows are written immediately, so the file
 survives a crash. Exports and saved frames reuse the name.
 
@@ -345,8 +370,8 @@ double-click the title bar). Esc, the close button or CLOSE exits.
 ### Recording the camera
 
 Click **REC** in the toolbar to start; click again (it shows e.g. **REC
-02:14**) to stop. Files go to `recordings/<vehicle>_<start time>.mkv`
-(git-ignored). Mouse only; no controller button.
+02:14**) to stop. Files go to `recordings/<vehicle>_<start time>.mkv`.
+Mouse only; no controller button.
 
 - **Full quality:** the Pi's H.264 stream is saved as received, not
   re-encoded — about 30 MB/min (1.8 GB/h) at 4 Mbit/s.
