@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 APP_VERSION = "2.0.0"
-APP_BUILD = "2026-11-16"   # build date, YYYY-MM-DD, shown on the main menu and ABOUT
+APP_BUILD = "2026-11-19"   # build date, YYYY-MM-DD, shown on the main menu and ABOUT
 
 # Main menu ABOUT card
 REPO_URL = "https://github.com/Thomas1B/CamosunROV_CommandCentre"
