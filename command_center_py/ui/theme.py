@@ -58,10 +58,12 @@ CHEVRON_SVG = (Path(__file__).resolve().parent / "assets" / "chevron-down.svg").
 
 def combo_arrow_css(width_px):
     """QComboBox stylesheet rules for a right-aligned chevron in a width_px-wide button."""
-    return (f"QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: center right;"
-            f" border: none; width: {width_px}px; }}"
-            f"QComboBox::down-arrow {{ image: url({CHEVRON_SVG}); width: 10px; height: 7px; }}"
-            f"QComboBox::down-arrow:on {{ top: 1px; }}")
+    return (f"QComboBox {{ combobox-popup: 0; }}"                                         # list opens below the box (not over it)
+            f"QComboBox QAbstractItemView::item {{ min-height: 26px; padding: 0 8px; }}"  # each row in the list: height, side padding
+            f"QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: center right;"  # arrow area: inside the padding, on the right
+            f" border: none; width: {width_px}px; }}"                                     # no divider line; width of the arrow area
+            f"QComboBox::down-arrow {{ image: url({CHEVRON_SVG}); width: 10px; height: 7px; }}"  # the chevron image and its size
+            f"QComboBox::down-arrow:on {{ top: 1px; }}")                                  # while the list is open, nudge the chevron down 1 px
 
 
 def fs(px):

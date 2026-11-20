@@ -147,6 +147,7 @@ def main():
                  "Choose CONNECT VEHICLE or DEMO MODE in the main menu.")
     use_own_taskbar_icon()
     app = QApplication(sys.argv)
+    # app.setStyle("Fusion")  # Qt's built-in dark theme is not good enough, so use our own palette
     rov = RovApp()
     rov.start()
     install_ctrl_c_handler(app, rov)
