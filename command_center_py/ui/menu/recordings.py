@@ -138,7 +138,7 @@ class RecordingsCard(Card):
             b.setStyleSheet(b.styleSheet() + disabled)
 
         self.layout().setStretchFactor(self.body, 1)
-        self.setFixedSize(1180, 700)
+        self.setFixedSize(1500, 800)
         self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
         self.add_maximize(self.grip)           # maximise button next to the ✕ (or double-click the title)
         self.timer = QTimer(self)

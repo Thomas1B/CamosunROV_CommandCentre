@@ -38,7 +38,7 @@ class LogsCard(Card):
         h.setSpacing(14)
 
         self.list = QListWidget()
-        self.list.setFixedWidth(270)
+        self.list.setFixedWidth(300)
         self.list.setFont(mono(12))
         self.list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.list.setStyleSheet(
@@ -75,7 +75,7 @@ class LogsCard(Card):
         right.addWidget(self.empty, 1)
         h.addLayout(right, 1)
         self.layout().setStretchFactor(self.body, 1)      # extra height goes to the tables
-        self.setFixedSize(1040, 600)
+        self.setFixedSize(1200, 800)
         self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
         self.add_maximize(self.grip)           # maximise button next to the ✕ (or double-click the title)
 
