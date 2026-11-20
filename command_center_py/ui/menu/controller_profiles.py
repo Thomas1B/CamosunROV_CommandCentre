@@ -13,8 +13,7 @@ from command_center_py.controller import profiles as cp
 from command_center_py.ui.menu.cards import (Card, EDIT_CSS, LIST_CSS, OK_BORDER, OK_GREEN,
                                              OK_TEXT, ResizeGrip, SOFT, SPIN_CSS, button, slab)
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, DIM, GRID, HEAD,
-                                        LABEL, MUTED, WARN, WELL, combo_arrow_css, lab, mono)
-from command_center_py.ui.widgets import LAYOUT
+                                        LABEL, TEXT, MUTED, WARN, WELL, combo_arrow_css, lab, mono)
 
 LAYOUT_NAMES = cp.LAYOUT_NAMES
 
@@ -96,33 +95,32 @@ class ControllerProfilesCard(Card):
         top = QGridLayout()
         top.setHorizontalSpacing(10)
         top.setVerticalSpacing(4)
-        top.addWidget(slab("PROFILE NAME", 9, BRIGHT, spacing=0.9), 0, 0)
-        top.addWidget(slab("CONTROLLER", 9, BRIGHT, spacing=0.9), 0, 1)
-        top.addWidget(slab("BUTTON LABELS", 9, BRIGHT, spacing=0.9), 0, 2)
+        top.addWidget(slab("PROFILE NAME", 14, BRIGHT, spacing=0.9), 0, 0)
+        top.addWidget(slab("CONTROLLER", 14, BRIGHT, spacing=0.9), 0, 1)
         self.name_edit = QLineEdit()
-        self.name_edit.setPlaceholderText("e.g. Josh DS3")
+        self.name_edit.setPlaceholderText("e.g. ROVER PS3")
         self.name_edit.textEdited.connect(self._edited)
         self.name_edit.setFont(mono(13))
         self.name_edit.setStyleSheet(EDIT_CSS)
         top.addWidget(self.name_edit, 1, 0)
         # CONTROLLER: the tested controller types (controller/profiles.py CONTROLLER_TYPES).
-        # The type decides the BUTTON LABELS - never guessed from the name the controller reports.
+        # The type decides the console's button labels - never guessed from the name the controller reports.
         self.type_box = QComboBox()
         self.type_box.setFont(mono(13))
         self.type_box.setCursor(Qt.CursorShape.PointingHandCursor)
         self.type_box.setMinimumHeight(34)
         self.type_box.setStyleSheet(COMBO_CSS)
+        self.type_box.setPlaceholderText("")       # shown while no type is picked
         self.type_box.activated.connect(self._pick_type)
         top.addWidget(self.type_box, 1, 1)
-        self.labels_lbl = lab("", 12, SOFT, QFont.Weight.DemiBold)
-        self.labels_lbl.setMinimumWidth(110)
-        top.addWidget(self.labels_lbl, 1, 2)
-        top.setColumnStretch(0, 2)
-        top.setColumnStretch(1, 3)
 
-        self.pad_lbl = lab("", 11, LABEL)
-        top.addWidget(self.pad_lbl, 2, 0, 1, 3)
+        top.setColumnStretch(0, 1)
+        top.setColumnStretch(1, 1)
+
+        self.pad_lbl = lab("", 14, LABEL)
+        top.addWidget(self.pad_lbl, 2, 0, 1, 2)
         right.addLayout(top)
+        right.addSpacing(25)
 
         # live view + wizard
         live = QHBoxLayout()
@@ -173,7 +171,7 @@ class ControllerProfilesCard(Card):
         grid.setVerticalSpacing(4)
         heads = ("", "CENTRE / REST", "DEADZONE", "MIN", "MAX")
         for c, t in enumerate(heads):
-            grid.addWidget(slab(t, 9, LABEL, spacing=0.9), 0, c)
+            grid.addWidget(slab(t, 12, TEXT, spacing=0.9), 0, c)
         self.fields = {}
         for r, k in enumerate(cp.AXES + cp.TRIGGERS, 1):
             grid.addWidget(lab(cp.AXIS_NAMES[k], 12, SOFT), r, 0)
@@ -188,7 +186,7 @@ class ControllerProfilesCard(Card):
                 sb.setDecimals(3)
                 sb.setSingleStep(0.01)
                 sb.setRange(lo, hi)
-                sb.setFont(mono(12))
+                sb.setFont(mono(14))
                 sb.setStyleSheet(SPIN_CSS)
                 sb.valueChanged.connect(lambda v, k=k, f=f: self._field(k, f, v))
                 self.fields[(k, f)] = sb
@@ -219,7 +217,7 @@ class ControllerProfilesCard(Card):
         self.close2.clicked.connect(self.close_card)
         self.foot_lay.addWidget(self.close2)
 
-        self.setFixedSize(1120, 690)
+        self.setFixedSize(1250, 690)
         self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
         self._show_wizard()
 
@@ -286,8 +284,7 @@ class ControllerProfilesCard(Card):
         self.list.clearSelection()
         self.list.setCurrentRow(-1)
         self.list.blockSignals(False)
-        first = next((ty for ty in cp.load_types() if ty["layout"] == LAYOUT["kind"]), cp.CONTROLLER_TYPES[0])
-        self._load(cp.ControllerProfile("", first["name"], layout=first["layout"]), dirty=False)   # labels in use now
+        self._load(cp.ControllerProfile("", "", layout=""), dirty=False)   # no type yet: the drop-down shows ---
         self._say(LABEL, "New profile — press CALIBRATE with the controller connected, then SAVE.")
 
     def _delete(self):
@@ -353,14 +350,6 @@ class ControllerProfilesCard(Card):
         i = self.type_box.findData(cp.find_type(cur, types)["name"] if cp.find_type(cur, types) else cur)
         self.type_box.setCurrentIndex(max(0, i) if cur else -1)
         self.type_box.blockSignals(False)
-        self._show_labels()
-
-    def _show_labels(self):
-        """BUTTON LABELS read-out: the profile's labels (from its controller type)."""
-        lay = self.edit.layout
-        self.labels_lbl.setText(LAYOUT_NAMES.get(lay, "— not set"))
-        self.labels_lbl.setStyleSheet(f"color: {ACCENT if lay else WARN}; background: transparent;")
-        self.labels_lbl.setToolTip("Button names the console shows with this profile, set by the controller type")
 
     def _pick_type(self, i):
         data = self.type_box.itemData(i)
@@ -370,7 +359,6 @@ class ControllerProfilesCard(Card):
         self.edit.controller = data
         if ty is not None:
             self.edit.layout = ty["layout"]
-        self._show_labels()
         self._edited()
 
     def _reset_values(self):
@@ -384,6 +372,9 @@ class ControllerProfilesCard(Card):
         if not name:
             self._say(DANGER, "Enter a profile name first.")
             self.name_edit.setFocus()
+            return
+        if not self.edit.controller:
+            self._say(DANGER, "Pick a controller type first.")
             return
         self._cancel_cal()
         self.edit.name = name
@@ -532,7 +523,7 @@ class StickCalView(QWidget):
     def paintEvent(self, e):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.setFont(mono(11, QFont.Weight.DemiBold))
+        p.setFont(mono(14, QFont.Weight.DemiBold))
         p.setPen(QColor(LABEL))
         p.drawText(QRectF(0, 0, self.width(), 18), Qt.AlignmentFlag.AlignCenter, self.title)
         side = min(self.width(), self.height() - 24) - 4
