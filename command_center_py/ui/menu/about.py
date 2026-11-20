@@ -149,7 +149,7 @@ class AboutCard(Card):
             g.setColumnStretch(1, 1)
             v.addLayout(g)
 
-        section("SYSTEM", SYSTEM)
+        section("SYSTEM SPECS", SYSTEM)
         libs = [(name, f"{_version(pkg) or '—'}  ·  {lic}") for name, pkg, lic in LIBRARIES]
         section("SOFTWARE AND LICENCES", [("Python", platform.python_version())] + libs)
 
@@ -202,14 +202,12 @@ class AboutCard(Card):
                           f"QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}")
         v.addWidget(box)
 
-        self.foot_lay.addWidget(lab("ESC", z(10), SOFT))
-        self.foot_lay.addWidget(lab("to close", z(10), LABEL))
         self.foot_lay.addStretch(1)
-        ok = button("OK", z(11), z(72),
+        close = button("Close", z(11), z(72),
                     f"padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
                     f"border-color: {ACCENT}; color: {ACCENT};")
-        ok.clicked.connect(on_close)
-        self.foot_lay.addWidget(ok)
+        close.clicked.connect(on_close)
+        self.foot_lay.addWidget(close)
         self.setFixedWidth(max(self.width(), self.sizeHint().width() + 8))
 
     def _open_data_folder(self):
