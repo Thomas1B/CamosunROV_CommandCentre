@@ -362,8 +362,8 @@ The event log records each recording kept or deleted.
 
 ### Viewing saved logs
 
-**VIEW LOGS** lists sessions in `logs/`, newest first, with start time,
-vehicle, event and mark counts. Selecting one (mouse or arrow keys) shows the
+**VIEW LOGS** lists sessions in `logs/`, newest first, with start time and
+vehicle. Selecting one (mouse or arrow keys) shows the
 same two tables plus session length and UTC times; their columns resize the
 same way as in SESSION LOG. **EXPORT…** (`.xlsx`,
 `.csv`, `.pdf`), **DELETE** (click twice) and **OPEN FOLDER** are available.

@@ -4,102 +4,121 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices, QFont
-from PySide6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QTabWidget, QVBoxLayout
+from PySide6.QtWidgets import (QHBoxLayout, QListWidget, QListWidgetItem, QSplitter, QTabWidget, QVBoxLayout,
+                               QWidget)
 
 from command_center_py.config import LOGS_DIR
 from command_center_py.logs.event_log import EVENT_COLS, MARK_COLS, list_logs
 from command_center_py.ui.console.exit_log_dialog import export_session, log_table
 from command_center_py.ui.menu.cards import Card, RED_BORDER, ResizeGrip, SOFT, button
-from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD, LABEL,
-                                        MUTED, PANEL, WARN, WELL, lab, mono)
+from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, CONSOLE_FONT_SCALE, DANGER, GRID,
+                                        HEAD, LABEL, MUTED, PANEL, WARN, WELL, lab, mono)
 
 
 class LogsCard(Card):
     """SESSION LOGS: every console session saved in logs/, newest first.
 
-    Left: the list of sessions (start time, vehicle, events, marks, length). Right: the
+    Left: the list of sessions (start time, vehicle). Right: the
     selected session in the same OPERATOR MARKS / ALL EVENTS tables as the exit pop-up.
     Footer: OPEN FOLDER, DELETE (click twice), EXPORT... (.xlsx / .csv / .pdf), CLOSE.
     Esc / ✕ / CLOSE close it; arrow keys pick a session.
     Resizable: drag the grip in the bottom-right corner (kept while the program runs).
+    Drawn at the console's text size (CONSOLE_FONT_SCALE), like the SESSION LOG exit pop-up.
     """
 
     MIN_W, MIN_H = 720, 380
 
     def __init__(self, on_close):
-        super().__init__("SESSION LOGS", 1040)
+        z = lambda v: round(v * CONSOLE_FONT_SCALE)          # same sizes as the SESSION LOG pop-up
+        self._z = z
+        super().__init__("SESSION LOGS", 1040, scale=CONSOLE_FONT_SCALE)
         self._on_close = on_close
         self.close_btn.clicked.connect(on_close)
         self.logs = []
         self._del_armed = False
 
         h = QHBoxLayout(self.body)
-        h.setContentsMargins(14, 14, 14, 10)
-        h.setSpacing(14)
+        h.setContentsMargins(z(14), z(14), z(14), z(10))
+        h.setSpacing(z(14))
 
         self.list = QListWidget()
-        self.list.setFixedWidth(300)
-        self.list.setFont(mono(12))
+        self.list.setMinimumWidth(z(200))       # starts at z(300); drag the divider to change it
+        self.list.setFont(mono(z(12)))
         self.list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.list.setStyleSheet(
             f"QListWidget {{ background: {WELL}; border: 1px solid {BORDER}; outline: none; }}"
-            f"QListWidget::item {{ color: {LABEL}; padding: 8px 10px; border-bottom: 1px solid {BORDER}; }}"
+            f"QListWidget::item {{ color: {LABEL}; padding: {z(8)}px {z(10)}px; border-bottom: 1px solid {BORDER}; }}"
             f"QListWidget::item:hover {{ color: {BRIGHT}; }}"
             f"QListWidget::item:selected {{ background: rgba(18,58,48,0.75); color: {BRIGHT};"
             f" border-left: 2px solid {ACCENT}; }}"
-            f"QScrollBar {{ background: {PANEL}; border: none; width: 10px; }}"
+            f"QScrollBar {{ background: {PANEL}; border: none; width: {z(10)}px; }}"
             f"QScrollBar::handle {{ background: {GRID}; border-radius: 4px; min-height: 24px; }}"
             f"QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}")
         self.list.currentRowChanged.connect(self._show)
-        h.addWidget(self.list)
 
-        right = QVBoxLayout()
-        right.setSpacing(6)
-        self.info = lab("", 12, SOFT)
+        # The divider between the session list and the tables can be dragged left / right.
+        split = QSplitter(Qt.Orientation.Horizontal)
+        split.setChildrenCollapsible(False)                  # neither side can be dragged shut
+        split.setHandleWidth(z(14))                          # same gap as before
+        split.setStyleSheet(                                 # thin teal line on the divider while hovered
+            "QSplitter::handle { background: transparent; }"
+            f"QSplitter::handle:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0,"
+            f" stop:0 transparent, stop:0.45 transparent, stop:0.45 {ACCENT}, stop:0.55 {ACCENT},"
+            f" stop:0.55 transparent, stop:1 transparent); }}")
+        split.addWidget(self.list)
+        right_w = QWidget()
+        right = QVBoxLayout(right_w)
+        right.setContentsMargins(0, 0, 0, 0)
+        right.setSpacing(z(6))
+        self.info = lab("", z(12), SOFT)
         self.info.setWordWrap(True)
         right.addWidget(self.info)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
         self.tabs.tabBar().setDrawBase(False)
-        self.tabs.tabBar().setFont(mono(11, QFont.Weight.DemiBold))
+        self.tabs.tabBar().setFont(mono(z(11), QFont.Weight.DemiBold))
         self.tabs.setStyleSheet(
             f"QTabWidget::pane {{ border: none; background: {PANEL}; }}"
-            f"QTabBar::tab {{ background: {PANEL}; color: {LABEL}; padding: 6px 12px;"
+            f"QTabBar::tab {{ background: {PANEL}; color: {LABEL}; padding: {z(6)}px {z(12)}px;"
             f" border: none; border-bottom: 2px solid transparent; }}"
             f"QTabBar::tab:selected {{ color: {BRIGHT}; border-bottom: 2px solid {ACCENT}; }}"
             f"QTabBar::tab:hover {{ color: {BRIGHT}; }}")
         right.addWidget(self.tabs, 1)
-        self.empty = lab("No session logs yet. A log is saved in logs/ every time the console runs.", 12, LABEL)
+        self.empty = lab("No session logs yet. A log is saved in logs/ every time the console runs.", z(12), LABEL)
         self.empty.setWordWrap(True)
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right.addWidget(self.empty, 1)
-        h.addLayout(right, 1)
+        split.addWidget(right_w)
+        split.setStretchFactor(0, 0)                         # a wider window widens the tables, not the list
+        split.setStretchFactor(1, 1)
+        split.setSizes([z(300), 10 ** 4])                    # list starts z(300) wide
+        h.addWidget(split, 1)
         self.layout().setStretchFactor(self.body, 1)      # extra height goes to the tables
-        self.setFixedSize(1200, 800)
+        self.setFixedSize(1540, 800)             # opening size; never bigger than the menu window allows
         self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
         self.add_maximize(self.grip)           # maximise button next to the ✕ (or double-click the title)
 
         # footer: OPEN FOLDER  DELETE  status ........ EXPORT...  CLOSE
-        folder = button("OPEN FOLDER", 11, None,
-                        f"padding: 6px 12px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
+        folder = button("OPEN FOLDER", z(11), None,
+                        f"padding: {z(6)}px {z(12)}px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
                         f"border-color: {ACCENT}; color: {ACCENT};")
         folder.clicked.connect(self._open_folder)
         self.foot_lay.addWidget(folder)
-        self.del_btn = button("DELETE", 11, 190,
-                              f"padding: 6px 0; border: 1px solid {RED_BORDER}; border-radius: 3px; background: #2a1416; color: {DANGER};",
+        self.del_btn = button("DELETE", z(11), z(190),
+                              f"padding: {z(6)}px 0; border: 1px solid {RED_BORDER}; border-radius: 3px; background: #2a1416; color: {DANGER};",
                               f"border-color: {DANGER};")
         self.del_btn.clicked.connect(self._delete)
         self.foot_lay.addWidget(self.del_btn)
-        self.status = lab("", 11, LABEL)
+        self.status = lab("", z(11), LABEL)
         self.status.setWordWrap(True)
         self.foot_lay.addWidget(self.status, 1)
-        self.export_btn = button("EXPORT…", 11, 100,
-                                 f"padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {SOFT};",
+        self.export_btn = button("EXPORT…", z(11), z(100),
+                                 f"padding: {z(6)}px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {SOFT};",
                                  f"color: {BRIGHT}; border-color: {LABEL};")
         self.export_btn.clicked.connect(self._export)
         self.foot_lay.addWidget(self.export_btn)
-        close = button("CLOSE", 11, 84,
-                       f"padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
+        close = button("CLOSE", z(11), z(84),
+                       f"padding: {z(6)}px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
                        f"border-color: {ACCENT}; color: {ACCENT};")
         close.clicked.connect(on_close)
         self.foot_lay.addWidget(close)
@@ -114,9 +133,7 @@ class LogsCard(Card):
         self.list.blockSignals(True)
         self.list.clear()
         for lg in self.logs:
-            n_ev, n_mk = len(lg.rows), len(lg.marks())
-            item = QListWidgetItem(f"{lg.started}\n{lg.vehicle}  ·  {n_ev} event{'' if n_ev == 1 else 's'}"
-                                   f"  ·  {n_mk} mark{'' if n_mk == 1 else 's'}")
+            item = QListWidgetItem(f"{lg.started}\n{lg.vehicle}")      # counts are on the tabs
             if lg.error:
                 item.setToolTip(lg.error)
             self.list.addItem(item)
@@ -156,8 +173,8 @@ class LogsCard(Card):
         rows, marks = lg.rows, lg.marks()
         utc = f"  ·  UTC {rows[0]['utc_time'][:19]} → {rows[-1]['utc_time'][11:19]}" if rows else ""
         self.info.setText(f"logs/{lg.path.name}\n{lg.vehicle}  ·  length {lg.duration()}{utc}")
-        self.tabs.addTab(log_table(marks, MARK_COLS), f"OPERATOR MARKS ({len(marks)})")
-        self.tabs.addTab(log_table(rows, EVENT_COLS), f"ALL EVENTS ({len(rows)})")
+        self.tabs.addTab(log_table(marks, MARK_COLS, self._z), f"OPERATOR MARKS ({len(marks)})")
+        self.tabs.addTab(log_table(rows, EVENT_COLS, self._z), f"ALL EVENTS ({len(rows)})")
         self.tabs.setCurrentIndex(0 if marks else 1)
 
     def step(self, d):
