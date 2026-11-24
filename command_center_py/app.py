@@ -124,7 +124,7 @@ class RovApp:
             console, self.console = self.console, None
             console.closed.disconnect(self._console_closed)
             console.force_close()
-        self.menu.close()
+        self.menu.quit_now()          # no "Are you sure?" for Ctrl+C
 
     def cleanup(self):
         """After the event loop ends: stop the controller thread."""

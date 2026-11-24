@@ -32,7 +32,9 @@ Features:
 - Event log with operator marks
 - Main menu: vehicle profiles, demo mode, controls guide, controller profiles
   (drift/deadzone/range calibration), saved session logs and recordings, and
-  ABOUT (version, system overview, software, links and licence)
+  ABOUT (version, system overview, software, links and licence). QUIT, the
+  window's ✕ and Alt+F4 ask "Are you sure you want to quit the program?" first
+  (Ctrl+C in the terminal doesn't)
 - Demo mode with simulated vehicle, controller and packet loss
 
 ---

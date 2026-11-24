@@ -10,7 +10,7 @@
     CONTROLS GUIDE .... DualShock 3, Xbox and keyboard controls, one tab each
     CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
     ABOUT ............. version, system overview, software, links and licence
-    QUIT .............. closes the program
+    QUIT .............. asks "Are you sure?", then closes the program (so do the window's ✕ and Alt+F4)
 
 Navigation: mouse, or arrow keys / Tab (Shift+Tab goes up) + Enter / Esc. The game controller does not navigate the
 menu or its cards; it is only read here by CONTROLLER PROFILES (calibration). It drives
@@ -21,6 +21,7 @@ separate windows. Each card has its own file next to this one (ui/menu/):
     connect.py ............. CONNECT VEHICLE        logs.py ......... VIEW LOGS
     recordings.py .......... VIEW RECORDINGS        controller_map.py  CONTROLS GUIDE
     controller_profiles.py . CONTROLLER PROFILES    about.py ........ ABOUT
+    quit_confirm.py ........ QUIT (are you sure?)
     cards.py ............... Card, Overlay, ResizeGrip, buttons
 """
 
@@ -39,6 +40,7 @@ from command_center_py.ui.menu.connect import ConnectCard
 from command_center_py.ui.menu.controller_map import ControllerMapCard
 from command_center_py.ui.menu.controller_profiles import ControllerProfilesCard
 from command_center_py.ui.menu.logs import LogsCard
+from command_center_py.ui.menu.quit_confirm import QuitCard
 from command_center_py.ui.menu.recordings import RecordingsCard
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD, LABEL,
                                         MUTED, OFF, SANS, lab, mono)
@@ -219,7 +221,11 @@ class MainMenu(QWidget):
         self.ctl_ov = Overlay(self, self.ctl_card, self.ctl_card.close_card)
         self.about_card = AboutCard(self.close_overlay)
         self.about_ov = Overlay(self, self.about_card, self.close_overlay)
+        self.quit_card = QuitCard(self.cancel_quit, self.quit_now)
+        self.quit_ov = Overlay(self, self.quit_card, self.cancel_quit)
         self.overlay = None
+        self._before_quit = None              # card that was open when QUIT? was asked (shown again on CANCEL)
+        self._quit_ok = False                 # True once QUIT is confirmed (or Ctrl+C): closeEvent lets it close
 
         self.select(0)
         self.timer = QTimer(self)
@@ -310,7 +316,28 @@ class MainMenu(QWidget):
         elif item == "ABOUT":
             self.open_overlay(self.about_ov)
         elif item == "QUIT":
-            self.close()
+            self.ask_quit()
+
+    # ---------------- quitting ----------------
+    def ask_quit(self):
+        """QUIT, the window's ✕, Alt+F4: show "Are you sure?" (CANCEL / QUIT) over whatever is open."""
+        if self.overlay is self.quit_ov:
+            return
+        self._before_quit = self.overlay
+        self.open_overlay(self.quit_ov)
+
+    def cancel_quit(self):
+        """CANCEL / Esc / ✕: back to the card that was open (if any), or the menu."""
+        prev, self._before_quit = self._before_quit, None
+        if prev is not None:
+            self.open_overlay(prev)
+        else:
+            self.close_overlay()
+
+    def quit_now(self):
+        """QUIT confirmed, or Ctrl+C (app.py): close the program without asking."""
+        self._quit_ok = True
+        self.close()
 
     def open_overlay(self, ov):
         if self.overlay is not None:
@@ -319,7 +346,7 @@ class MainMenu(QWidget):
         ov.setGeometry(self.rect())
         ov.show()
         ov.raise_()
-        if ov in (self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov, self.about_ov):
+        if ov in (self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov, self.about_ov, self.quit_ov):
             self.setFocus()
 
     def close_overlay(self):
@@ -334,13 +361,19 @@ class MainMenu(QWidget):
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
-        for ov in (self.connect_ov, self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov, self.about_ov):
+        for ov in (self.connect_ov, self.map_ov, self.logs_ov, self.ctl_ov, self.rec_ov, self.about_ov, self.quit_ov):
             ov.setGeometry(self.rect())
         for card in (self.logs_card, self.rec_card):
             card.refit()                         # maximised cards follow the window
 
     def keyPressEvent(self, e):
         k = e.key()
+        if self.overlay is self.quit_ov:          # QUIT?: Esc = CANCEL, Enter = QUIT
+            if k == Qt.Key.Key_Escape:
+                self.cancel_quit()
+            elif k in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                self.quit_now()
+            return
         if self.overlay is self.connect_ov:
             if not self.connect_card.key(e):
                 super().keyPressEvent(e)
@@ -410,6 +443,10 @@ class MainMenu(QWidget):
             self.ctl_card.update_pad(pad)
 
     def closeEvent(self, e):
+        if not self._quit_ok:                 # ✕, Alt+F4, taskbar "Close window": ask first
+            e.ignore()
+            self.ask_quit()
+            return
         self.connect_card.abort_attempt()
         self.rec_card.player.close()          # stop the playback thread / release the file
         self.timer.stop()

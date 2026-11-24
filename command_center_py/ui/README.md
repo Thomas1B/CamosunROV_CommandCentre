@@ -22,6 +22,7 @@ The PySide6 windows. Everything you see on screen is built here.
 | `controller_map.py` | CONTROLS GUIDE card. |
 | `controller_profiles.py` | CONTROLLER PROFILES card (calibration), with its stick and trigger gauges. |
 | `about.py` | ABOUT card (version, system, software, data folder, links, licence). |
+| `quit_confirm.py` | QUIT card: "Are you sure you want to quit the program?" with CANCEL and QUIT. |
 
 ## console/
 
