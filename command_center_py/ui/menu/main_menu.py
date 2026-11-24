@@ -7,7 +7,7 @@
                         simulated vehicle (nothing transmitted)
     VIEW LOGS ......... saved console session logs (logs/): preview, export, delete
     VIEW RECORDINGS ... camera recordings (recordings/): built-in player, marks, open folder
-    CONTROLLER MAP .... DualShock 3, Xbox and keyboard maps, one tab each
+    CONTROLS GUIDE .... DualShock 3, Xbox and keyboard controls, one tab each
     CONTROLLER PROFILES calibrate a controller (drift, deadzone, range) and save it
     ABOUT ............. version, system overview, software, links and licence
     QUIT .............. closes the program
@@ -19,7 +19,7 @@ The dialogs are drawn as cards over a dimmed menu, like the design, rather than 
 separate windows. Each card has its own file next to this one (ui/menu/):
 
     connect.py ............. CONNECT VEHICLE        logs.py ......... VIEW LOGS
-    recordings.py .......... VIEW RECORDINGS        controller_map.py  CONTROLLER MAP
+    recordings.py .......... VIEW RECORDINGS        controller_map.py  CONTROLS GUIDE
     controller_profiles.py . CONTROLLER PROFILES    about.py ........ ABOUT
     cards.py ............... Card, Overlay, ResizeGrip, buttons
 """
@@ -130,7 +130,7 @@ class MenuRow(QFrame):
 # MAIN MENU WINDOW
 # ============================================================================
 class MainMenu(QWidget):
-    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "VIEW LOGS", "VIEW RECORDINGS", "CONTROLLER MAP", "CONTROLLER PROFILES", "ABOUT", "QUIT")
+    ITEMS = ("CONNECT VEHICLE", "DEMO MODE", "VIEW LOGS", "VIEW RECORDINGS", "CONTROLS GUIDE", "CONTROLLER PROFILES", "ABOUT", "QUIT")
 
     def __init__(self, pad, on_connected):
         super().__init__()
@@ -294,7 +294,7 @@ class MainMenu(QWidget):
         elif item == "DEMO MODE":            # same dialog as CONNECT VEHICLE, on a simulated vehicle
             self.open_overlay(self.connect_ov)
             self.connect_card.opened(demo=True)
-        elif item == "CONTROLLER MAP":
+        elif item == "CONTROLS GUIDE":
             self.map_card.opened()
             self.open_overlay(self.map_ov)
         elif item == "CONTROLLER PROFILES":

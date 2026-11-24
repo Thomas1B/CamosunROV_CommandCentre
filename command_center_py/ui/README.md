@@ -5,7 +5,7 @@ The PySide6 windows. Everything you see on screen is built here.
 | File or folder | What it does |
 |---|---|
 | `theme.py` | Colours, fonts and the `lab()` label helper used everywhere. |
-| `widgets.py` | Custom-drawn gauges for the console (stick views, trigger and thruster bars, battery, the video pane with its HUD) and the controller map. |
+| `widgets.py` | Custom-drawn gauges for the console (stick views, trigger and thruster bars, battery, the video pane with its HUD) and the controls guide. |
 | `assets/` | The program icon (`.ico`), logos and other images. |
 | `menu/` | The main menu window and its cards. |
 | `console/` | The console (main window) and its dialogs. |
@@ -19,7 +19,7 @@ The PySide6 windows. Everything you see on screen is built here.
 | `connect.py` | CONNECT VEHICLE card. |
 | `logs.py` | VIEW LOGS card. |
 | `recordings.py` | VIEW RECORDINGS card, with its video view and seek bar. |
-| `controller_map.py` | CONTROLLER MAP card. |
+| `controller_map.py` | CONTROLS GUIDE card. |
 | `controller_profiles.py` | CONTROLLER PROFILES card (calibration), with its stick and trigger gauges. |
 | `about.py` | ABOUT card (version, system, software, data folder, links, licence). |
 

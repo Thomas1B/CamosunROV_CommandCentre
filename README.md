@@ -30,7 +30,7 @@ Features:
 - Display-only depth zero
 - Bar30 reference values sent to and confirmed by the Pi/STM32
 - Event log with operator marks
-- Main menu: vehicle profiles, demo mode, controller maps, controller profiles
+- Main menu: vehicle profiles, demo mode, controls guide, controller profiles
   (drift/deadzone/range calibration), saved session logs and recordings, and
   ABOUT (version, system overview, software, links and licence)
 - Demo mode with simulated vehicle, controller and packet loss
@@ -227,8 +227,8 @@ reference values).
 | X | SQUARE | Operator mark (hold: one per second) |
 | SPACE | SPACE | E-STOP (console window focused) |
 
-Help > Controller Maps shows the DualShock 3, Xbox and keyboard maps, one tab each
-(Left / Right switch tabs), like CONTROLLER MAP on the main menu.
+Help > Controls Guide shows the DualShock 3, Xbox and keyboard controls, one tab each
+(Left / Right switch tabs), like CONTROLS GUIDE on the main menu.
 
 > **Keyboard:** SPACE is the only key that acts on the ROV. Arming, CONNECT,
 > reference values and the demo leak toggle use the controller or mouse; the

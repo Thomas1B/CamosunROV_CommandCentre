@@ -511,7 +511,7 @@ class StatusRow(QFrame):
 
 
 # ============================================================================
-# CONTROLLER MAPS  (console Help > ... Map, and the main menu's CONTROLLER MAP card)
+# CONTROLS GUIDE  (console Help > Controls Guide, and the main menu's CONTROLS GUIDE card)
 # and the KEYBOARD MAP: one tab each in both (map_tabs)
 # ============================================================================
 # Button names per controller. SDL reports both pads with the same layout, so
@@ -544,7 +544,7 @@ def key_chip(text, color=BRIGHT, border=GRID, px=11):
 def controller_map_body(kind, arm_hold_s, scale=1.0):
     """DRIVE / VEHICLE / CONSOLE button list for one controller ("ds3" or "xbox").
 
-    Shared by the console's Help dialog and the main menu's CONTROLLER MAP card.
+    Shared by the console's Help dialog and the main menu's CONTROLS GUIDE card.
     scale enlarges the text (the console uses its bigger font scale, the menu 1.0).
     """
     m = CONTROLLER_MAPS[kind]
@@ -570,15 +570,15 @@ def controller_map_body(kind, arm_hold_s, scale=1.0):
 
 
 def keyboard_map_body(arm_hold_s, scale=1.0):
-    """KEYBOARD / MOUSE list: the KEYBOARD tab of the console's Help > Controller Maps and the
-    main menu's CONTROLLER MAP card. Driving is controller-only;
+    """KEYBOARD / MOUSE list: the KEYBOARD tab of the console's Help > Controls Guide and the
+    main menu's CONTROLS GUIDE card. Driving is controller-only;
     the keyboard has E-STOP and the dialog keys, and the rest is done with the mouse."""
     sections = [
         ("KEYBOARD", [
             (["SPACE"], "E-STOP: disarm and zero all thrusters", DANGER),
-            (["LEFT", "RIGHT"], "Switch tabs in Controller Maps", None),
-            (["ESC"], "Close Controller Maps, or cancel Reference Values", None),
-            (["ENTER"], "OK in Controller Maps", None),
+            (["LEFT", "RIGHT"], "Switch tabs in Controls Guide", None),
+            (["ESC"], "Close Controls Guide, or cancel Reference Values", None),
+            (["ENTER"], "OK in Controls Guide", None),
         ] + ([] if FROZEN else [      # the .exe has no terminal, so Ctrl+C only applies to "py rov_console.py"
             (["CTRL", "C"], "In the terminal: disarm, send zero thrust and exit", None),
         ])),
@@ -627,8 +627,8 @@ MAP_TABS = (("ds3", "DUALSHOCK 3"), ("xbox", "XBOX"), ("keyboard", "KEYBOARD"))
 
 
 def map_tabs(arm_hold_s, scale=1.0, margins=(16, 4, 16, 18)):
-    """DUALSHOCK 3 / XBOX / KEYBOARD tabs, one map each. Shared by the main menu's CONTROLLER
-    MAP card and the console's Help > Controller Maps. The tab bar takes no focus, so the
+    """DUALSHOCK 3 / XBOX / KEYBOARD tabs, one map each. Shared by the main menu's CONTROLS
+    GUIDE card and the console's Help > Controls Guide. The tab bar takes no focus, so the
     window's Left / Right keys can switch tabs (map_tab_step)."""
     z = lambda v: round(v * scale)
     tabs = QTabWidget()
@@ -678,14 +678,14 @@ def map_tabs_hint(foot_lay, px, soft=TEXT, label=LABEL):
 
 
 class ControllerMapDialog(QDialog):
-    """Console Help > Controller Maps: the DUALSHOCK 3 / XBOX / KEYBOARD tabs (same as the main
-    menu's CONTROLLER MAP card). Opens on `kind`, or on the layout in use when kind is None.
+    """Console Help > Controls Guide: the DUALSHOCK 3 / XBOX / KEYBOARD tabs (same as the main
+    menu's CONTROLS GUIDE card). Opens on `kind`, or on the layout in use when kind is None.
     Left / Right switch tabs; Esc, the close button or OK closes it."""
 
     def __init__(self, parent, kind, arm_hold_s, scale=1.0):
         super().__init__(parent)
         z = lambda v: round(v * scale)
-        self.setWindowTitle("Controller Maps")
+        self.setWindowTitle("Controls Guide")
         self.setModal(True)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setStyleSheet(f"QDialog {{ background: {PANEL}; border: 1px solid {BORDER2}; }}")
@@ -700,7 +700,7 @@ class ControllerMapDialog(QDialog):
         head.setStyleSheet(f"QFrame#mapHead {{ background: {HEAD}; border-bottom: 1px solid {BORDER}; }}")
         hh = QHBoxLayout(head)
         hh.setContentsMargins(14, 8, 8, 8)
-        hh.addWidget(lab("Controller Maps", z(13), "#c9d3de", QFont.Weight.Bold), 1)
+        hh.addWidget(lab("Controls Guide", z(13), "#c9d3de", QFont.Weight.Bold), 1)
         x = QPushButton("✕")
         x.setFixedSize(z(22), z(22))
         x.setFont(mono(z(12)))

@@ -1,4 +1,4 @@
-"""CONTROLLER MAP card: DualShock 3, Xbox and keyboard maps, one tab each."""
+"""CONTROLS GUIDE card: DualShock 3, Xbox and keyboard controls, one tab each."""
 
 from PySide6.QtWidgets import QVBoxLayout
 
@@ -9,14 +9,14 @@ from command_center_py.ui.widgets import map_tab_show, map_tab_step, map_tabs, m
 
 
 class ControllerMapCard(Card):
-    """CONTROLLER MAPS: DUALSHOCK 3 / XBOX / KEYBOARD tabs (ui/widgets.py map_tabs, also used by the
-    console's Help > Controller Maps). Opens on the button layout in use; Left / Right switch
+    """CONTROLS GUIDE: DUALSHOCK 3 / XBOX / KEYBOARD tabs (ui/widgets.py map_tabs, also used by the
+    console's Help > Controls Guide). Opens on the button layout in use; Left / Right switch
     tabs. Esc / Enter / ✕ / OK close it."""
 
     def __init__(self, on_close):
-        # Same text sizes as the console's Help > Controller Maps (console font scale, 1.25).
+        # Same text sizes as the console's Help > Controls Guide (console font scale, 1.25).
         z = lambda v: round(v * CONSOLE_FONT_SCALE)
-        super().__init__("CONTROLLER MAPS", 560, scale=CONSOLE_FONT_SCALE)
+        super().__init__("CONTROLS GUIDE", 560, scale=CONSOLE_FONT_SCALE)
         self.close_btn.clicked.connect(on_close)
         v = QVBoxLayout(self.body)
         v.setContentsMargins(0, 0, 0, 0)

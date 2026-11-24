@@ -21,7 +21,7 @@ from command_center_py.ui.theme import (ACCENT, BORDER, BRIGHT, CONSOLE_FONT_SCA
 # Short overview shown under the version line.
 OVERVIEW = ("Topside control software for the Camosun ROV. It reads a game controller (Xbox or PS3): "
             "the sticks and triggers drive six thrusters, the D-pad tilts the camera, and the buttons "
-            "handle arming, E-STOP, thrust gain and the other console functions (see CONTROLLER MAP). "
+            "handle arming, E-STOP, thrust gain and the other console functions (see CONTROLS GUIDE). "
             f"Commands go over the tether to the ROV at {RATE_HZ} Hz. It shows the live camera and "
             "telemetry (depth, attitude, temperatures, battery, leak), and records video and a "
             "timestamped event log of each dive.")
@@ -100,7 +100,7 @@ class AboutCard(Card):
     """ABOUT: Esc / Enter / ✕ / OK close it."""
 
     def __init__(self, on_close):
-        z = lambda v: round(v * CONSOLE_FONT_SCALE)          # same text size as CONTROLLER MAPS
+        z = lambda v: round(v * CONSOLE_FONT_SCALE)          # same text size as CONTROLS GUIDE
         super().__init__("ABOUT", 640, scale=CONSOLE_FONT_SCALE)
         self.close_btn.clicked.connect(on_close)
         # Everything scrolls inside the card, so on a short screen the card shrinks to fit the

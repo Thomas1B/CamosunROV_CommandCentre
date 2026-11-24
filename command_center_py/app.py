@@ -59,7 +59,7 @@ def app_icon():
 class RovApp:
     def __init__(self):
         # One app-wide icon: used by the title bar of every window and dialog
-        # (main menu, console, controller map) and by the taskbar.
+        # (main menu, console, controls guide) and by the taskbar.
         QApplication.instance().setWindowIcon(app_icon())
         vehicle_profiles.install_defaults(APP_VERSION)   # add the default vehicle profiles (once per version)
         self.pad = Gamepad()          # starts SDL in its own thread (any error is printed from there)
