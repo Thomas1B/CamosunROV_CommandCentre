@@ -354,7 +354,7 @@ contents.
 
 - **SAVE:** keep the log and exit.
 - **EXPORT…:** save a copy as `.xlsx` (*Marks* and *Events* sheets), `.csv` or
-  `.pdf` (A4 landscape). Stays open for further exports. Excel needs
+  `.pdf` (A4 landscape), by default in `Downloads`. Stays open for further exports. Excel needs
   `openpyxl`; re-run `pip install -r py_requirements.txt` on older venvs.
 - **DISCARD:** delete the log (click twice) and exit. Exported copies are kept.
 
@@ -407,8 +407,8 @@ file name and the date it was last changed, and has no events.
   to jump there. Events come from `logs/*.csv`, so deleting a log removes its
   events.
 - **SAVE FRAME…:** pauses and saves the current frame as PNG (default
-  `Pictures`).
-- **EXPORT…** (default `Videos`): **MP4 video** (copied without re-encoding;
+  `Downloads`).
+- **EXPORT…** (default `Downloads`): **MP4 video** (copied without re-encoding;
   takes seconds, plays anywhere; progress in the footer), or **Events — Excel /
   CSV** (video time first, then the session-log columns).
 - **DELETE:** click twice within 4 s. Cannot be undone.

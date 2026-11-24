@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QListWidget, QListWidge
                                QSlider, QVBoxLayout, QWidget)
 
 from command_center_py.config import RECORDINGS_DIR
+from command_center_py.ui.console.exit_log_dialog import downloads_dir
 from command_center_py.ui.menu.cards import (Card, LIST_CSS, OK_BORDER, OK_GREEN, OK_TEXT,
                                              RED_BORDER, ResizeGrip, SOFT, button, slab)
 from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, CONSOLE_FONT_SCALE, DANGER, GRID,
@@ -270,8 +271,7 @@ class RecordingsCard(Card):
         if r is None or img is None:
             return
         self.player.pause()
-        pics = Path.home() / "Pictures"
-        start = pics if pics.is_dir() else Path.home()
+        start = Path(downloads_dir())
         name = f"{r.path.stem}_{clock(pos).replace(':', '-')}.png"
         path, _ = QFileDialog.getSaveFileName(self.window(), "Save Frame", str(start / name), "PNG image (*.png)")
         if not path:
@@ -289,8 +289,7 @@ class RecordingsCard(Card):
         if r is None or (self._exp is not None and not self._exp["done"]):
             return
         self.player.pause()
-        home = Path.home()
-        start = next((d for d in (home / "Videos", home / "Documents") if d.is_dir()), home)
+        start = Path(downloads_dir())
         types = {"MP4 video (*.mp4)": ".mp4", "Events — Excel workbook (*.xlsx)": ".xlsx",
                  "Events — CSV (*.csv)": ".csv"}
         path, chosen = QFileDialog.getSaveFileName(self.window(), "Export Recording",

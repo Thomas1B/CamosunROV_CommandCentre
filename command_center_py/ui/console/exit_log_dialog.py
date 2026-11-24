@@ -14,7 +14,7 @@ Esc and closing the window do nothing.
 import html
 import os
 
-from PySide6.QtCore import QMarginsF, QSizeF, Qt, QTimer
+from PySide6.QtCore import QMarginsF, QSizeF, QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QPageLayout, QPageSize, QPdfWriter, QTextDocument
 from PySide6.QtWidgets import (QAbstractItemView, QDialog, QFileDialog, QFrame, QHBoxLayout,
                                QHeaderView, QPushButton, QTableWidget, QTableWidgetItem, QTabWidget,
@@ -26,6 +26,14 @@ from command_center_py.ui.theme import (ACCENT, BLUE, BORDER, BORDER2, BRIGHT, D
                                         LABEL, MUTED, PANEL, TEXT, WARN, WELL, lab, mono)
 
 SOFT = "#c9d3de"
+
+
+def downloads_dir():
+    """The user's Downloads folder (where Windows has it, even if moved to OneDrive); home if
+    there is none. Every Save dialog (EXPORT..., SAVE FRAME...) starts here."""
+    d = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
+    return d if d and os.path.isdir(d) else os.path.expanduser("~")
+
 OK_GREEN, OK_BORDER = "#123a30", "#2a6f5c"
 RED_FILL, RED_BORDER = "#2a1416", "#7f2b2e"
 
@@ -294,9 +302,7 @@ def export_session(parent, log):
     """Asks where to save, then exports `log` (an EventLogFile or SavedLog) as .xlsx / .csv / .pdf.
     Returns (path, None) on success, (None, error) on failure, (None, None) if cancelled."""
     stem = log.path.stem if log.path is not None else "event_log"
-    start_dir = os.path.join(os.path.expanduser("~"), "Documents")
-    if not os.path.isdir(start_dir):
-        start_dir = os.path.expanduser("~")
+    start_dir = downloads_dir()
     path, chosen = QFileDialog.getSaveFileName(parent, "Export Session Log", os.path.join(start_dir, stem + ".xlsx"),
                                                ";;".join(FILTERS))
     if not path:
