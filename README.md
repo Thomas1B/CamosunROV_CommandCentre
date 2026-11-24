@@ -348,7 +348,9 @@ ticked:
 - **NO, DELETE:** delete all session recordings (click twice), then go to
   SESSION LOG.
 
-**SESSION LOG** previews *Operator marks* and *All events*:
+**SESSION LOG** previews *Operator marks* and *All events*. Drag the edge of a
+column heading to resize it; double-click the edge to fit the column to its
+contents.
 
 - **SAVE:** keep the log and exit.
 - **EXPORT…:** save a copy as `.xlsx` (*Marks* and *Events* sheets), `.csv` or
@@ -362,7 +364,8 @@ The event log records each recording kept or deleted.
 
 **VIEW LOGS** lists sessions in `logs/`, newest first, with start time,
 vehicle, event and mark counts. Selecting one (mouse or arrow keys) shows the
-same two tables plus session length and UTC times. **EXPORT…** (`.xlsx`,
+same two tables plus session length and UTC times; their columns resize the
+same way as in SESSION LOG. **EXPORT…** (`.xlsx`,
 `.csv`, `.pdf`), **DELETE** (click twice) and **OPEN FOLDER** are available.
 The card can be resized from the bottom-right grip or maximised (button or
 double-click the title bar). Esc, the close button or CLOSE exits.

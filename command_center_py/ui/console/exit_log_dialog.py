@@ -214,7 +214,10 @@ class ExitLogDialog(QDialog):
 class _LogTable(QTableWidget):
     """QTableWidget whose MESSAGE column is as wide as its longest line (so long lines scroll
     sideways, like OPERATOR MARKS, instead of being cut off) but never narrower than the
-    space left, so short logs still fill the table."""
+    space left, so short logs still fill the table.
+
+    Every column can be resized by dragging the edge of its heading; double-clicking that
+    edge fits the column to its contents, like Excel (both built into Qt's table header)."""
 
     fill_col = None          # column index that fills the leftover width
     fill_need = 0            # px its longest line needs
@@ -233,7 +236,8 @@ class _LogTable(QTableWidget):
 
 def log_table(rows, cols, s=lambda v: v):
     """Read-only, dark-themed table of log rows. s scales px sizes. Shared by the exit
-    dialog and the main menu's VIEW LOGS browser."""
+    dialog and the main menu's VIEW LOGS browser. Columns start fitted to their contents
+    and can then be resized by hand (drag a heading's edge; double-click it to fit again)."""
     t = _LogTable(len(rows), len(cols))
     t.setHorizontalHeaderLabels([LABELS[c] for c in cols])
     t.verticalHeader().setVisible(False)
@@ -271,14 +275,16 @@ def log_table(rows, cols, s=lambda v: v):
                 it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             t.setItem(r, c, it)
     h = t.horizontalHeader()
-    h.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+    t.resizeColumnsToContents()                                   # start: each column fits its contents
+    h.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)    # then drag to resize, double-click to fit
     if "message" in cols:
         # ALL EVENTS: the message column is as wide as its longest line (long operator-mark
         # lines scroll sideways, like OPERATOR MARKS), and fills the table when lines are short.
         t.fill_col = cols.index("message")
         t.fill_need = max(t.sizeHintForColumn(t.fill_col), h.sectionSizeHint(t.fill_col))
-        h.setSectionResizeMode(t.fill_col, QHeaderView.ResizeMode.Fixed)
         t.fit_fill()
+        # resizing another column by hand: the message column takes up (or gives back) the space
+        h.sectionResized.connect(lambda i, _old, _new: t.fit_fill() if i != t.fill_col else None)
     t.verticalHeader().setDefaultSectionSize(s(22))
     t.scrollToBottom()
     return t
