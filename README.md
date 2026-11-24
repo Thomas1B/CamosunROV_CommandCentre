@@ -10,16 +10,7 @@ It displays the Pi's live camera and telemetry: depth, pressure, water and
 internal temperature, roll/pitch/heading, battery voltage and estimated charge,
 leak sensor, STM32 reset reason, and link quality (round-trip time, packet loss).
 
-## Quick Start (Windows, no Python needed)
-
-Download `CamosunROV.zip` from the
-[latest release](https://github.com/Thomas1B/CamosunROV_CommandCentre/releases/latest)
-and follow the instructions there. Then set up the tether once:
-[Tether Network Setup](#tether-network-setup).
-
-To run from source instead, see [Developer Setup](#developer-setup).
-
-Features:
+## Features
 
 - Arm/disarm and E-STOP (controller, keyboard SPACE, or Vehicle menu)
 - Thrust gain 25 / 50 / 75 / 100 %
@@ -30,11 +21,6 @@ Features:
 - Display-only depth zero
 - Bar30 reference values sent to and confirmed by the Pi/STM32
 - Event log with operator marks
-- Main menu: vehicle profiles, demo mode, controls guide, controller profiles
-  (drift/deadzone/range calibration), saved session logs and recordings, and
-  ABOUT (version, system overview, software, links and licence). QUIT, the
-  window's ✕ and Alt+F4 ask "Are you sure you want to quit the program?" first
-  (Ctrl+C in the terminal doesn't)
 - Demo mode with simulated vehicle, controller and packet loss
 
 ---
@@ -75,11 +61,6 @@ The program comes with the `ROV-01` vehicle profile (the Pi's IP and ports).
 The first start of each new version adds it if it's missing and never
 overwrites it, so a deleted `ROV-01` stays deleted until the next update.
 
-**Coming from v1.x** (data was next to `CamosunROV.exe`, or in the repo's top
-directory when run from source): close the program and move the old
-`vehicle_profiles`, `controller_profiles`, `logs` and `recordings` folders into
-the data folder. See the v2.0.0 release notes.
-
 ---
 
 ## Developer Setup
@@ -89,18 +70,23 @@ venv is not committed; build it from `py_requirements.txt`, which pins exact
 versions.
 
 1. **Install Python 3.14** (once). It installs alongside other versions.
-   Recommended: install the Python install manager from python.org and run
-   `py install 3.14`. (With the classic installer, untick "Add to PATH" if you
-   don't want 3.14 as your default `python`.) Check with `py -0`.
-
-2. **Create the venv** (once, from the repo's top directory). Use `py -3.14`,
+   Recommended: install the Python install manager from python.org and run:
+   ```
+   py install 3.14
+   ```
+   (With the classic installer, untick "Add to PATH" if you
+   don't want 3.14 as your default `python`.) After, check with
+   ```
+   py -0
+   ```
+3. **Create the venv** (once, from the repo's top directory). Use `py -3.14`,
    not `python`, which may pick another version:
 
    ```
    py -3.14 -m venv .venv
    ```
 
-3. **Activate and install:**
+4. **Activate and install:**
 
    ```
    .venv\Scripts\activate
@@ -111,7 +97,7 @@ versions.
 
    If the version is wrong, delete `.venv` and repeat step 2.
 
-4. **Run:**
+5. **Run:**
 
    ```
    py rov_console.py
