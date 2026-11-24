@@ -13,8 +13,8 @@ from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QListWidget, QListWidge
 from command_center_py.config import RECORDINGS_DIR
 from command_center_py.ui.menu.cards import (Card, LIST_CSS, OK_BORDER, OK_GREEN, OK_TEXT,
                                              RED_BORDER, ResizeGrip, SOFT, button, slab)
-from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, DANGER, GRID, HEAD, LABEL,
-                                        MUTED, WARN, WELL, lab, mono)
+from command_center_py.ui.theme import (ACCENT, BORDER, BORDER2, BRIGHT, CONSOLE_FONT_SCALE, DANGER, GRID,
+                                        HEAD, LABEL, MUTED, WARN, WELL, lab, mono)
 from command_center_py.video.player import VideoPlayer
 from command_center_py.video.recordings import (clock, events_for, export_events, export_mp4,
                                                 list_recordings)
@@ -23,13 +23,14 @@ from command_center_py.video.recordings import (clock, events_for, export_events
 class RecordingsCard(Card):
     """RECORDINGS: camera recordings in recordings/ (console REC button), newest first.
 
-    Left: the recordings (start time, vehicle, length, size, marks). Middle: the built-in
+    Left: the recordings (start time, file name). Middle: the built-in
     player (PyAV, see video/player.py) with play / pause, -3 / -1 / +1 / +3 s and a seek bar.
     Right: every event logged while that file was recording (from logs/); click one to jump.
     Footer: OPEN FOLDER, SAVE FRAME... (PNG of the frame on screen), EXPORT... (the video as .mp4,
     or its events as .xlsx / .csv), DELETE (click twice), CLOSE.
     Keys: Space play / pause, Left / Right -3 / +3 s (with Shift -1 / +1 s), Up / Down another
-    recording, Esc close. Resizable from the bottom-right corner.
+    recording, Esc close. Opens filling the menu window; resizable from the bottom-right corner.
+    Drawn at the console's text size (CONSOLE_FONT_SCALE), like VIEW LOGS.
     """
 
     MIN_W, MIN_H = 960, 520
@@ -37,7 +38,9 @@ class RecordingsCard(Card):
     FINE_S = 1.0          # ◀ / ▶, Shift+← / →
 
     def __init__(self, on_close):
-        super().__init__("RECORDINGS", 1180)
+        z = lambda v: round(v * CONSOLE_FONT_SCALE)          # same sizes as VIEW LOGS
+        super().__init__("RECORDINGS", 1180, scale=CONSOLE_FONT_SCALE)
+        list_css = LIST_CSS.replace("padding: 8px 10px", f"padding: {z(8)}px {z(10)}px")
         self._on_close = on_close
         self.close_btn.clicked.connect(self.close_card)
         self.recs = []
@@ -47,43 +50,43 @@ class RecordingsCard(Card):
         self._last_err = None
 
         h = QHBoxLayout(self.body)
-        h.setContentsMargins(14, 14, 14, 10)
-        h.setSpacing(14)
+        h.setContentsMargins(z(14), z(14), z(14), z(10))
+        h.setSpacing(z(14))
 
         self.list = QListWidget()
-        self.list.setFixedWidth(260)
-        self.list.setFont(mono(12))
+        self.list.setFixedWidth(z(260))
+        self.list.setFont(mono(z(12)))
         self.list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.list.setStyleSheet(LIST_CSS)
+        self.list.setStyleSheet(list_css)
         self.list.currentRowChanged.connect(self._show)
         h.addWidget(self.list)
 
         mid = QVBoxLayout()
-        mid.setSpacing(8)
-        self.info = lab("", 12, SOFT)
+        mid.setSpacing(z(8))
+        self.info = lab("", z(12), SOFT)
         self.info.setWordWrap(True)
         mid.addWidget(self.info)
-        self.view = VideoView()
+        self.view = VideoView(z(12))
         mid.addWidget(self.view, 1)
         ctl = QHBoxLayout()
-        ctl.setSpacing(6)
-        small = (f"padding: 6px 10px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
+        ctl.setSpacing(z(6))
+        small = (f"padding: {z(6)}px {z(10)}px; border: 1px solid {GRID}; border-radius: 3px; background: {HEAD}; color: {SOFT};",
                  f"border-color: {ACCENT}; color: {ACCENT};")
-        self.back_btn = button("◀◀ 3 s", 11, None, *small)
+        self.back_btn = button("◀◀ 3 s", z(11), None, *small)
         self.back_btn.clicked.connect(lambda: self.step(-self.STEP_S))
-        self.back1_btn = button("◀ 1 s", 11, None, *small)
+        self.back1_btn = button("◀ 1 s", z(11), None, *small)
         self.back1_btn.clicked.connect(lambda: self.step(-self.FINE_S))
-        self.play_btn = button("▶ PLAY", 11, 96,
-                               f"padding: 6px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
+        self.play_btn = button("▶ PLAY", z(11), z(96),
+                               f"padding: {z(6)}px 0; border: 1px solid {OK_BORDER}; border-radius: 3px; background: {OK_GREEN}; color: {ACCENT};",
                                f"border-color: {ACCENT}; color: {OK_TEXT};")
         self.play_btn.clicked.connect(self.player.toggle)
-        self.fwd1_btn = button("1 s ▶", 11, None, *small)
+        self.fwd1_btn = button("1 s ▶", z(11), None, *small)
         self.fwd1_btn.clicked.connect(lambda: self.step(self.FINE_S))
-        self.fwd_btn = button("3 s ▶▶", 11, None, *small)
+        self.fwd_btn = button("3 s ▶▶", z(11), None, *small)
         self.fwd_btn.clicked.connect(lambda: self.step(self.STEP_S))
-        self.seek = SeekBar()
+        self.seek = SeekBar(CONSOLE_FONT_SCALE)
         self.seek.jumped.connect(self.player.seek)
-        self.time_lbl = lab("00:00 / 00:00", 12, SOFT)
+        self.time_lbl = lab("00:00 / 00:00", z(12), SOFT)
         for w_ in (self.back_btn, self.back1_btn, self.play_btn, self.fwd1_btn, self.fwd_btn):
             ctl.addWidget(w_)
         ctl.addWidget(self.seek, 1)
@@ -92,43 +95,43 @@ class RecordingsCard(Card):
         h.addLayout(mid, 1)
 
         right = QVBoxLayout()
-        right.setSpacing(6)
-        right.addWidget(slab("EVENTS IN THIS RECORDING", 10, LABEL, QFont.Weight.Bold, 1.0))
+        right.setSpacing(z(6))
+        right.addWidget(slab("EVENTS IN THIS RECORDING", z(10), LABEL, QFont.Weight.Bold, 1.0))
         self.marks_list = QListWidget()
-        self.marks_list.setFixedWidth(250)
-        self.marks_list.setFont(mono(11))
+        self.marks_list.setFixedWidth(z(250))
+        self.marks_list.setFont(mono(z(11)))
         self.marks_list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.marks_list.setWordWrap(True)
-        self.marks_list.setStyleSheet(LIST_CSS)
+        self.marks_list.setStyleSheet(list_css)
         self.marks_list.itemClicked.connect(self._jump_to_mark)
         right.addWidget(self.marks_list, 1)
-        self.marks_hint = lab("Click an event to jump to it.", 10, MUTED)
+        self.marks_hint = lab("Click an event to jump to it.", z(10), MUTED)
         self.marks_hint.setWordWrap(True)
         right.addWidget(self.marks_hint)
         h.addLayout(right)
 
         # footer: OPEN FOLDER  DELETE  status ........ SAVE FRAME…  EXPORT…  CLOSE
-        folder = button("OPEN FOLDER", 11, None, *small)
+        folder = button("OPEN FOLDER", z(11), None, *small)
         folder.clicked.connect(self._open_folder)
         self.foot_lay.addWidget(folder)
-        self.frame_btn = button("SAVE FRAME…", 11, None, *small)
+        self.frame_btn = button("SAVE FRAME…", z(11), None, *small)
         self.frame_btn.clicked.connect(self._save_frame)
-        self.export_btn = button("EXPORT…", 11, None, *small)
+        self.export_btn = button("EXPORT…", z(11), None, *small)
         self.export_btn.setToolTip("Save the video as .mp4 (plays anywhere), or its events as Excel / CSV")
         self.export_btn.clicked.connect(self._export)
         self._exp = None                      # running MP4 export: {"name", "frac", "done", "error", "path"}
-        self.del_btn = button("DELETE", 11, 190,
-                              f"padding: 6px 0; border: 1px solid {RED_BORDER}; border-radius: 3px; background: #2a1416; color: {DANGER};",
+        self.del_btn = button("DELETE", z(11), z(190),
+                              f"padding: {z(6)}px 0; border: 1px solid {RED_BORDER}; border-radius: 3px; background: #2a1416; color: {DANGER};",
                               f"border-color: {DANGER};")
         self.del_btn.clicked.connect(self._delete)
         self.foot_lay.addWidget(self.del_btn)
-        self.status = lab("", 11, LABEL)
+        self.status = lab("", z(11), LABEL)
         self.status.setWordWrap(True)
         self.foot_lay.addWidget(self.status, 1)
         self.foot_lay.addWidget(self.frame_btn)
         self.foot_lay.addWidget(self.export_btn)
-        close = button("CLOSE", 11, 84,
-                       f"padding: 6px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
+        close = button("CLOSE", z(11), z(84),
+                       f"padding: {z(6)}px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
                        f"border-color: {ACCENT}; color: {ACCENT};")
         close.clicked.connect(self.close_card)
         self.foot_lay.addWidget(close)
@@ -138,28 +141,28 @@ class RecordingsCard(Card):
             b.setStyleSheet(b.styleSheet() + disabled)
 
         self.layout().setStretchFactor(self.body, 1)
-        self.setFixedSize(1500, 800)
+        self.setFixedSize(1640, 860)             # opening size; never bigger than the menu window allows
         self.grip = ResizeGrip(self, self.MIN_W, self.MIN_H)
-        self.add_maximize(self.grip)           # maximise button next to the ✕ (or double-click the title)
+        self.add_maximize(self.grip)           # "maximised" = fills the menu window and follows its size
+        self.max_btn.hide()                    # ...but no maximise / restore button,
+        self._head.removeEventFilter(self)     # and double-clicking the title does nothing
         self.timer = QTimer(self)
         self.timer.setInterval(33)                # ~30 fps display refresh while open
         self.timer.timeout.connect(self._tick)
 
     # ---------------- lifecycle ----------------
     def opened(self):
-        """Called each time the card is shown: re-reads recordings/."""
-        self.setFixedSize(*self.grip.clamp(self.width(), self.height()))
+        """Called each time the card is shown: re-reads recordings/. Opens maximised (the whole
+        menu window)."""
+        if self._restore is None:
+            self.toggle_maximize()
+        else:
+            self.refit()                         # already maximised: follow the menu's size
         self.recs = list_recordings()
         self.list.blockSignals(True)
         self.list.clear()
-        for r in self.recs:
-            ev = events_for(r)
-            n, m = len(ev), sum(1 for e in ev if e[2] == "MARK")
-            length = clock(r.length) if r.length is not None else "--:--"
-            count = (f"{n} event{'' if n == 1 else 's'}" + (f"  ·  {m} mark{'' if m == 1 else 's'}" if m else "")
-                     if n else "")
-            self.list.addItem(QListWidgetItem(f"{r.started}\n{r.vehicle}  ·  {length}  ·  {r.size_text()}"
-                                              + (f"\n{count}" if count else "")))
+        for r in self.recs:                  # date and file name; length, size and events show when picked
+            self.list.addItem(QListWidgetItem(f"{r.started}\n{r.path.name}"))
         self.list.blockSignals(False)
         self._say(LABEL, "")
         self.list.setCurrentRow(0 if self.recs else -1)
@@ -393,10 +396,11 @@ class RecordingsCard(Card):
 class VideoView(QWidget):
     """Paints a QImage letterboxed (aspect kept) on black; a message when there is none."""
 
-    def __init__(self):
+    def __init__(self, text_px=12):
         super().__init__()
         self.setMinimumSize(320, 180)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.text_px = text_px              # size of the "No recording selected" message
         self.image = None
         self.message = "No recording selected"
 
@@ -414,7 +418,7 @@ class VideoView(QWidget):
             p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
             p.drawImage(QRectF((self.width() - w) / 2, (self.height() - h) / 2, w, h), self.image)
         if self.message:
-            p.setFont(mono(12))
+            p.setFont(mono(self.text_px))
             p.setPen(QColor(LABEL))
             p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.message)
         p.setPen(QColor(BORDER))
@@ -426,15 +430,16 @@ class SeekBar(QSlider):
 
     jumped = Signal(float)          # seconds
 
-    def __init__(self):
+    def __init__(self, scale=1.0):
         super().__init__(Qt.Orientation.Horizontal)
+        z = lambda v: round(v * scale)
         self.setRange(0, 0)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setStyleSheet(
-            f"QSlider::groove:horizontal {{ height: 6px; background: {WELL}; border: 1px solid {BORDER2}; border-radius: 3px; }}"
+            f"QSlider::groove:horizontal {{ height: {z(6)}px; background: {WELL}; border: 1px solid {BORDER2}; border-radius: 3px; }}"
             f"QSlider::sub-page:horizontal {{ background: {ACCENT}; border-radius: 3px; }}"
-            f"QSlider::handle:horizontal {{ width: 14px; margin: -5px 0; border-radius: 7px; background: #eaf2fa;"
+            f"QSlider::handle:horizontal {{ width: {z(14)}px; margin: -{z(5)}px 0; border-radius: {z(7)}px; background: #eaf2fa;"
             f" border: 1px solid {GRID}; }}")
         self.sliderReleased.connect(lambda: self.jumped.emit(self.value() / 10))
 

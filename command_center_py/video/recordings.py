@@ -1,6 +1,6 @@
 """Camera recordings (console REC button) read back for the main menu's VIEW RECORDINGS page.
 
-    list_recordings()        every recordings/*.mkv, newest first (start time, vehicle, size, length)
+    list_recordings()        every recordings/*.mkv and *.mp4, newest first (start time, vehicle, size, length)
     events_for(recording)    every event logged while that file was recording, from logs/*.csv
                              (the "video_time" / "video_file" columns written by the console)
     event_rows(recording)    the same events as full log rows (all columns), for EXPORT
@@ -9,6 +9,7 @@
 """
 
 import csv
+from datetime import datetime
 from pathlib import Path
 
 from command_center_py.logs import filenames
@@ -58,14 +59,24 @@ def probe_length(path):
         return None
 
 
+# Video files VIEW RECORDINGS lists: the console's REC files (.mkv), and .mp4 files copied in
+# (e.g. EXPORT... copies or other clips).
+VIDEO_PATTERNS = ("*.mkv", "*.mp4")
+
+
 class Recording:
     def __init__(self, path):
         self.path = path
         self.started, self.vehicle, _ = filenames.parse(path.stem)
         try:
-            self.size = path.stat().st_size
+            st = path.stat()
+            self.size = st.st_size
         except OSError:
-            self.size = 0
+            st, self.size = None, 0
+        if self.vehicle == "?":           # not a console REC name: use the file's own date and name
+            self.vehicle = path.stem
+            self.started = (datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                            if st is not None else "")
         self.length = probe_length(path)
 
     def size_text(self):
@@ -86,7 +97,8 @@ class Recording:
 def list_recordings():
     if not RECORDINGS_DIR.is_dir():
         return []
-    return [Recording(p) for p in filenames.newest_first(RECORDINGS_DIR.glob("*.mkv"))]
+    recs = [Recording(p) for pattern in VIDEO_PATTERNS for p in RECORDINGS_DIR.glob(pattern)]
+    return sorted(recs, key=lambda r: (r.started, r.path.name), reverse=True)    # newest first
 
 
 def _mark_summary(r):

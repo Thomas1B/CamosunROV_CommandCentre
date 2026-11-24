@@ -397,7 +397,9 @@ shows as a brief glitch, as it does live.
 
 **VIEW RECORDINGS** lists `recordings/*.mkv`, newest first, with start time,
 vehicle, length, size and event/mark counts, and plays them in a built-in
-player.
+player. It also lists `.mp4` files copied into `recordings/` (for example an
+EXPORT… copy or another clip). A file not named like a REC recording shows its
+file name and the date it was last changed, and has no events.
 
 - **Playback:** play/pause, ±3 s, ±1 s, and a seek bar (click or drag).
 - **Events:** every log line from the recording, with video time, local time
