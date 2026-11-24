@@ -34,10 +34,6 @@ leak sensor, STM32 reset reason, and link quality (round-trip time, packet loss)
   - Xbox: driver built into Windows.
   - DualShock 3 (USB): install the
     [DsHidMini driver](https://docs.nefarius.at/Downloads/) before plugging in.
-
-  Match the on-screen button names with the DUALSHOCK 3 / XBOX toggle above
-  STICK INPUT. Calibrate each controller once in
-  [Controller profiles](#controller-profiles) to remove stick drift.
 - **Python 3.14** in the project venv, only when running from source — see
   below.
 
@@ -68,6 +64,8 @@ overwrites it, so a deleted `ROV-01` stays deleted until the next update.
 The app runs on **Python 3.14** in a `.venv` in the repo's top directory. The
 venv is not committed; build it from `py_requirements.txt`, which pins exact
 versions.
+
+0. If you have already done the developer Setup, see the [quick start guide](QUICK_GUIDE.md)
 
 1. **Install Python 3.14** (once). It installs alongside other versions.
    Recommended: install the Python install manager from python.org and run:
@@ -192,6 +190,8 @@ reference values).
 | *PyAV not installed* | Venv predates `av`; re-run `pip install -r py_requirements.txt`. |
 | Wi-Fi internet stops while tethered | Clear the gateway on the tether adapter. |
 | *Reference values applied by the Pi* never appears | Pi isn't replying with `ref_ack` (possibly an older version). The console resends every 1 s. |
+
+Set up done! Program is ready to connect to the ROV.
 
 ---
 
