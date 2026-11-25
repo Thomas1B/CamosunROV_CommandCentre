@@ -324,6 +324,7 @@ class MainMenu(QWidget):
         if self.overlay is self.quit_ov:
             return
         self._before_quit = self.overlay
+        self.quit_card.select(0)                  # CANCEL highlighted each time it opens
         self.open_overlay(self.quit_ov)
 
     def cancel_quit(self):
@@ -368,11 +369,13 @@ class MainMenu(QWidget):
 
     def keyPressEvent(self, e):
         k = e.key()
-        if self.overlay is self.quit_ov:          # QUIT?: Esc = CANCEL, Enter = QUIT
+        if self.overlay is self.quit_ov:          # QUIT?: Esc = CANCEL, Left / Right move, Enter presses
             if k == Qt.Key.Key_Escape:
                 self.cancel_quit()
+            elif k in (Qt.Key.Key_Left, Qt.Key.Key_Right):
+                self.quit_card.step(-1 if k == Qt.Key.Key_Left else 1)
             elif k in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                self.quit_now()
+                self.quit_card.press()
             return
         if self.overlay is self.connect_ov:
             if not self.connect_card.key(e):
@@ -411,9 +414,13 @@ class MainMenu(QWidget):
 
     def focusNextPrevChild(self, nxt):
         """Tab / Shift+Tab on the menu itself move the selection like Down / Up (wrapping).
-        With a card open, Tab moves between that card's controls as normal."""
+        On the QUIT card they move the highlight between CANCEL and QUIT.
+        With another card open, Tab moves between that card's controls as normal."""
         if self.overlay is None:
             self.select(self.sel + (1 if nxt else -1))
+            return True
+        if self.overlay is self.quit_ov:
+            self.quit_card.step(1 if nxt else -1)
             return True
         return super().focusNextPrevChild(nxt)
 

@@ -1,7 +1,10 @@
 """QUIT card: asks "Are you sure?" before the program closes.
 
 Shown by the main menu for QUIT, the window's ✕, Alt+F4 and the taskbar's "Close window".
-CANCEL (or Esc, the ✕ or a click on the dimmed menu) goes back; QUIT (or Enter) closes the program.
+CANCEL (or Esc, the ✕ or a click on the dimmed menu) goes back; QUIT closes the program.
+Keyboard: Tab / Shift+Tab or Left / Right move the highlight between CANCEL and QUIT (CANCEL is
+highlighted when the card opens, so a stray Enter doesn't quit), Enter presses the highlighted button. The keys arrive through
+MainMenu.keyPressEvent / focusNextPrevChild, as for the other cards.
 Ctrl+C in the terminal does not ask (app.py shutdown -> MainMenu.quit_now)."""
 
 from PySide6.QtWidgets import QVBoxLayout
@@ -25,13 +28,33 @@ class QuitCard(Card):
 
         # footer: ........ CANCEL  QUIT
         self.foot_lay.addStretch(1)
-        cancel = button("CANCEL", z(11), z(96),
-                        f"padding: {z(6)}px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};",
-                        f"border-color: {ACCENT}; color: {ACCENT};")
+        cancel_css = f"padding: {z(6)}px 0; border: 1px solid {GRID}; border-radius: 3px; background: #1a2029; color: {BRIGHT};"
+        cancel_hover = f"border-color: {ACCENT}; color: {ACCENT};"
+        cancel = button("CANCEL", z(11), z(96), cancel_css, cancel_hover)
         cancel.clicked.connect(on_cancel)
         self.foot_lay.addWidget(cancel)
-        quit_btn = button("QUIT", z(11), z(96),
-                          f"padding: {z(6)}px 0; border: 1px solid {RED_BORDER}; border-radius: 3px; background: #2a1416; color: {DANGER};",
-                          f"border-color: {DANGER};")
+        quit_css = f"padding: {z(6)}px 0; border: 1px solid {RED_BORDER}; border-radius: 3px; background: #2a1416; color: {DANGER};"
+        quit_hover = f"border-color: {DANGER};"
+        quit_btn = button("QUIT", z(11), z(96), quit_css, quit_hover)
         quit_btn.clicked.connect(on_quit)
         self.foot_lay.addWidget(quit_btn)
+
+        # keyboard highlight: index into _btns (0 = CANCEL, 1 = QUIT)
+        self._btns = [(cancel, cancel_css, cancel_hover), (quit_btn, quit_css, quit_hover)]
+        self.sel = 0
+        self.select(0)
+
+    def select(self, i):
+        """Highlight button i (wraps), drawn like its mouse hover."""
+        self.sel = i % len(self._btns)
+        for j, (b, css, hover) in enumerate(self._btns):
+            on = hover if j == self.sel else ""          # later rules in the block win
+            b.setStyleSheet(f"QPushButton {{ {css} {on} }} QPushButton:hover {{ {hover} }}")
+
+    def step(self, d):
+        """Tab / Right: d = +1, Shift+Tab / Left: d = -1."""
+        self.select(self.sel + d)
+
+    def press(self):
+        """Enter: press the highlighted button (CANCEL or QUIT)."""
+        self._btns[self.sel][0].click()
