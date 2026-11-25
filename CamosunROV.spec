@@ -20,12 +20,15 @@ vehicle profiles there on its first start of each version.
 
 import shutil
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(SPECPATH)))                 # so the spec can read config.py
+from command_center_py.config import APP_VERSION
 
 # ===========================================================================
 # SETTINGS
 # ===========================================================================
 
-APP_NAME = "CamosunROV"   # .exe and folder name; keep it without spaces
+APP_NAME = f"CamosunROV_V{APP_VERSION}"   # .exe and folder name; keep it without spaces
 ROOT = Path(SPECPATH)     # repo root (SPECPATH = this file's folder, set by PyInstaller)
 
 # .exe icon - must match ICON_ICO in app.py
